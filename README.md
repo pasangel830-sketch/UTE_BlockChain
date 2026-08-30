@@ -4,6 +4,7 @@ Plataforma de Gestión de Uniones Temporales de Empresas (UTE) con Trazabilidad 
 
 Registro compartido de hitos, pagos (con escrow) e incidencias. Hyperledger Fabric 2.5, API Express, frontend Next.js.
 
+**Manual de uso (pantallas, usuarios, estados):** [docs/MANUAL.md](docs/MANUAL.md)  
 **Estado y tareas:** [docs/CHECKLIST.md](docs/CHECKLIST.md)  
 **Rúbrica → código:** [docs/TRAZABILIDAD.md](docs/TRAZABILIDAD.md)  
 **Desviaciones del PDF (memoria):** [docs/MEMORIA-NOTAS.md](docs/MEMORIA-NOTAS.md)

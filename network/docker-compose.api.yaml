@@ -19,7 +19,7 @@ services:
       PORT: "4000"
       JWT_SECRET: dev-secret-change-me
       JWT_EXPIRES: 8h
-      AUTH_USERS: empresaA:empresaA:EmpresaAMSP,administracion:administracion:AdministracionMSP
+      AUTH_USERS: empresaA:empresaA:EmpresaAMSP,empresaB:empresaB:EmpresaBMSP,empresaC:empresaC:EmpresaCMSP,empresaD:empresaD:EmpresaDMSP,administracion:administracion:AdministracionMSP
       PEER_ENDPOINT: peer0.empresaa.ute.local:7051
       PEER_HOST_ALIAS: peer0.empresaa.ute.local
       CRYPTO_PATH: /crypto

@@ -5,6 +5,7 @@ import rateLimit from 'express-rate-limit';
 import client from 'prom-client';
 import { swaggerMiddleware, swaggerSetup } from './swagger';
 import { router } from './routes';
+import { traducirError } from './errors';
 
 const register = new client.Registry();
 client.collectDefaultMetrics({ register });
@@ -35,9 +36,14 @@ export function createApp() {
   app.use(router);
 
   app.use(
-    (err: Error, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
+    (err: Error, req: express.Request, res: express.Response, _next: express.NextFunction) => {
       console.error(err);
-      res.status(500).json({ error: err.message });
+      const { status, body } = traducirError(err, {
+        org: req.user?.org,
+        ruta: req.path,
+        lote: req.loteContexto ?? (req.body as { lote?: unknown } | undefined)?.lote,
+      });
+      res.status(status).json(body);
     },
   );
   return app;

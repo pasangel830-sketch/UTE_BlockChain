@@ -7,6 +7,9 @@ import { config, OrgMsp } from './config';
 
 const ORG_DOMAIN: Record<OrgMsp, string> = {
   EmpresaAMSP: 'empresaa.ute.local',
+  EmpresaBMSP: 'empresab.ute.local',
+  EmpresaCMSP: 'empresac.ute.local',
+  EmpresaDMSP: 'empresad.ute.local',
   AdministracionMSP: 'administracion.ute.local',
 };
 
@@ -22,6 +25,8 @@ async function firstFile(dir: string): Promise<string> {
   return path.join(dir, files[0]);
 }
 
+// Todas las orgs entran por el peer de PEER_ENDPOINT (peer A en la red diaria) con su propio
+// certificado: B/C/D pueden hacer evaluate aunque su peer esté apagado.
 async function connectOrg(org: OrgMsp): Promise<Handle> {
   const domain = ORG_DOMAIN[org];
   const msp = path.join(
@@ -102,9 +107,12 @@ export async function evaluate(
   name: string,
   fn: string,
   args: string[],
+  endorsing?: string[],
 ): Promise<string> {
   const c = contract(await getGateway(org), chaincode, name);
-  const bytes = await c.evaluateTransaction(fn, ...args);
+  const bytes = endorsing
+    ? await c.evaluate(fn, { arguments: args, endorsingOrganizations: endorsing })
+    : await c.evaluateTransaction(fn, ...args);
   return Buffer.from(bytes).toString('utf8');
 }
 

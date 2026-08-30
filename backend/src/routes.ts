@@ -6,6 +6,8 @@ import { submit, evaluate } from './fabric';
 import { saveLocal } from './storage';
 import { getExplorerSnapshot } from './explorer';
 import { agregarEstado } from './estado';
+import { rechazoSoloAdministracion, rechazoSoloConstructora } from './errors';
+import { endosantesDeLote, esLote, perfilDe, sociosDe } from './orgs';
 
 export const bancoLog: unknown[] = [];
 
@@ -28,6 +30,11 @@ function pid(req: Request): string {
 }
 
 const ENDORSE_DAILY = ['EmpresaAMSP', 'AdministracionMSP'];
+
+/** Escribir en la PDC de un lote exige el endoso de un socio de esa colección. */
+function endosantesIncidencia(lote: string): string[] {
+  return esLote(lote) ? endosantesDeLote(lote) : ENDORSE_DAILY;
+}
 
 async function itemsOf(org: OrgMsp, chaincode: string, contract: string, fn: string): Promise<unknown[]> {
   try {
@@ -71,7 +78,11 @@ router.post(
       const token = login(username || '', password || '');
       res.json({ token });
     } catch {
-      res.status(401).json({ error: 'credenciales' });
+      res.status(401).json({
+        error: 'Usuario o contraseña incorrectos. Las cuentas de la demo aparecen bajo el título.',
+        detalle: `usuario rechazado: ${username || '(vacío)'}`,
+        codigo: 'CREDENCIALES',
+      });
     }
   }),
 );
@@ -94,16 +105,22 @@ router.post(
   '/hitos',
   auth,
   asyncH(async (req, res) => {
+    const perfil = perfilDe(orgOf(req));
+    if (!perfil?.empresa) {
+      res.status(403).json(rechazoSoloConstructora(req.user?.org, 'un hito de obra'));
+      return;
+    }
     const { id, titulo, descripcion, empresa, importe } = req.body as Record<string, string>;
     const hid = id || `H-${Date.now()}`;
     const raw = await submit(orgOf(req), config.chaincodeHito, 'HitoContract', 'crearHito', [
       hid,
       titulo,
       descripcion || '',
-      empresa || 'EmpresaA',
+      empresa || perfil.empresa,
       String(importe),
     ]);
     res.status(201).json(JSON.parse(raw));
+    void refreshEstado(orgOf(req));
   }),
 );
 
@@ -206,6 +223,10 @@ router.post(
   '/pagos/:id/autorizar',
   auth,
   asyncH(async (req, res) => {
+    if (req.user?.org !== 'AdministracionMSP') {
+      res.status(403).json(rechazoSoloAdministracion(req.user?.org));
+      return;
+    }
     const raw = await submit(
       'AdministracionMSP',
       config.chaincodePago,
@@ -258,11 +279,18 @@ router.post(
   '/incidencias',
   auth,
   asyncH(async (req, res) => {
+    const perfil = perfilDe(orgOf(req));
+    if (!perfil?.empresa || !perfil.lote) {
+      res.status(403).json(rechazoSoloConstructora(req.user?.org, 'una incidencia de lote'));
+      return;
+    }
     const { id, titulo, empresa, lote, detalle, costeEstimado, notasTecnicas } = req.body as Record<
       string,
       string | number
     >;
     const iid = String(id || `I-${Date.now()}`);
+    const loteFinal = String(lote || perfil.lote);
+    req.loteContexto = loteFinal;
     const transient = {
       detalle: JSON.stringify({
         detalle: detalle || '',
@@ -275,8 +303,8 @@ router.post(
       config.chaincodeIncidencia,
       'IncidenciaContract',
       'crearIncidencia',
-      [iid, String(titulo || ''), String(empresa || 'EmpresaA'), String(lote || 'obra-gruesa-solar')],
-      ENDORSE_DAILY,
+      [iid, String(titulo || ''), String(empresa || perfil.empresa), loteFinal],
+      endosantesIncidencia(loteFinal),
       transient,
     );
     res.status(201).json(JSON.parse(raw));
@@ -303,12 +331,22 @@ router.get(
   '/incidencias/:id/privado',
   auth,
   asyncH(async (req, res) => {
+    const org = orgOf(req);
+    // El detalle solo lo tiene un peer socio de la colección: peer A únicamente guarda el hash
+    // de quirofanos-tech, así que hay que dirigir la consulta a los socios del lote.
+    const publica = JSON.parse(
+      await evaluate(org, config.chaincodeIncidencia, 'IncidenciaContract', 'consultarIncidencia', [
+        pid(req),
+      ]),
+    ) as { lote?: string };
+    req.loteContexto = publica.lote;
     const raw = await evaluate(
-      orgOf(req),
+      org,
       config.chaincodeIncidencia,
       'IncidenciaContract',
       'consultarDetallePrivado',
       [pid(req)],
+      esLote(publica.lote) ? sociosDe(publica.lote) : undefined,
     );
     res.json(JSON.parse(raw));
   }),
@@ -421,7 +459,11 @@ router.post(
   upload.single('file'),
   asyncH(async (req, res) => {
     if (!req.file) {
-      res.status(400).json({ error: 'file' });
+      res.status(400).json({
+        error: 'No has adjuntado ningún archivo. Selecciona la evidencia y vuelve a enviar.',
+        detalle: 'campo multipart "file" ausente',
+        codigo: 'DATO_INVALIDO',
+      });
       return;
     }
     const stored = await saveLocal(

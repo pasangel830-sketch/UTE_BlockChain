@@ -15,6 +15,49 @@ export function clearToken(): void {
   localStorage.removeItem(TOKEN_KEY);
 }
 
+export type Session = { username: string; org: string };
+
+export function decodeToken(token?: string | null): Record<string, unknown> | null {
+  const t = token ?? getToken();
+  if (!t) return null;
+  const part = t.split('.')[1];
+  if (!part) return null;
+  try {
+    const b64 = part.replace(/-/g, '+').replace(/_/g, '/');
+    return JSON.parse(atob(b64)) as Record<string, unknown>;
+  } catch {
+    return null;
+  }
+}
+
+export function getSession(): Session | null {
+  const payload = decodeToken();
+  if (!payload) return null;
+  const { sub, org } = payload as { sub?: string; org?: string };
+  if (!sub || !org) return null;
+  return { username: sub, org };
+}
+
+/** Error de la API con el texto humano en `message` y el crudo de Fabric en `detalle`. */
+export class ApiError extends Error {
+  readonly detalle: string;
+  readonly codigo: string;
+  readonly nota?: string;
+  readonly status: number;
+
+  constructor(
+    message: string,
+    opts: { detalle?: string; codigo?: string; nota?: string; status: number },
+  ) {
+    super(message);
+    this.name = 'ApiError';
+    this.detalle = opts.detalle || '';
+    this.codigo = opts.codigo || 'ERROR_INTERNO';
+    this.nota = opts.nota;
+    this.status = opts.status;
+  }
+}
+
 export async function api<T>(path: string, init: RequestInit = {}): Promise<T> {
   const token = getToken();
   const headers: Record<string, string> = {
@@ -33,8 +76,13 @@ export async function api<T>(path: string, init: RequestInit = {}): Promise<T> {
     data = { error: text };
   }
   if (!res.ok) {
-    const err = data as { error?: string };
-    throw new Error(err.error || `HTTP ${res.status}`);
+    const err = data as { error?: string; detalle?: string; codigo?: string; nota?: string };
+    throw new ApiError(err.error || `HTTP ${res.status}`, {
+      detalle: err.detalle,
+      codigo: err.codigo,
+      nota: err.nota,
+      status: res.status,
+    });
   }
   return data as T;
 }

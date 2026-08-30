@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { Shell } from '@/components/Shell';
+import { ErrorBox } from '@/components/ErrorBox';
 import { api } from '@/lib/api';
 
 type Estado = {
@@ -20,7 +21,7 @@ type Estado = {
 
 export default function EstadoPage() {
   const [e, setE] = useState<Estado | null>(null);
-  const [err, setErr] = useState('');
+  const [err, setErr] = useState<unknown>(null);
 
   const load = useCallback(async () => {
     const r = await api<Estado>('/estado');
@@ -28,15 +29,15 @@ export default function EstadoPage() {
   }, []);
 
   useEffect(() => {
-    void load().catch((ex) => setErr((ex as Error).message));
+    void load().catch(setErr);
   }, [load]);
 
   async function recalc() {
-    setErr('');
+    setErr(null);
     try {
       setE(await api<Estado>('/estado/recalcular', { method: 'POST', body: '{}' }));
     } catch (ex) {
-      setErr((ex as Error).message);
+      setErr(ex);
     }
   }
 
@@ -61,7 +62,7 @@ export default function EstadoPage() {
         </button>
       </div>
       <p className="mt-1 text-sm text-slate-500">Lo escribe el backend. Sin invoke entre chaincodes.</p>
-      {err && <p className="mt-2 text-sm text-rose-600">{err}</p>}
+      <ErrorBox error={err} />
       <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {cards.map(([k, v]) => (
           <div key={k} className="rounded-xl border bg-white p-4">

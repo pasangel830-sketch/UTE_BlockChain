@@ -3,8 +3,10 @@
 import { FormEvent, useCallback, useEffect, useState } from 'react';
 import { Shell } from '@/components/Shell';
 import { Badge } from '@/components/Badge';
+import { ErrorBox } from '@/components/ErrorBox';
 import { ExplorerPanel } from '@/components/ExplorerPanel';
-import { api } from '@/lib/api';
+import { api, getSession } from '@/lib/api';
+import { profileOf, type OrgProfile } from '@/lib/orgs';
 
 type Hito = {
   id: string;
@@ -21,7 +23,8 @@ export default function HitosPage() {
   const [titulo, setTitulo] = useState('Cimentación lote A');
   const [importe, setImporte] = useState('10000');
   const [msg, setMsg] = useState('');
-  const [err, setErr] = useState('');
+  const [err, setErr] = useState<unknown>(null);
+  const [perfil, setPerfil] = useState<OrgProfile | null>(null);
 
   const load = useCallback(async () => {
     const [h, p] = await Promise.all([
@@ -33,33 +36,38 @@ export default function HitosPage() {
   }, []);
 
   useEffect(() => {
-    void load().catch((e) => setErr((e as Error).message));
+    setPerfil(profileOf(getSession()?.org));
+    void load().catch(setErr);
   }, [load]);
 
   async function crear(e: FormEvent) {
     e.preventDefault();
-    setErr('');
-    const h = await api<Hito>('/hitos', {
-      method: 'POST',
-      body: JSON.stringify({
-        titulo,
-        descripcion: 'demo día 7',
-        empresa: 'EmpresaA',
-        importe: Number(importe),
-      }),
-    });
-    setMsg(`creado ${h.id}`);
-    await load();
+    setErr(null);
+    try {
+      const h = await api<Hito>('/hitos', {
+        method: 'POST',
+        body: JSON.stringify({
+          titulo,
+          descripcion: 'demo día 7',
+          empresa: perfil?.empresa,
+          importe: Number(importe),
+        }),
+      });
+      setMsg(`creado ${h.id}`);
+      await load();
+    } catch (e2) {
+      setErr(e2);
+    }
   }
 
   async function act(h: Hito, path: string) {
-    setErr('');
+    setErr(null);
     try {
       await api(`/hitos/${h.id}/${path}`, { method: 'POST', body: '{}' });
       setMsg(`${path} ${h.id}`);
       await load();
     } catch (e) {
-      setErr((e as Error).message);
+      setErr(e);
     }
   }
 
@@ -75,22 +83,32 @@ export default function HitosPage() {
       <div className="grid gap-6 lg:grid-cols-3">
         <div className="lg:col-span-2 space-y-6">
           <h1 className="text-2xl font-bold">Hitos y pagos</h1>
-          <form onSubmit={crear} className="flex flex-wrap gap-3 rounded-xl border border-slate-200 bg-white p-4">
-            <input
-              className="flex-1 rounded-lg border px-3 py-2"
-              value={titulo}
-              onChange={(e) => setTitulo(e.target.value)}
-              required
-            />
-            <input
-              className="w-32 rounded-lg border px-3 py-2"
-              value={importe}
-              onChange={(e) => setImporte(e.target.value)}
-            />
-            <button className="rounded-lg bg-ink px-4 py-2 text-white">Crear hito</button>
-          </form>
+          {perfil?.empresa ? (
+            <form onSubmit={crear} className="flex flex-wrap gap-3 rounded-xl border border-slate-200 bg-white p-4">
+              <input
+                className="flex-1 rounded-lg border px-3 py-2"
+                value={titulo}
+                onChange={(e) => setTitulo(e.target.value)}
+                required
+              />
+              <input
+                className="w-32 rounded-lg border px-3 py-2"
+                value={importe}
+                onChange={(e) => setImporte(e.target.value)}
+              />
+              <button className="rounded-lg bg-ink px-4 py-2 text-white">Crear hito</button>
+              <p className="w-full text-xs text-slate-500">
+                El hito se registra a nombre de {perfil.empresa} ({perfil.oficio}).
+              </p>
+            </form>
+          ) : (
+            <p className="rounded-xl border border-slate-200 bg-white p-4 text-sm text-slate-600">
+              Administración no registra obra propia: valida hitos y autoriza pagos. El alta de hitos la
+              hacen las constructoras (Empresa A, B, C o D).
+            </p>
+          )}
           {msg && <p className="text-sm text-emerald-700">{msg}</p>}
-          {err && <p className="text-sm text-rose-600">{err}</p>}
+          <ErrorBox error={err} />
           <ul className="space-y-3">
             {hitos.map((h) => {
               const nxt = nextAction(h.estado);

@@ -3,7 +3,9 @@
 import { FormEvent, useCallback, useEffect, useState } from 'react';
 import { Shell } from '@/components/Shell';
 import { Badge } from '@/components/Badge';
-import { api } from '@/lib/api';
+import { ErrorBox } from '@/components/ErrorBox';
+import { api, getSession } from '@/lib/api';
+import { lotePdcApagada, orgSinPeerDiario, profileOf, sociosLabel, type OrgProfile } from '@/lib/orgs';
 
 type Inc = {
   id: string;
@@ -19,8 +21,9 @@ export default function IncidenciasPage() {
   const [detalle, setDetalle] = useState('precio partida confidencial');
   const [coste, setCoste] = useState('1200');
   const [privado, setPrivado] = useState<Record<string, string>>({});
-  const [err, setErr] = useState('');
+  const [err, setErr] = useState<unknown>(null);
   const [msg, setMsg] = useState('');
+  const [perfil, setPerfil] = useState<OrgProfile | null>(null);
 
   const load = useCallback(async () => {
     const r = await api<{ items: Inc[] }>('/incidencias');
@@ -28,61 +31,100 @@ export default function IncidenciasPage() {
   }, []);
 
   useEffect(() => {
-    void load().catch((e) => setErr((e as Error).message));
+    setPerfil(profileOf(getSession()?.org));
+    void load().catch(setErr);
   }, [load]);
 
   async function crear(e: FormEvent) {
     e.preventDefault();
-    setErr('');
-    const inc = await api<Inc>('/incidencias', {
-      method: 'POST',
-      body: JSON.stringify({
-        titulo,
-        empresa: 'EmpresaA',
-        lote: 'obra-gruesa-solar',
-        detalle,
-        costeEstimado: Number(coste),
-        notasTecnicas: 'PDC A/C',
-      }),
-    });
-    setMsg(`creada ${inc.id}`);
-    await load();
+    setErr(null);
+    try {
+      const inc = await api<Inc>('/incidencias', {
+        method: 'POST',
+        body: JSON.stringify({
+          titulo,
+          empresa: perfil?.empresa,
+          lote: perfil?.lote,
+          detalle,
+          costeEstimado: Number(coste),
+          notasTecnicas: `PDC ${perfil?.lote ?? ''}`,
+        }),
+      });
+      setMsg(`creada ${inc.id}`);
+      await load();
+    } catch (e2) {
+      setErr(e2);
+    }
   }
 
   async function act(id: string, path: string) {
-    setErr('');
+    setErr(null);
     try {
       await api(`/incidencias/${id}/${path}`, { method: 'POST', body: JSON.stringify({ motivo: 'cierre' }) });
       await load();
     } catch (e) {
-      setErr((e as Error).message);
+      setErr(e);
     }
   }
 
   async function verPrivado(id: string) {
-    setErr('');
+    setErr(null);
     try {
       const d = await api<{ detalle: string; costeEstimado: number }>(`/incidencias/${id}/privado`);
       setPrivado((p) => ({ ...p, [id]: `${d.detalle} (${d.costeEstimado} €)` }));
     } catch (e) {
-      setErr((e as Error).message);
+      setErr(e);
     }
   }
+
+  const pdcApagada = lotePdcApagada(perfil?.lote);
 
   return (
     <Shell>
       <h1 className="text-2xl font-bold">Incidencias</h1>
       <p className="mt-1 text-sm text-slate-500">
-        Público en el canal. Detalle en PDC <code>obra-gruesa-solar</code> (A o C).
+        {perfil?.lote ? (
+          <>
+            Público en el canal. Detalle en PDC <code>{perfil.lote}</code> ({sociosLabel(perfil.lote)}).
+          </>
+        ) : (
+          <>
+            Público en el canal. El detalle vive en la PDC de cada lote; Administración solo ve el hash
+            que prueba que existe y que no ha cambiado.
+          </>
+        )}
       </p>
-      <form onSubmit={crear} className="mt-4 grid gap-3 rounded-xl border bg-white p-4 md:grid-cols-2">
-        <input className="rounded-lg border px-3 py-2" value={titulo} onChange={(e) => setTitulo(e.target.value)} />
-        <input className="rounded-lg border px-3 py-2" value={detalle} onChange={(e) => setDetalle(e.target.value)} />
-        <input className="rounded-lg border px-3 py-2" value={coste} onChange={(e) => setCoste(e.target.value)} />
-        <button className="rounded-lg bg-ink px-4 py-2 text-white">Crear incidencia</button>
-      </form>
+      {pdcApagada && (
+        <p className="mt-3 rounded-xl border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">
+          Red diaria: los nodos de B, C y D están apagados. Puedes consultar hitos e incidencias; para
+          registrar datos privados de <code>{perfil?.lote}</code> hace falta <code>make pdc-up</code>.
+        </p>
+      )}
+      {!pdcApagada && orgSinPeerDiario(perfil?.org) && perfil?.lote && (
+        <p className="mt-3 rounded-xl border border-slate-200 bg-white p-3 text-sm text-slate-600">
+          Red diaria: el nodo de {perfil.label} está apagado. Las altas del lote{' '}
+          <code>{perfil.lote}</code> salen igual, porque las endosa el nodo de{' '}
+          {sociosLabel(perfil.lote, ' / ')}, socio de la misma colección privada.
+        </p>
+      )}
+      {perfil?.empresa && perfil.lote ? (
+        <form onSubmit={crear} className="mt-4 grid gap-3 rounded-xl border bg-white p-4 md:grid-cols-2">
+          <input className="rounded-lg border px-3 py-2" value={titulo} onChange={(e) => setTitulo(e.target.value)} />
+          <input className="rounded-lg border px-3 py-2" value={detalle} onChange={(e) => setDetalle(e.target.value)} />
+          <input className="rounded-lg border px-3 py-2" value={coste} onChange={(e) => setCoste(e.target.value)} />
+          <button className="rounded-lg bg-ink px-4 py-2 text-white">Crear incidencia</button>
+          <p className="md:col-span-2 text-xs text-slate-500">
+            Se registrará a nombre de {perfil.empresa} en el lote <code>{perfil.lote}</code>.
+          </p>
+        </form>
+      ) : (
+        <p className="mt-4 rounded-xl border bg-white p-4 text-sm text-slate-600">
+          Administración no abre incidencias de lote: no es socia de ninguna colección privada. Puede
+          consultar la lista pública y comprobar que el hash del detalle está en el canal.
+        </p>
+      )}
       {msg && <p className="mt-2 text-sm text-emerald-700">{msg}</p>}
-      {err && <p className="mt-2 text-sm text-rose-600">{err}</p>}
+      <ErrorBox error={err} />
       <ul className="mt-6 space-y-3">
         {items.map((i) => (
           <li key={i.id} className="rounded-xl border bg-white p-4">

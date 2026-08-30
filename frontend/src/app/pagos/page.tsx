@@ -3,7 +3,8 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Shell } from '@/components/Shell';
 import { Badge } from '@/components/Badge';
-import { api } from '@/lib/api';
+import { ErrorBox } from '@/components/ErrorBox';
+import { api, getSession } from '@/lib/api';
 
 type Pago = {
   id: string;
@@ -16,8 +17,9 @@ type Pago = {
 
 export default function PagosPage() {
   const [items, setItems] = useState<Pago[]>([]);
-  const [err, setErr] = useState('');
+  const [err, setErr] = useState<unknown>(null);
   const [msg, setMsg] = useState('');
+  const [esAdmin, setEsAdmin] = useState(false);
 
   const load = useCallback(async () => {
     const r = await api<{ items: Pago[] }>('/pagos');
@@ -25,17 +27,18 @@ export default function PagosPage() {
   }, []);
 
   useEffect(() => {
-    void load().catch((e) => setErr((e as Error).message));
+    setEsAdmin(getSession()?.org === 'AdministracionMSP');
+    void load().catch(setErr);
   }, [load]);
 
   async function autorizar(id: string) {
-    setErr('');
+    setErr(null);
     try {
       await api(`/pagos/${id}/autorizar`, { method: 'POST', body: '{}' });
       setMsg(`autorizado ${id}`);
       await load();
     } catch (e) {
-      setErr((e as Error).message);
+      setErr(e);
     }
   }
 
@@ -44,7 +47,7 @@ export default function PagosPage() {
       <h1 className="text-2xl font-bold">Pagos (escrow)</h1>
       <p className="mt-1 text-sm text-slate-500">CUSTODIA hasta autorización de Administración.</p>
       {msg && <p className="mt-2 text-sm text-emerald-700">{msg}</p>}
-      {err && <p className="mt-2 text-sm text-rose-600">{err}</p>}
+      <ErrorBox error={err} />
       <ul className="mt-6 space-y-3">
         {items.map((p) => (
           <li key={p.id} className="rounded-xl border border-slate-200 bg-white p-4">
@@ -62,14 +65,19 @@ export default function PagosPage() {
                   .join(' · ')}
               </p>
             )}
-            {p.estado === 'CUSTODIA' && (
-              <button
-                className="mt-3 rounded-md bg-ink px-3 py-1.5 text-sm text-white"
-                onClick={() => void autorizar(p.id)}
-              >
-                Autorizar
-              </button>
-            )}
+            {p.estado === 'CUSTODIA' &&
+              (esAdmin ? (
+                <button
+                  className="mt-3 rounded-md bg-ink px-3 py-1.5 text-sm text-white"
+                  onClick={() => void autorizar(p.id)}
+                >
+                  Autorizar
+                </button>
+              ) : (
+                <p className="mt-3 text-sm text-slate-500">
+                  En custodia — pendiente de autorización de Administración.
+                </p>
+              ))}
           </li>
         ))}
       </ul>
