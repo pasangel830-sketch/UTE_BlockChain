@@ -18,15 +18,25 @@ Este archivo solo admite comandos, versiones y salidas. Sin analogías.
 | Repo Windows (obsoleto) | `C:\Proyectos\UTE\app` (drvfs) |
 | Repo objetivo | `~/ute/app` en ext4; Cursor `\\wsl$\Ubuntu-22.04\home\<user>\ute\app` |
 
-## Git (30 ago 2026, antes del primer commit)
+## Git (30 ago 2026)
 
 ```
-git log     → does not have any commits yet
-git remote -v → (vacío)
-gh auth status → not logged into any GitHub hosts
+df -T ~/ute/app
+  /dev/sdd  ext4  ...  / 
+
+git log --oneline --decorate -3
+  42374c9 (HEAD -> develop, origin/develop) Mark
+  b02db9f Unify
+  c08b7c2 (origin/main) Initial commit   # main desfasado; se alinea en el mismo día
+
+git remote -v
+  origin  https://github.com/pasangel830-sketch/UTE_BlockChain.git (fetch)
+  origin  https://github.com/pasangel830-sketch/UTE_BlockChain.git (push)
 ```
 
-Acción: primer commit local tras v5. Push: bloqueado hasta `gh auth login` y crear `ute-blockchain-tfm` (invitar `DomingoMr`).
+Remoto real: `pasangel830-sketch/UTE_BlockChain` (no `ute-blockchain-tfm`). `gh` CLI no está instalado en WSL; el push usa `git` + credenciales ya configuradas. Colaborador `DomingoMr`: pendiente de invitación (API collaborators 403 con el token de Cursor).
+
+Antes del primer commit (misma mañana): `git log` vacío, `git remote -v` vacío. Eso ya no aplica.
 
 ## Día 1 (29 ago 2026)
 
@@ -53,10 +63,38 @@ Cambio:
 - `configtx.yaml`: solo perfil `UteFull`. `LifecycleEndorsement` = `OutOf(2, 5 peers)`.
 - Compose diario: 3 orderers + 2 peers, red Docker `ute-net`, `mem_limit` peer 1g, `CORE_CHAINCODE_INSTALLTIMEOUT=300s`, puertos operations publicados.
 - `create-channel.sh dev|full` comparte `channel-obra.block`.
-- `make up-dev` ejecuta `full down` antes. `reset-*` borra `channel-artifacts/*.block`.
+- `make up-dev` ejecuta `full down` antes. `reset-*` borra `channel-artifacts/*.block` y el `channel-obra.block` suelto en la raíz.
 - Monitoring: red externa `ute-net`, `extra_hosts: host-gateway`, `alerts.yml`, provisioning Grafana.
 
-Pendiente de ejecutar en ext4: `make reset-dev` (el bloque `channel-obra.block` actual es génesis UteDev de 2 orgs; no reutilizar).
+## `make reset-dev` (30 ago 2026, 21:10 CEST, ext4)
+
+Génesis `UteDev` (20 206 B, 29 ago) borrado. `configtxgen -profile UteFull` escribió `network/channel-artifacts/channel-obra.block` (41 389 B). Copia suelta `~/ute/app/channel-obra.block` eliminada.
+
+```
+make reset-dev
+  crypto ya existe (FORCE=1 para regenerar)
+  Network ute-net Created
+  3 orderers + 2 peers + ute-cli-dev Started
+  osnadmin join ×3 → Status: 201, consensusRelation: consenter, status: active, height: 1
+  join OK peer0.empresaa.ute.local:7051
+  join OK peer0.administracion.ute.local:9051
+  canal channel-obra listo (dev): perfil UteFull, 2 peers + 3 orderers
+
+configtxgen -inspectBlock ... | MSP
+  EmpresaAMSP EmpresaBMSP EmpresaCMSP EmpresaDMSP AdministracionMSP
+
+docker ps
+  orderer1.ute.local               7050, 7053, 8443
+  orderer2.ute.local               8050, 8053, 8444
+  orderer3.ute.local               9050, 9053, 8445
+  peer0.empresaa.ute.local         7051, 9444
+  peer0.administracion.ute.local   9051, 9445
+  ute-cli-dev
+
+docker network inspect ute-net → 6 contenedores
+peer channel getinfo -c channel-obra → height: 1
+```
+
 
 ## Monitorización (definido, no demostrado en runtime)
 
@@ -67,14 +105,3 @@ Alertas en `monitoring/alerts.yml`:
 3. `ErrorEndorsementAlto` — ratio success=false > 5 %
 
 Demostración con tráfico: día 13.
-
-## Siguiente medición a pegar aquí
-
-```
-df -T ~/ute/app
-git log -1 --oneline
-git remote -v
-make reset-dev
-docker ps --format "table {{.Names}}\t{{.Status}}"
-docker stats --no-stream
-```

@@ -2,7 +2,7 @@ COMPOSE_DEV := docker compose -f network/docker-compose.dev.yaml
 COMPOSE_FULL := docker compose -f network/docker-compose.full.yaml
 COMPOSE_MON := docker compose -f monitoring/docker-compose.yaml
 COMPOSE_PROD := docker compose -f network/docker-compose.production.yaml
-ART_BLOCKS := network/channel-artifacts/*.block network/channel-artifacts/*.tx
+ART_BLOCKS := network/channel-artifacts/*.block network/channel-artifacts/*.tx channel-obra.block
 
 .PHONY: crypto channel-dev channel-full up-dev down-dev logs-dev up-full down-full logs-full verify-full reset-dev reset-full seed monitoring-up monitoring-down ps clean-artifacts
 

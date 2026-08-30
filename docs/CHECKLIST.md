@@ -6,15 +6,15 @@ Actualizado: 30 ago 2026.
 
 | | |
 | --- | --- |
-| Defensa | **PENDIENTE confirmar con tutor** |
-| Repo | local, sin remoto. Push bloqueado: `gh auth login` no hecho |
+| Defensa | **PENDIENTE confirmar fecha con el tutor** (día 14 del plan ≠ fecha de tribunal) |
+| Repo | `https://github.com/pasangel830-sketch/UTE_BlockChain.git` (`main` = `develop`) |
 | Cadena | un perfil `UteFull` (5 MSP). Diario = 3 orderers + peers A y Admin |
 | Chaincode | TypeScript (rúbrica), Node 18, `fabric-nodeenv:2.5` |
 | API prod | VM `fabric-ute` (no Render/Railway). Justificación: [MEMORIA-NOTAS.md](MEMORIA-NOTAS.md) |
 | Trazabilidad | [TRAZABILIDAD.md](TRAZABILIDAD.md) |
 | Informe técnico | [INFORME-TECNICO.md](INFORME-TECNICO.md) |
 
-Pendiente **usuario ahora**: `gh auth login`; repo privado `ute-blockchain-tfm`; invitar `DomingoMr`; abrir el proyecto desde `\\wsl$\Ubuntu-22.04\home\<user>\ute\app`. GCP y Vercel no bloquean Fabric local.
+Pendiente **usuario ahora**: invitar a `DomingoMr` como colaborador del repo; confirmar fecha de defensa con el tutor. GCP y Vercel no bloquean Fabric local.
 
 ---
 
@@ -30,7 +30,7 @@ Una fila pasa a HECHO solo si: (1) el comando o entrega existe en el repo o en l
 | --- | --- | --- |
 | TLS/SAN de la IP pública | días 10 y 12 | Probar SAN el día 10; colchón el 13; no dejarlo para el 12 por la noche |
 | 20 contenedores chaincode OOM | día 11 | Instalar cada CC solo en peers que endosan; medir `docker stats` antes del freeze |
-| `gh` sin login / sin remoto | hoy | No escribir más chaincode hasta commit+push |
+| `gh` sin login / sin remoto | hoy | Cerrado: remoto `UTE_BlockChain`, `main` alineado con `develop`. Falta invitar `DomingoMr` |
 | Cross-cc Hito→EstadoObra | días 4–8 | EstadoObra se escribe desde el backend; el CC no llama a otros CC |
 | Render Free se duerme | defensa | API en la misma VM que Fabric (ya decidido) |
 | `chmod 600` en drvfs | keys peer | Repo en ext4 `~/ute/app`, no en `/mnt/c` |
@@ -53,7 +53,7 @@ Medir con `docker stats` antes del día 11. Objetivo diario < 6 GB de contenedor
 
 ---
 
-## Día 1 — Cuentas y entorno · HECHO (salvo cuentas y GitHub)
+## Día 1 — Cuentas y entorno · HECHO (salvo GCP/Vercel y colaborador)
 
 | Estado | Tarea | Hecho si |
 | --- | --- | --- |
@@ -63,9 +63,10 @@ Medir con `docker stats` antes del día 11. Objetivo diario < 6 GB de contenedor
 | HECHO | Binarios e imágenes Fabric 2.5.16; `fabric-nodeenv:2.5` | `peer version` |
 | HECHO | gcloud CLI | `gcloud version` |
 | HECHO | Monorepo, Makefile, compose, `.gitignore` | árbol en repo |
-| PENDIENTE (usuario) | `gh auth login`; repo `ute-blockchain-tfm`; invitar `DomingoMr` | `git remote -v` + colaborador |
+| HECHO | Repo GitHub `pasangel830-sketch/UTE_BlockChain`; `main` = `develop` | `git remote -v`; `origin/main` |
+| PENDIENTE (usuario) | Invitar `DomingoMr` como colaborador | Settings → Collaborators |
 | PENDIENTE (usuario) | GCP 300 USD, alertas; Vercel Hobby. Sin Render | consolas cloud |
-| PENDIENTE | Proyecto en ext4 `~/ute/app` (no `C:\Proyectos\UTE\app`) | `df -T` ext4; Cursor por `\\wsl$\...` |
+| HECHO | Proyecto en ext4 `~/ute/app` (no `C:\Proyectos\UTE\app`) | `df -T` → ext4 |
 
 Detalle histórico: [DIA-1-CHECKLIST.md](DIA-1-CHECKLIST.md).
 
@@ -80,7 +81,7 @@ Detalle histórico: [DIA-1-CHECKLIST.md](DIA-1-CHECKLIST.md).
 | HECHO | PDC `obra-gruesa-solar` y `quirofanos-tech` | `collections-config.json` |
 | HECHO | `make up-full` 5 peers + 3 orderers Raft (29 ago, líder orderer2) | [INFORME-TECNICO.md](INFORME-TECNICO.md) |
 | HECHO | Lifecycle `OutOf(2,5)`: A+Admin basta | `configtx.yaml` |
-| PENDIENTE | `make reset-dev` tras el cambio de perfil (borrar génesis `UteDev` viejo) | `peer channel getinfo` con 5 MSP |
+| HECHO | `make reset-dev` génesis `UteFull` (30 ago, ext4) | 3 orderers + A + Admin; 5 MSP en el bloque |
 
 Tras reset: diario = 3 orderers + peer A + peer Admin + CLI. Mismo génesis que full.
 
