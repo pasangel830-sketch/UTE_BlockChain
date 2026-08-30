@@ -1,0 +1,39 @@
+# API en ute-net (resuelve peers por DNS Docker). Requiere make up-dev y dist compilado.
+name: ute-api
+
+networks:
+  ute:
+    name: ute-net
+    external: true
+
+services:
+  api:
+    image: node:24.20.0-bookworm
+    container_name: ute-api
+    working_dir: /app
+    mem_limit: 384m
+    volumes:
+      - ../backend:/app
+      - ./organizations:/crypto:ro
+    environment:
+      PORT: "4000"
+      JWT_SECRET: dev-secret-change-me
+      JWT_EXPIRES: 8h
+      AUTH_USERS: empresaA:empresaA:EmpresaAMSP,administracion:administracion:AdministracionMSP
+      PEER_ENDPOINT: peer0.empresaa.ute.local:7051
+      PEER_HOST_ALIAS: peer0.empresaa.ute.local
+      CRYPTO_PATH: /crypto
+      CHANNEL_NAME: channel-obra
+      CHAINCODE_HITO: hito
+      CHAINCODE_PAGO: pago
+      STORAGE_DRIVER: local
+      UPLOAD_DIR: /app/uploads
+      MOCK_BANCO_URL: http://127.0.0.1:4000/mock/banco/pagos
+      GRPC_KEEPALIVE_TIME_MS: "120000"
+      GRPC_KEEPALIVE_TIMEOUT_MS: "20000"
+    command: ["node", "dist/index.js"]
+    ports:
+      - "4000:4000"
+    networks:
+      - ute
+    restart: unless-stopped

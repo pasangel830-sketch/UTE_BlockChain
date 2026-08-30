@@ -3,7 +3,7 @@
 Informe para no técnicos. Proyecto **UTE / obras**.  
 Fuente de tareas: [CHECKLIST.md](CHECKLIST.md) · hechos y comandos: [INFORME-TECNICO.md](INFORME-TECNICO.md) · 30 de agosto de 2026.
 
-> El taller del portátil está montado y las oficinas de la UTE ya existen (modo diario encendido). Aún no hay reglamento de hitos ni mostrador ni pantallas. Las cuentas de internet las tiene que abrir el usuario.
+> El taller del portátil está montado, las oficinas de la UTE existen (modo diario) y ya hay pliego de hitos/pagos con secretaría en el puerto 4000. Falta el tablón (pantallas). Las cuentas de internet las tiene que abrir el usuario.
 
 Vista visual en Cursor (al lado del chat): canvas `informe-progreso-plan-14-dias`. El canvas de planificación no se ha modificado.
 
@@ -17,6 +17,8 @@ Vista visual en Cursor (al lado del chat): canvas `informe-progreso-plan-14-dias
 - [Estado de la máquina](#estado-de-la-máquina)
 - [Día 1 — El taller](#día-1--el-taller)
 - [Días 2 y 3 — Oficinas y notarios](#días-2-y-3--oficinas-y-notarios)
+- [Días 4 y 5 — Pliego de hitos y pagos](#días-4-y-5--pliego-de-hitos-y-pagos)
+- [Día 6 — La secretaría](#día-6--la-secretaría)
 - [Qué no está hecho todavía](#qué-no-está-hecho-todavía)
 
 ---
@@ -25,7 +27,7 @@ Vista visual en Cursor (al lado del chat): canvas `informe-progreso-plan-14-dias
 
 Imagina una Unión Temporal de Empresas que construye una obra. Hay que dejar constancia de hitos y pagos de forma que nadie pueda negar lo firmado. Eso es este trabajo.
 
-Hoy hay **caseta y llaves**. El pliego, la secretaría y el tablón vendrán después.
+Hoy hay **caseta, llaves, pliego y secretaría**. El tablón (pantallas) es el siguiente paso.
 
 ---
 
@@ -33,14 +35,14 @@ Hoy hay **caseta y llaves**. El pliego, la secretaría y el tablón vendrán des
 
 | | |
 | --- | --- |
-| Días de calendario cerrados | **3 de 14** (días 1, 2 y 3) |
-| Puntos marcados hecho | **23** |
-| Días por delante | **11** |
-| Máquina ahora | **Modo diario encendido** (Empresa A + Administración + 1 notario) |
+| Días de calendario cerrados | **6 de 14** (días 1 a 6) |
+| Puntos marcados hecho | **36** |
+| Días por delante | **8** |
+| Máquina ahora | **Modo diario + API :4000** (Empresa A + Administración + 1 notario + secretaría) |
 
-El día 1 está cerrado en el ordenador; faltan solo las cuentas de internet (GitHub, Google Cloud, Vercel). Esas cuentas **no bloquean** seguir trabajando en casa; sí bloquean publicar más adelante.
+El día 1 está cerrado en el ordenador; faltan solo las cuentas de internet (GitHub colaborador, Google Cloud, Vercel). Esas cuentas **no bloquean** seguir trabajando en casa; sí bloquean publicar más adelante.
 
-**Siguiente paso del plan:** rebanada vertical (hitos + pagos + API + una pantalla), no las cuatro reglas de golpe.
+**Siguiente paso del plan:** una pantalla Next + Explorer (día 7).
 
 ---
 
@@ -54,9 +56,13 @@ Mesa, habitación Linux, fábrica de cajas, dos taladros y el archivador. Es el 
 
 Identidades de A, B, C, D, Administración y tres notarios. Carpeta común de la obra. Modo diario (A + ayuntamiento) y un ensayo con todos. Días 2 y 3.
 
-### 3. Lo que aún no existe — pendiente
+### 3. El pliego y la secretaría — hecho (días 4–6)
 
-El pliego (reglas de hitos y pagos), la secretaría que atiende llamadas, las pantallas, el local en internet y los cuadros de mando. Días 4 a 14.
+Reglas de hitos y pagos (con dinero en custodia hasta que el ayuntamiento autoriza). Mostrador en el puerto 4000 que avisa al banco de juguete.
+
+### 4. Lo que aún no existe — pendiente
+
+Las pantallas, incidencias, estado de obra, el local en internet y los cuadros de mando. Días 7 a 14.
 
 ---
 
@@ -268,18 +274,53 @@ Objetivo: que existan las empresas de la UTE, el ayuntamiento y los notarios, co
 
 > Después de la asamblea extraordinaria, se recoge el salón y se deja la sala de juntas de diario. El edificio sigue en pie.
 
-### Decisiones que se respetaron
+---
 
-- No se montó una oficina expedidora de DNI en la nube (los sellos son locales).
-- No se montó un almacén de búsquedas caras.
-- No se encendieron termómetros ni pantallas en el ensayo.
-- No se escribieron aún las reglas de hitos: eso es el siguiente bloque.
+## Días 4 y 5 — Pliego de hitos y pagos
+
+Objetivo: reglas de hitos (TypeScript, Node 18) y pagos con dinero en custodia. Tests en el portátil; instalación solo en las dos oficinas diarias.
+
+### 1. Reglamento de hitos
+
+**Qué es.** Cinco estados: pendiente, en ejecución, validación, completado o rechazado. No se puede saltar de pendiente a completado.
+
+**Para qué sirve en esta UTE.** Cada lote de obra avanza con un sello. Nadie marca “acabado” sin pasar por validación.
+
+### 2. Listados sin almacén caro
+
+**Qué es.** Índices por estado y por empresa, y páginas de resultados. Encaja con el archivador sencillo (LevelDB).
+
+### 3. Pagos en custodia (escrow)
+
+**Qué es.** Al completar un hito, el importe se parte 35/25/20/20 (A/B/C/D) y queda en CUSTODIA. Solo pasa a AUTORIZADO con sello de la empresa y del ayuntamiento. Entonces se dispara el aviso `PagoAutorizado`.
+
+**Para qué sirve en esta UTE.** El dinero no se suelta al marcar el hito: espera al visto bueno público (PDF §4.2).
+
+### 4. Instalado solo en A y Administración
+
+**Qué es.** Cuatro cajas de reglas (hito+pago × dos oficinas). B, C y D no tienen esas cajas encendidas.
+
+---
+
+## Día 6 — La secretaría
+
+Objetivo: mostrador HTTP en :4000, con carnet (JWT), documentación, termómetro `/metrics` y un banco de juguete.
+
+### 1. Mostrador en marcha
+
+**Qué es.** Express 5.2.1 + Gateway 1.12.0. Login `empresaA` / `administracion`. Completar hito deja el pago en custodia; autorizar dispara el evento.
+
+### 2. Aviso al banco de juguete
+
+**Qué es.** La secretaría oye `PagoAutorizado` y hace `POST /mock/banco/pagos`. El mock responde 200 y guarda el papel.
+
+> La ventanilla oye el sello del notario y llama al banco de prácticas. Aún no hay tablón en la calle (eso es el día 7).
 
 ---
 
 ## Qué no está hecho todavía
 
-El cajón de reglas solo tiene una nota: “usa el taladro 18”. Los cajones de mostrador y pantallas están vacíos. No hay local alquilado en internet.
+El cajón de pantallas está vacío. No hay incidencias ni estado de obra. No hay local alquilado en internet.
 
 ### Lo que tienes que hacer tú
 
@@ -291,7 +332,7 @@ Estas cuentas no bloquean el trabajo en casa; sí bloquean publicar más adelant
 
 ### Lo que falta del plan
 
-- **Días 4–7** — primero hitos y pagos, mostrador y una pantalla (un camino completo).
+- **Día 7** — una pantalla Next + Explorer (cierra la rebanada visual).
 - **Día 8** — incidencias y cajones con llave.
 - **Día 9** — resto de pantallas y estado de obra (lo calcula el mostrador).
 - **Día 10** — alquiler de prueba del local en internet.
@@ -300,4 +341,4 @@ Estas cuentas no bloquean el trabajo en casa; sí bloquean publicar más adelant
 - **Día 13** — termómetros (cuadros de mando) y ensayo de calidad.
 - **Día 14** — defensa (encender, sembrar datos, tres pases, vídeo).
 
-Siguiente paso: el camino hito → pago (custodia) → mostrador → una pantalla. Las incidencias vienen después.
+Siguiente paso: una pantalla de hitos/pagos + Explorer. Las incidencias vienen el día 8.

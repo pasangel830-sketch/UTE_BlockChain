@@ -87,37 +87,37 @@ Tras reset: diario = 3 orderers + peer A + peer Admin + CLI. Mismo génesis que 
 
 ---
 
-## Días 4–7 — Rebanada vertical (Hito + Pago → API → 1 pantalla → Explorer) · PENDIENTE
+## Días 4–7 — Rebanada vertical (Hito + Pago → API → 1 pantalla → Explorer) · EN CURSO (4–6 HECHO)
 
 Invertido respecto al plan original: punta a punta **antes del día 8**. Incidencia, PDC y EstadoObra después.
 
-### Día 4 — HitoContract TS
+### Día 4 — HitoContract TS · HECHO (30 ago 2026)
 
 | Estado | Tarea | Hecho si |
 | --- | --- | --- |
-| PENDIENTE | `nvm use 18`. HitoContract TypeScript + Jest | `npm test` en `chaincode/hito` |
-| PENDIENTE | Estados PENDIENTE → EN_EJECUCION → VALIDACION → COMPLETADO\|RECHAZADO | tests de transición |
-| PENDIENTE | Composite keys + `GetStateByRangeWithPagination` | listados LevelDB |
-| PENDIENTE | Instalar **solo** en peer A y Admin | `docker ps` sin nodeenv en B/C/D |
+| HECHO | `nvm use 18`. HitoContract TypeScript + Jest | `npm test` en `chaincode/hito` (12 tests) |
+| HECHO | Estados PENDIENTE → EN_EJECUCION → VALIDACION → COMPLETADO\|RECHAZADO | tests de transición |
+| HECHO | Composite keys + `GetStateByRangeWithPagination` | listados LevelDB |
+| HECHO | Instalar **solo** en peer A y Admin | 4 `dev-peer0.{empresaa,administracion}-*` ; sin B/C/D |
 
-### Día 5 — PagoContract TS + escrow
-
-| Estado | Tarea | Hecho si |
-| --- | --- | --- |
-| PENDIENTE | PagoContract TS + Jest | `npm test` |
-| PENDIENTE | Escrow: fondos CUSTODIA hasta `PagoAutorizado` (PDF §4.2) | tests de custodia |
-| PENDIENTE | Endorsement `AND(org, Administracion)` | política en commit |
-| PENDIENTE | Init participaciones 35/25/20/20 | init ledger |
-| PENDIENTE | `completarHito` dispara lógica de pago (sin cross-cc a EstadoObra) | test o script |
-
-### Día 6 — API (trozo de hitos/pagos)
+### Día 5 — PagoContract TS + escrow · HECHO (30 ago 2026)
 
 | Estado | Tarea | Hecho si |
 | --- | --- | --- |
-| PENDIENTE | Express 5.2.1, Gateway 1.12.0, JWT, helmet, cors, rate-limit | arranque en :4000 |
-| PENDIENTE | multer, Swagger, prom-client `/metrics` | rutas documentadas |
-| PENDIENTE | Listener `PagoAutorizado` → webhook mock `POST /mock/banco/pagos` | log + 200 del mock |
-| PENDIENTE | `STORAGE_DRIVER=local`. gRPC keepalive | env |
+| HECHO | PagoContract TS + Jest | `npm test` en `chaincode/pago` (9 tests) |
+| HECHO | Escrow: fondos CUSTODIA hasta `PagoAutorizado` (PDF §4.2) | tests + invoke `H-d5` |
+| HECHO | Endorsement `AND(org, Administracion)` | commit `AND('EmpresaAMSP.peer','AdministracionMSP.peer')` |
+| HECHO | Init participaciones 35/25/20/20 | `InitLedger` → `{"EmpresaA":35,...}` |
+| HECHO | `completarHito` dispara lógica de pago (sin cross-cc a EstadoObra) | API `POST /hitos/:id/completar` → CUSTODIA |
+
+### Día 6 — API (trozo de hitos/pagos) · HECHO (30 ago 2026)
+
+| Estado | Tarea | Hecho si |
+| --- | --- | --- |
+| HECHO | Express 5.2.1, Gateway 1.12.0, JWT, helmet, cors, rate-limit | `ute-api` en :4000 |
+| HECHO | multer, Swagger, prom-client `/metrics` | `/api-docs`, `/metrics` |
+| HECHO | Listener `PagoAutorizado` → webhook mock `POST /mock/banco/pagos` | log + 200 |
+| HECHO | `STORAGE_DRIVER=local`. gRPC keepalive | env compose API |
 
 ### Día 7 — Una pantalla + Explorer
 

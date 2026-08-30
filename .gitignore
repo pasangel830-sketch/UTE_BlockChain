@@ -39,6 +39,10 @@ network/volumes/
 uploads/
 backend/uploads/
 
+# Chaincode empaquetado
+*.tar.gz
+chaincode/*/.package/
+
 # Monitorización persistida
 monitoring/data/
 **/grafana.db
