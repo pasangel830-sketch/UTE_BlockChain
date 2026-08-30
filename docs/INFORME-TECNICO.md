@@ -164,3 +164,50 @@ STORAGE_DRIVER=local  GRPC_KEEPALIVE_TIME_MS=120000
   docker logs ute-api: webhook mock banco 200
 ```
 
+## Días 7–9 (30 ago 2026) — UI, Incidencia PDC, EstadoObra
+
+```
+cd chaincode/incidencia && npm test
+  Test Suites: 1 passed
+  Tests:       13 passed
+
+cd chaincode/estado-obra && npm test
+  Test Suites: 1 passed
+  Tests:       6 passed
+
+make deploy-incidencia
+  Package ID: incidencia_1.0:363daeeb5f2e15d439afeb4b4579b53d9c39c201239d105f21685b45955fbd8d
+  commit policy=OutOf(2, EmpresaA/B/C/D + Administracion peers)
+  Approvals al commit: A+Admin; tras pdc-up: 5/5
+  collections: obra-gruesa-solar, quirofanos-tech (querycommitted JSON)
+
+make deploy-estado && ./network/scripts/init-estado.sh
+  Package ID: estado-obra_1.0:a89c7505727cfc084e621acb7ff8ed10776e7b886de8826862a85dd645ef8ff5
+  InitLedger → avancePct 0
+
+./network/scripts/verify-api.sh
+  H-api-1788122714 PENDIENTE → … → COMPLETADO + CUSTODIA → AUTORIZADO
+  GET /mock/banco/pagos → PagoAutorizado
+
+./network/scripts/verify-pdc.sh
+  EmpresaA GET /incidencias/:id/privado → detalle + coste 1200
+  Administracion GET privado → HTTP 500 sin acceso a datos privados
+  peer B invoke quirofanos-tech → I-q-1788123556 ABIERTA VALID
+
+GET /explorer (JWT)
+  height: 48  channel: channel-obra  polling 3 s en UI
+  bloques con number + txCount
+
+POST /estado/recalcular
+  hitosCompletados/hitosTotal, pagosCustodia/Autorizados, incidenciasAbiertas, avancePct
+
+frontend Next 15.5.24  GET :3000 → 200
+  rutas: / /dashboard /hitos /pagos /incidencias /estado /explorer  (7)
+  NEXT_PUBLIC_API_URL=http://localhost:4000
+
+./network/scripts/verify-ui.sh  OK E2E H-d7-1788123573  UI :3000 OK
+
+make pdc-up  peers B/C/D en ute-net, join channel-obra, install+approve incidencia
+```
+
+

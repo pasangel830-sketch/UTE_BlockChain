@@ -87,7 +87,7 @@ Tras reset: diario = 3 orderers + peer A + peer Admin + CLI. Mismo génesis que 
 
 ---
 
-## Días 4–7 — Rebanada vertical (Hito + Pago → API → 1 pantalla → Explorer) · EN CURSO (4–6 HECHO)
+## Días 4–7 — Rebanada vertical (Hito + Pago → API → 1 pantalla → Explorer) · HECHO
 
 Invertido respecto al plan original: punta a punta **antes del día 8**. Incidencia, PDC y EstadoObra después.
 
@@ -119,35 +119,35 @@ Invertido respecto al plan original: punta a punta **antes del día 8**. Inciden
 | HECHO | Listener `PagoAutorizado` → webhook mock `POST /mock/banco/pagos` | log + 200 |
 | HECHO | `STORAGE_DRIVER=local`. gRPC keepalive | env compose API |
 
-### Día 7 — Una pantalla + Explorer
+### Día 7 — Una pantalla + Explorer · HECHO (30 ago 2026)
 
 | Estado | Tarea | Hecho si |
 | --- | --- | --- |
-| PENDIENTE | Next 15.5: pantalla de hitos/pagos + Explorer (polling 3 s) | flujo crear hito → completar → pago visible |
-| PENDIENTE | `NEXT_PUBLIC_API_URL=http://localhost:4000` | E2E local |
-| PENDIENTE | README con diagrama de esta rebanada | [README.md](../README.md) |
+| HECHO | Next 15.5: pantalla de hitos/pagos + Explorer (polling 3 s) | flujo crear hito → completar → pago visible |
+| HECHO | `NEXT_PUBLIC_API_URL=http://localhost:4000` | E2E local |
+| HECHO | README con diagrama de esta rebanada | [README.md](../README.md) |
 
 **Criterio del bloque 4–7:** un usuario crea un hito, lo completa, el pago queda en custodia, el evento llega al mock bancario y el Explorer muestra el bloque. Sin Incidencia ni PDC todavía.
 
 ---
 
-## Día 8 — Incidencia + PDC · PENDIENTE
+## Día 8 — Incidencia + PDC · HECHO (30 ago 2026)
 
 | Estado | Tarea | Hecho si |
 | --- | --- | --- |
-| PENDIENTE | IncidenciaContract TS, endorsement OutOf(2,5) | tests + commit |
-| PENDIENTE | PDC en full (peers B/C/D un rato) | collections commit |
-| PENDIENTE | Resto de API (si quedó algo el día 6) | Swagger completo |
+| HECHO | IncidenciaContract TS, endorsement OutOf(2,5) | tests + commit |
+| HECHO | PDC en full (peers B/C/D un rato) | collections commit |
+| HECHO | Resto de API (si quedó algo el día 6) | Swagger completo |
 
 ---
 
-## Día 9 — Resto UI + EstadoObra · PENDIENTE
+## Día 9 — Resto UI + EstadoObra · HECHO (30 ago 2026)
 
 | Estado | Tarea | Hecho si |
 | --- | --- | --- |
-| PENDIENTE | Siete pantallas en total | recuento rutas Next |
-| PENDIENTE | EstadoObraContract TS: el backend escribe el agregado; **sin** invoke cruzado | tests + API |
-| PENDIENTE | README detallado + diagramas (entregable Fase 2) | [README.md](../README.md) |
+| HECHO | Siete pantallas en total | recuento rutas Next |
+| HECHO | EstadoObraContract TS: el backend escribe el agregado; **sin** invoke cruzado | tests + API |
+| HECHO | README detallado + diagramas (entregable Fase 2) | [README.md](../README.md) |
 
 ---
 

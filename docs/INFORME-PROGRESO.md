@@ -3,7 +3,7 @@
 Informe para no técnicos. Proyecto **UTE / obras**.  
 Fuente de tareas: [CHECKLIST.md](CHECKLIST.md) · hechos y comandos: [INFORME-TECNICO.md](INFORME-TECNICO.md) · 30 de agosto de 2026.
 
-> El taller del portátil está montado, las oficinas de la UTE existen (modo diario) y ya hay pliego de hitos/pagos con secretaría en el puerto 4000. Falta el tablón (pantallas). Las cuentas de internet las tiene que abrir el usuario.
+> El taller del portátil está montado, las oficinas de la UTE existen (modo diario), hay pliego de hitos/pagos, secretaría en el puerto 4000, tablón de 7 pantallas, incidencias con cajones con llave y estado de obra. Faltan el local en internet y los cuadros de mando. Las cuentas de internet las tiene que abrir el usuario.
 
 Vista visual en Cursor (al lado del chat): canvas `informe-progreso-plan-14-dias`. El canvas de planificación no se ha modificado.
 
@@ -19,6 +19,9 @@ Vista visual en Cursor (al lado del chat): canvas `informe-progreso-plan-14-dias
 - [Días 2 y 3 — Oficinas y notarios](#días-2-y-3--oficinas-y-notarios)
 - [Días 4 y 5 — Pliego de hitos y pagos](#días-4-y-5--pliego-de-hitos-y-pagos)
 - [Día 6 — La secretaría](#día-6--la-secretaría)
+- [Día 7 — El tablón](#día-7--el-tablón)
+- [Día 8 — Incidencias y cajones](#día-8--incidencias-y-cajones)
+- [Día 9 — Estado de obra y siete pantallas](#día-9--estado-de-obra-y-siete-pantallas)
 - [Qué no está hecho todavía](#qué-no-está-hecho-todavía)
 
 ---
@@ -27,7 +30,7 @@ Vista visual en Cursor (al lado del chat): canvas `informe-progreso-plan-14-dias
 
 Imagina una Unión Temporal de Empresas que construye una obra. Hay que dejar constancia de hitos y pagos de forma que nadie pueda negar lo firmado. Eso es este trabajo.
 
-Hoy hay **caseta, llaves, pliego y secretaría**. El tablón (pantallas) es el siguiente paso.
+Hoy hay **caseta, llaves, pliego, secretaría y tablón**. El local en internet es el siguiente paso.
 
 ---
 
@@ -35,14 +38,14 @@ Hoy hay **caseta, llaves, pliego y secretaría**. El tablón (pantallas) es el s
 
 | | |
 | --- | --- |
-| Días de calendario cerrados | **6 de 14** (días 1 a 6) |
-| Puntos marcados hecho | **36** |
-| Días por delante | **8** |
-| Máquina ahora | **Modo diario + API :4000** (Empresa A + Administración + 1 notario + secretaría) |
+| Días de calendario cerrados | **9 de 14** (días 1 a 9) |
+| Puntos marcados hecho | **45** |
+| Días por delante | **5** |
+| Máquina ahora | **Modo diario + API :4000 + Next :3000** |
 
 El día 1 está cerrado en el ordenador; faltan solo las cuentas de internet (GitHub colaborador, Google Cloud, Vercel). Esas cuentas **no bloquean** seguir trabajando en casa; sí bloquean publicar más adelante.
 
-**Siguiente paso del plan:** una pantalla Next + Explorer (día 7).
+**Siguiente paso del plan:** VM de prueba con SAN de la IP (día 10).
 
 ---
 
@@ -60,9 +63,13 @@ Identidades de A, B, C, D, Administración y tres notarios. Carpeta común de la
 
 Reglas de hitos y pagos (con dinero en custodia hasta que el ayuntamiento autoriza). Mostrador en el puerto 4000 que avisa al banco de juguete.
 
-### 4. Lo que aún no existe — pendiente
+### 4. El tablón y las incidencias — hecho (días 7–9)
 
-Las pantallas, incidencias, estado de obra, el local en internet y los cuadros de mando. Días 7 a 14.
+Siete pantallas. Incidencias con dos cajones con llave. El estado de la obra lo calcula la secretaría.
+
+### 5. Lo que aún no existe — pendiente
+
+El local en internet y los cuadros de mando. Días 10 a 14.
 
 ---
 
@@ -314,31 +321,58 @@ Objetivo: mostrador HTTP en :4000, con carnet (JWT), documentación, termómetro
 
 **Qué es.** La secretaría oye `PagoAutorizado` y hace `POST /mock/banco/pagos`. El mock responde 200 y guarda el papel.
 
-> La ventanilla oye el sello del notario y llama al banco de prácticas. Aún no hay tablón en la calle (eso es el día 7).
+> La ventanilla oye el sello del notario y llama al banco de prácticas.
+
+---
+
+## Día 7 — El tablón
+
+Objetivo: una pantalla Next en :3000 y un Explorer que se actualiza cada 3 segundos.
+
+**Qué es.** Login, hitos (crear → completar) y lista de pagos en custodia. Al lado, la altura del libro y los últimos bloques.
+
+**Para qué sirve en esta UTE.** Cierra la rebanada visual: lo que se firma en el registro se ve en el tablón sin esperar al día 12.
+
+---
+
+## Día 8 — Incidencias y cajones
+
+Objetivo: incidencias con voto 2 de 5 y dos cajones con llave (PDC).
+
+**Qué es.** El parte público (título, estado) lo ve todo el consorcio. El detalle de precio vive en `obra-gruesa-solar` (A o C) o `quirofanos-tech` (B o D). La Administración no abre el sobre.
+
+**Para qué sirve en esta UTE.** Los secretos de partida no salen al tablón común. Se encendieron B, C y D un rato para el cajón de quirófanos.
+
+---
+
+## Día 9 — Estado de obra y siete pantallas
+
+Objetivo: siete rutas Next y un agregado de obra escrito por la secretaría.
+
+**Qué es.** La secretaría cuenta hitos, pagos e incidencias y escribe un único papel `estado:obra`. Las reglas no se llaman entre sí.
+
+Pantallas: login, inicio, hitos, pagos, incidencias, estado de obra, Explorer.
 
 ---
 
 ## Qué no está hecho todavía
 
-El cajón de pantallas está vacío. No hay incidencias ni estado de obra. No hay local alquilado en internet.
+No hay local alquilado en internet. No hay cuadros de mando demostrados con tráfico.
 
 ### Lo que tienes que hacer tú
 
 Estas cuentas no bloquean el trabajo en casa; sí bloquean publicar más adelante.
 
-- Entrar en GitHub, crear el repo privado e invitar a `DomingoMr`.
+- Entrar en GitHub e invitar a `DomingoMr`.
 - Cuenta Google Cloud, crédito 300 USD y alertas de gasto.
 - Cuenta Vercel Hobby (pantallas en internet). Sin publicar aún.
 
 ### Lo que falta del plan
 
-- **Día 7** — una pantalla Next + Explorer (cierra la rebanada visual).
-- **Día 8** — incidencias y cajones con llave.
-- **Día 9** — resto de pantallas y estado de obra (lo calcula el mostrador).
 - **Día 10** — alquiler de prueba del local en internet.
 - **Día 11** — congelar cambios y dejar el local creado (apagado).
 - **Día 12** — oficinas + mostrador en el local; pantallas publicadas.
 - **Día 13** — termómetros (cuadros de mando) y ensayo de calidad.
 - **Día 14** — defensa (encender, sembrar datos, tres pases, vídeo).
 
-Siguiente paso: una pantalla de hitos/pagos + Explorer. Las incidencias vienen el día 8.
+Siguiente paso: VM e2-standard-4 con SAN de la IP pública.
