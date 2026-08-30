@@ -1,0 +1,74 @@
+# cryptogen de producción. Reservar IP estática ANTES de generar.
+# Sustituir REPLACE_STATIC_IP y, si hay DNS, añadir el FQDN en SANS.
+# Sin el SAN correcto, TLS falla si el connection profile usa la IP pública.
+# El Gateway de la API (misma VM) debe usar nombres Docker; la IP es para Caddy/API.
+
+OrdererOrgs:
+  - Name: Orderer
+    Domain: ute.prod
+    EnableNodeOUs: true
+    Specs:
+      - Hostname: orderer1
+        SANS:
+          - "orderer1.ute.prod"
+          - "IP:REPLACE_STATIC_IP"
+      - Hostname: orderer2
+        SANS:
+          - "orderer2.ute.prod"
+          - "IP:REPLACE_STATIC_IP"
+      - Hostname: orderer3
+        SANS:
+          - "orderer3.ute.prod"
+          - "IP:REPLACE_STATIC_IP"
+
+PeerOrgs:
+  - Name: EmpresaA
+    Domain: empresaa.ute.prod
+    EnableNodeOUs: true
+    Template:
+      Count: 1
+      SANS:
+        - "peer0.empresaa.ute.prod"
+        - "IP:REPLACE_STATIC_IP"
+    Users:
+      Count: 1
+  - Name: EmpresaB
+    Domain: empresab.ute.prod
+    EnableNodeOUs: true
+    Template:
+      Count: 1
+      SANS:
+        - "peer0.empresab.ute.prod"
+        - "IP:REPLACE_STATIC_IP"
+    Users:
+      Count: 1
+  - Name: EmpresaC
+    Domain: empresac.ute.prod
+    EnableNodeOUs: true
+    Template:
+      Count: 1
+      SANS:
+        - "peer0.empresac.ute.prod"
+        - "IP:REPLACE_STATIC_IP"
+    Users:
+      Count: 1
+  - Name: EmpresaD
+    Domain: empresad.ute.prod
+    EnableNodeOUs: true
+    Template:
+      Count: 1
+      SANS:
+        - "peer0.empresad.ute.prod"
+        - "IP:REPLACE_STATIC_IP"
+    Users:
+      Count: 1
+  - Name: Administracion
+    Domain: administracion.ute.prod
+    EnableNodeOUs: true
+    Template:
+      Count: 1
+      SANS:
+        - "peer0.administracion.ute.prod"
+        - "IP:REPLACE_STATIC_IP"
+    Users:
+      Count: 1

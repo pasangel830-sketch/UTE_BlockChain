@@ -1,0 +1,26 @@
+[
+  {
+    "name": "obra-gruesa-solar",
+    "policy": "OR('EmpresaAMSP.member', 'EmpresaCMSP.member')",
+    "requiredPeerCount": 0,
+    "maxPeerCount": 1,
+    "blockToLive": 0,
+    "memberOnlyRead": true,
+    "memberOnlyWrite": true,
+    "endorsementPolicy": {
+      "signaturePolicy": "OR('EmpresaAMSP.member', 'EmpresaCMSP.member')"
+    }
+  },
+  {
+    "name": "quirofanos-tech",
+    "policy": "OR('EmpresaBMSP.member', 'EmpresaDMSP.member')",
+    "requiredPeerCount": 0,
+    "maxPeerCount": 1,
+    "blockToLive": 0,
+    "memberOnlyRead": true,
+    "memberOnlyWrite": true,
+    "endorsementPolicy": {
+      "signaturePolicy": "OR('EmpresaBMSP.member', 'EmpresaDMSP.member')"
+    }
+  }
+]

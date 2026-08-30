@@ -1,0 +1,161 @@
+# Producción en fabric-ute (e2-standard-4, 16 GB). Certs con SAN de la IP/dominio público.
+# No publicar orderers, peers 7051 ni /metrics a Internet. La API Express corre en esta misma VM.
+
+name: ute-prod
+
+x-peer: &peer-resources
+  mem_limit: 512m
+  mem_reservation: 256m
+  cpus: "0.50"
+
+x-orderer: &orderer-resources
+  mem_limit: 256m
+  mem_reservation: 128m
+  cpus: "0.25"
+
+x-exporter: &exporter-resources
+  mem_limit: 192m
+  mem_reservation: 64m
+  cpus: "0.15"
+
+networks:
+  ute:
+    name: ute-prod
+
+volumes:
+  peer0-empresaa:
+  peer0-empresab:
+  peer0-empresac:
+  peer0-empresad:
+  peer0-admin:
+  orderer1:
+  orderer2:
+  orderer3:
+
+services:
+  orderer1.ute.prod:
+    <<: *orderer-resources
+    image: hyperledger/fabric-orderer:2.5.16
+    container_name: orderer1.ute.prod
+    restart: unless-stopped
+    environment:
+      FABRIC_LOGGING_SPEC: INFO
+      ORDERER_GENERAL_LISTENADDRESS: 0.0.0.0
+      ORDERER_GENERAL_LISTENPORT: 7050
+      ORDERER_GENERAL_LOCALMSPID: OrdererMSP
+      ORDERER_GENERAL_TLS_ENABLED: "true"
+      ORDERER_GENERAL_BOOTSTRAPMETHOD: none
+      ORDERER_CHANNELPARTICIPATION_ENABLED: "true"
+      ORDERER_METRICS_PROVIDER: prometheus
+      ORDERER_OPERATIONS_LISTENADDRESS: 0.0.0.0:8443
+    volumes:
+      - ./organizations-prod/ordererOrganizations/ute.prod/orderers/orderer1.ute.prod/msp:/var/hyperledger/orderer/msp
+      - ./organizations-prod/ordererOrganizations/ute.prod/orderers/orderer1.ute.prod/tls:/var/hyperledger/orderer/tls
+      - orderer1:/var/hyperledger/production/orderer
+    networks: [ute]
+    ports: []
+
+  orderer2.ute.prod:
+    <<: *orderer-resources
+    image: hyperledger/fabric-orderer:2.5.16
+    container_name: orderer2.ute.prod
+    restart: unless-stopped
+    environment:
+      FABRIC_LOGGING_SPEC: INFO
+      ORDERER_GENERAL_LISTENADDRESS: 0.0.0.0
+      ORDERER_GENERAL_LISTENPORT: 8050
+      ORDERER_GENERAL_LOCALMSPID: OrdererMSP
+      ORDERER_GENERAL_TLS_ENABLED: "true"
+      ORDERER_GENERAL_BOOTSTRAPMETHOD: none
+      ORDERER_CHANNELPARTICIPATION_ENABLED: "true"
+      ORDERER_METRICS_PROVIDER: prometheus
+      ORDERER_OPERATIONS_LISTENADDRESS: 0.0.0.0:8444
+    volumes:
+      - ./organizations-prod/ordererOrganizations/ute.prod/orderers/orderer2.ute.prod/msp:/var/hyperledger/orderer/msp
+      - ./organizations-prod/ordererOrganizations/ute.prod/orderers/orderer2.ute.prod/tls:/var/hyperledger/orderer/tls
+      - orderer2:/var/hyperledger/production/orderer
+    networks: [ute]
+    ports: []
+
+  orderer3.ute.prod:
+    <<: *orderer-resources
+    image: hyperledger/fabric-orderer:2.5.16
+    container_name: orderer3.ute.prod
+    restart: unless-stopped
+    environment:
+      FABRIC_LOGGING_SPEC: INFO
+      ORDERER_GENERAL_LISTENADDRESS: 0.0.0.0
+      ORDERER_GENERAL_LISTENPORT: 9050
+      ORDERER_GENERAL_LOCALMSPID: OrdererMSP
+      ORDERER_GENERAL_TLS_ENABLED: "true"
+      ORDERER_GENERAL_BOOTSTRAPMETHOD: none
+      ORDERER_CHANNELPARTICIPATION_ENABLED: "true"
+      ORDERER_METRICS_PROVIDER: prometheus
+      ORDERER_OPERATIONS_LISTENADDRESS: 0.0.0.0:8445
+    volumes:
+      - ./organizations-prod/ordererOrganizations/ute.prod/orderers/orderer3.ute.prod/msp:/var/hyperledger/orderer/msp
+      - ./organizations-prod/ordererOrganizations/ute.prod/orderers/orderer3.ute.prod/tls:/var/hyperledger/orderer/tls
+      - orderer3:/var/hyperledger/production/orderer
+    networks: [ute]
+    ports: []
+
+  peer0.empresaa.ute.prod:
+    <<: *peer-resources
+    image: hyperledger/fabric-peer:2.5.16
+    container_name: peer0.empresaa.ute.prod
+    restart: unless-stopped
+    environment:
+      FABRIC_LOGGING_SPEC: INFO
+      CORE_VM_ENDPOINT: unix:///host/var/run/docker.sock
+      CORE_VM_DOCKER_HOSTCONFIG_NETWORKMODE: ute-prod
+      CORE_PEER_ID: peer0.empresaa.ute.prod
+      CORE_PEER_ADDRESS: peer0.empresaa.ute.prod:7051
+      CORE_PEER_LISTENADDRESS: 0.0.0.0:7051
+      CORE_PEER_LOCALMSPID: EmpresaAMSP
+      CORE_PEER_TLS_ENABLED: "true"
+      CORE_LEDGER_STATE_STATEDATABASE: goleveldb
+      CORE_CHAINCODE_EXECUTETIMEOUT: 300s
+      CORE_CHAINCODE_INSTALLTIMEOUT: 300s
+      CORE_METRICS_PROVIDER: prometheus
+      CORE_OPERATIONS_LISTENADDRESS: 0.0.0.0:9444
+    volumes:
+      - /var/run/docker.sock:/host/var/run/docker.sock
+      - ./organizations-prod/peerOrganizations/empresaa.ute.prod/peers/peer0.empresaa.ute.prod/msp:/etc/hyperledger/peer/msp
+      - ./organizations-prod/peerOrganizations/empresaa.ute.prod/peers/peer0.empresaa.ute.prod/tls:/etc/hyperledger/peer/tls
+      - peer0-empresaa:/var/hyperledger/production
+    networks: [ute]
+    ports:
+      - "7051:7051"
+
+  cadvisor:
+    <<: *exporter-resources
+    image: gcr.io/cadvisor/cadvisor:v0.56.1
+    container_name: cadvisor
+    restart: unless-stopped
+    privileged: true
+    command:
+      - --docker_only=true
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /var/lib/docker:/var/lib/docker:ro
+    networks: [ute]
+    ports: []
+
+  node-exporter:
+    <<: *exporter-resources
+    image: prom/node-exporter:v1.9.1
+    container_name: node-exporter
+    restart: unless-stopped
+    pid: host
+    command:
+      - --path.procfs=/host/proc
+      - --path.sysfs=/host/sys
+      - --path.rootfs=/rootfs
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+    networks: [ute]
+    ports: []

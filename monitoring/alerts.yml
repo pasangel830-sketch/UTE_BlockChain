@@ -1,0 +1,34 @@
+groups:
+  - name: fabric-ute
+    rules:
+      - alert: PeerCaido
+        expr: up{job="fabric-peers", role="required"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Peer Fabric caído ({{ $labels.instance }})"
+          description: "El peer requerido {{ $labels.instance }} no responde en /metrics desde hace 1 minuto."
+
+      - alert: LatenciaBloqueAlta
+        expr: histogram_quantile(0.99, sum by (le, instance) (rate(ledger_block_processing_time_bucket[5m]))) > 5
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Latencia de commit de bloque > 5 s ({{ $labels.instance }})"
+          description: "p99 de ledger_block_processing_time supera 5 segundos."
+
+      - alert: ErrorEndorsementAlto
+        expr: |
+          (
+            sum(rate(endorser_proposal_duration_count{success="false"}[5m]))
+            /
+            clamp_min(sum(rate(endorser_proposal_duration_count[5m])), 0.001)
+          ) > 0.05
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Tasa de error de endorsement > 5 %"
+          description: "Más del 5 % de propuestas de endorsement fallan en los últimos 5 minutos."

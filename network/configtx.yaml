@@ -1,0 +1,247 @@
+---
+# Canal channel-obra. Fabric 2.5 + channel participation (sin system channel).
+# Un solo perfil: UteFull (5 orgs + 3 orderers Raft).
+# Diario: mismos MSP/políticas; solo se arrancan 3 orderers + peers A y Administración.
+
+Organizations:
+  - &OrdererOrg
+    Name: OrdererOrg
+    ID: OrdererMSP
+    MSPDir: organizations/ordererOrganizations/ute.local/msp
+    Policies:
+      Readers:
+        Type: Signature
+        Rule: "OR('OrdererMSP.member')"
+      Writers:
+        Type: Signature
+        Rule: "OR('OrdererMSP.member')"
+      Admins:
+        Type: Signature
+        Rule: "OR('OrdererMSP.admin')"
+    OrdererEndpoints:
+      - orderer1.ute.local:7050
+      - orderer2.ute.local:8050
+      - orderer3.ute.local:9050
+
+  - &EmpresaA
+    Name: EmpresaAMSP
+    ID: EmpresaAMSP
+    MSPDir: organizations/peerOrganizations/empresaa.ute.local/msp
+    Policies:
+      Readers:
+        Type: Signature
+        Rule: "OR('EmpresaAMSP.admin', 'EmpresaAMSP.peer', 'EmpresaAMSP.client')"
+      Writers:
+        Type: Signature
+        Rule: "OR('EmpresaAMSP.admin', 'EmpresaAMSP.client')"
+      Admins:
+        Type: Signature
+        Rule: "OR('EmpresaAMSP.admin')"
+      Endorsement:
+        Type: Signature
+        Rule: "OR('EmpresaAMSP.peer')"
+    AnchorPeers:
+      - Host: peer0.empresaa.ute.local
+        Port: 7051
+
+  - &EmpresaB
+    Name: EmpresaBMSP
+    ID: EmpresaBMSP
+    MSPDir: organizations/peerOrganizations/empresab.ute.local/msp
+    Policies:
+      Readers:
+        Type: Signature
+        Rule: "OR('EmpresaBMSP.admin', 'EmpresaBMSP.peer', 'EmpresaBMSP.client')"
+      Writers:
+        Type: Signature
+        Rule: "OR('EmpresaBMSP.admin', 'EmpresaBMSP.client')"
+      Admins:
+        Type: Signature
+        Rule: "OR('EmpresaBMSP.admin')"
+      Endorsement:
+        Type: Signature
+        Rule: "OR('EmpresaBMSP.peer')"
+    AnchorPeers:
+      - Host: peer0.empresab.ute.local
+        Port: 8051
+
+  - &EmpresaC
+    Name: EmpresaCMSP
+    ID: EmpresaCMSP
+    MSPDir: organizations/peerOrganizations/empresac.ute.local/msp
+    Policies:
+      Readers:
+        Type: Signature
+        Rule: "OR('EmpresaCMSP.admin', 'EmpresaCMSP.peer', 'EmpresaCMSP.client')"
+      Writers:
+        Type: Signature
+        Rule: "OR('EmpresaCMSP.admin', 'EmpresaCMSP.client')"
+      Admins:
+        Type: Signature
+        Rule: "OR('EmpresaCMSP.admin')"
+      Endorsement:
+        Type: Signature
+        Rule: "OR('EmpresaCMSP.peer')"
+    AnchorPeers:
+      - Host: peer0.empresac.ute.local
+        Port: 11051
+
+  - &EmpresaD
+    Name: EmpresaDMSP
+    ID: EmpresaDMSP
+    MSPDir: organizations/peerOrganizations/empresad.ute.local/msp
+    Policies:
+      Readers:
+        Type: Signature
+        Rule: "OR('EmpresaDMSP.admin', 'EmpresaDMSP.peer', 'EmpresaDMSP.client')"
+      Writers:
+        Type: Signature
+        Rule: "OR('EmpresaDMSP.admin', 'EmpresaDMSP.client')"
+      Admins:
+        Type: Signature
+        Rule: "OR('EmpresaDMSP.admin')"
+      Endorsement:
+        Type: Signature
+        Rule: "OR('EmpresaDMSP.peer')"
+    AnchorPeers:
+      - Host: peer0.empresad.ute.local
+        Port: 12051
+
+  - &Administracion
+    Name: AdministracionMSP
+    ID: AdministracionMSP
+    MSPDir: organizations/peerOrganizations/administracion.ute.local/msp
+    Policies:
+      Readers:
+        Type: Signature
+        Rule: "OR('AdministracionMSP.admin', 'AdministracionMSP.peer', 'AdministracionMSP.client')"
+      Writers:
+        Type: Signature
+        Rule: "OR('AdministracionMSP.admin', 'AdministracionMSP.client')"
+      Admins:
+        Type: Signature
+        Rule: "OR('AdministracionMSP.admin')"
+      Endorsement:
+        Type: Signature
+        Rule: "OR('AdministracionMSP.peer')"
+    AnchorPeers:
+      - Host: peer0.administracion.ute.local
+        Port: 9051
+
+Capabilities:
+  Channel: &ChannelCapabilities
+    V2_0: true
+  Orderer: &OrdererCapabilities
+    V2_0: true
+  Application: &ApplicationCapabilities
+    V2_5: true
+
+Application: &ApplicationDefaults
+  Organizations:
+  Policies:
+    Readers:
+      Type: ImplicitMeta
+      Rule: "ANY Readers"
+    Writers:
+      Type: ImplicitMeta
+      Rule: "ANY Writers"
+    Admins:
+      Type: ImplicitMeta
+      Rule: "MAJORITY Admins"
+    # OutOf(2,5): A+Admin basta para lifecycle (approve/commit) con el perfil diario.
+    LifecycleEndorsement:
+      Type: Signature
+      Rule: "OutOf(2, 'EmpresaAMSP.peer', 'EmpresaBMSP.peer', 'EmpresaCMSP.peer', 'EmpresaDMSP.peer', 'AdministracionMSP.peer')"
+    Endorsement:
+      Type: ImplicitMeta
+      Rule: "ANY Endorsement"
+  Capabilities:
+    <<: *ApplicationCapabilities
+
+Orderer: &OrdererDefaults
+  OrdererType: etcdraft
+  EtcdRaft:
+    Options:
+      TickInterval: 500ms
+      ElectionTick: 10
+      HeartbeatTick: 1
+      MaxInflightBlocks: 5
+      SnapshotIntervalSize: 16 MB
+  Addresses:
+    - orderer1.ute.local:7050
+    - orderer2.ute.local:8050
+    - orderer3.ute.local:9050
+  BatchTimeout: 2s
+  BatchSize:
+    MaxMessageCount: 10
+    AbsoluteMaxBytes: 99 MB
+    PreferredMaxBytes: 512 KB
+  Organizations:
+  Policies:
+    Readers:
+      Type: ImplicitMeta
+      Rule: "ANY Readers"
+    Writers:
+      Type: ImplicitMeta
+      Rule: "ANY Writers"
+    Admins:
+      Type: ImplicitMeta
+      Rule: "MAJORITY Admins"
+    BlockValidation:
+      Type: ImplicitMeta
+      Rule: "ANY Writers"
+  Capabilities:
+    <<: *OrdererCapabilities
+
+Channel: &ChannelDefaults
+  Policies:
+    Readers:
+      Type: ImplicitMeta
+      Rule: "ANY Readers"
+    Writers:
+      Type: ImplicitMeta
+      Rule: "ANY Writers"
+    Admins:
+      Type: ImplicitMeta
+      Rule: "MAJORITY Admins"
+  Capabilities:
+    <<: *ChannelCapabilities
+
+Profiles:
+  UteFull:
+    <<: *ChannelDefaults
+    Orderer:
+      <<: *OrdererDefaults
+      OrdererType: etcdraft
+      EtcdRaft:
+        Consenters:
+          - Host: orderer1.ute.local
+            Port: 7050
+            ClientTLSCert: organizations/ordererOrganizations/ute.local/orderers/orderer1.ute.local/tls/server.crt
+            ServerTLSCert: organizations/ordererOrganizations/ute.local/orderers/orderer1.ute.local/tls/server.crt
+          - Host: orderer2.ute.local
+            Port: 8050
+            ClientTLSCert: organizations/ordererOrganizations/ute.local/orderers/orderer2.ute.local/tls/server.crt
+            ServerTLSCert: organizations/ordererOrganizations/ute.local/orderers/orderer2.ute.local/tls/server.crt
+          - Host: orderer3.ute.local
+            Port: 9050
+            ClientTLSCert: organizations/ordererOrganizations/ute.local/orderers/orderer3.ute.local/tls/server.crt
+            ServerTLSCert: organizations/ordererOrganizations/ute.local/orderers/orderer3.ute.local/tls/server.crt
+      Addresses:
+        - orderer1.ute.local:7050
+        - orderer2.ute.local:8050
+        - orderer3.ute.local:9050
+      Organizations:
+        - *OrdererOrg
+      Capabilities:
+        <<: *OrdererCapabilities
+    Application:
+      <<: *ApplicationDefaults
+      Organizations:
+        - *EmpresaA
+        - *EmpresaB
+        - *EmpresaC
+        - *EmpresaD
+        - *Administracion
+      Capabilities:
+        <<: *ApplicationCapabilities

@@ -1,0 +1,80 @@
+# cryptogen local. Seis MSP. Sin Fabric CA.
+# Dominio ute.local (compose dev/full). Regenerar con FORCE=1.
+
+OrdererOrgs:
+  - Name: Orderer
+    Domain: ute.local
+    EnableNodeOUs: true
+    Specs:
+      - Hostname: orderer1
+        SANS:
+          - "orderer1.ute.local"
+          - "localhost"
+          - "127.0.0.1"
+      - Hostname: orderer2
+        SANS:
+          - "orderer2.ute.local"
+          - "localhost"
+          - "127.0.0.1"
+      - Hostname: orderer3
+        SANS:
+          - "orderer3.ute.local"
+          - "localhost"
+          - "127.0.0.1"
+
+PeerOrgs:
+  - Name: EmpresaA
+    Domain: empresaa.ute.local
+    EnableNodeOUs: true
+    Template:
+      Count: 1
+      SANS:
+        - "peer0.empresaa.ute.local"
+        - "localhost"
+        - "127.0.0.1"
+    Users:
+      Count: 1
+  - Name: EmpresaB
+    Domain: empresab.ute.local
+    EnableNodeOUs: true
+    Template:
+      Count: 1
+      SANS:
+        - "peer0.empresab.ute.local"
+        - "localhost"
+        - "127.0.0.1"
+    Users:
+      Count: 1
+  - Name: EmpresaC
+    Domain: empresac.ute.local
+    EnableNodeOUs: true
+    Template:
+      Count: 1
+      SANS:
+        - "peer0.empresac.ute.local"
+        - "localhost"
+        - "127.0.0.1"
+    Users:
+      Count: 1
+  - Name: EmpresaD
+    Domain: empresad.ute.local
+    EnableNodeOUs: true
+    Template:
+      Count: 1
+      SANS:
+        - "peer0.empresad.ute.local"
+        - "localhost"
+        - "127.0.0.1"
+    Users:
+      Count: 1
+  - Name: Administracion
+    Domain: administracion.ute.local
+    EnableNodeOUs: true
+    Template:
+      Count: 1
+      SANS:
+        - "peer0.administracion.ute.local"
+        - "localhost"
+        - "127.0.0.1"
+    Users:
+      Count: 1

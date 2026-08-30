@@ -1,0 +1,72 @@
+# Entorno
+.env
+.env.*
+!.env.example
+!.env.local.example
+
+# Secretos Fabric y cloud
+**/*.key
+**/*_sk
+**/*.pem
+network/organizations/
+network/organizations-prod/
+network/crypto-config/
+*.block
+*.tx
+network/channel-artifacts/*.block
+network/channel-artifacts/*.tx
+backend/wallet/
+backend/wallets/
+backend/identities/
+**/*service-account*.json
+**/*gcs*.json
+**/credentials.json
+
+# Binarios Fabric (se descargan el día 1, no van al repo)
+network/bin/
+bin/
+config/core.yaml
+config/orderer.yaml
+config/configtx.yaml
+
+# Runtime Fabric
+network/data/
+network/volumes/
+**/ledgersData/
+**/transientStore/
+
+# Evidencias
+uploads/
+backend/uploads/
+
+# Monitorización persistida
+monitoring/data/
+**/grafana.db
+
+# Node
+node_modules/
+**/node_modules/
+dist/
+**/dist/
+.next/
+**/.next/
+out/
+coverage/
+**/coverage/
+*.tsbuildinfo
+
+# Logs y SO
+*.log
+logs/
+npm-debug.log*
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# IDE
+.idea/
+*.swp
+
+# Local overrides
+docker-compose.override.yaml
+*.vhdx

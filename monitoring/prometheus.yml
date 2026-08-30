@@ -1,0 +1,36 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+rule_files:
+  - /etc/prometheus/alerts.yml
+
+scrape_configs:
+  - job_name: prometheus
+    static_configs:
+      - targets: ["localhost:9090"]
+
+  - job_name: fabric-peers
+    static_configs:
+      - targets:
+          - peer0.empresaa.ute.local:9444
+          - peer0.administracion.ute.local:9445
+        labels:
+          role: required
+      - targets:
+          - peer0.empresab.ute.local:9446
+          - peer0.empresac.ute.local:9447
+          - peer0.empresad.ute.local:9448
+        labels:
+          role: satellite
+
+  - job_name: fabric-orderers
+    static_configs:
+      - targets:
+          - orderer1.ute.local:8443
+          - orderer2.ute.local:8444
+          - orderer3.ute.local:8445
+
+  - job_name: backend
+    static_configs:
+      - targets: ["host.docker.internal:4000"]

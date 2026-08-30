@@ -1,0 +1,15 @@
+.git
+.gitignore
+**/node_modules
+**/.next
+**/dist
+**/coverage
+uploads
+monitoring/data
+**/.env
+**/*.pem
+**/wallet
+**/wallets
+**/organizations
+**/crypto-config
+**/*service-account*.json
