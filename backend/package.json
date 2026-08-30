@@ -1,6 +1,6 @@
 {
   "name": "ute-api",
-  "version": "0.6.0",
+  "version": "0.9.0",
   "private": true,
   "description": "API UTE hitos/pagos — Express + fabric-gateway",
   "main": "dist/index.js",

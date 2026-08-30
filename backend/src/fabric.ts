@@ -82,11 +82,17 @@ export async function submit(
   fn: string,
   args: string[],
   endorsing?: string[],
+  transientData?: Record<string, string | Uint8Array>,
 ): Promise<string> {
   const c = contract(await getGateway(org), chaincode, name);
-  const bytes = endorsing
-    ? await c.submit(fn, { arguments: args, endorsingOrganizations: endorsing })
-    : await c.submitTransaction(fn, ...args);
+  const bytes =
+    endorsing || transientData
+      ? await c.submit(fn, {
+          arguments: args,
+          endorsingOrganizations: endorsing,
+          transientData,
+        })
+      : await c.submitTransaction(fn, ...args);
   return Buffer.from(bytes).toString('utf8');
 }
 

@@ -35,7 +35,7 @@ flowchart LR
   Next -->|HTTPS JWT| API
 ```
 
-Diario en el portátil: mismos MSP y políticas; solo arrancan 3 orderers + peer Empresa A + peer Administración (`make up-dev`). Full añade peers B/C/D (`make up-full`).
+Diario en el portátil: mismos MSP y políticas; solo arrancan 3 orderers + peer Empresa A + peer Administración (`make up-dev`). Full añade peers B/C/D (`make up-full`). PDC de quirófanos: `make pdc-up` (B/C/D un rato, mismo canal).
 
 ## Políticas (canal `UteFull`, 5 orgs)
 
@@ -75,14 +75,47 @@ make verify-full
 make reset-dev       # down -v, borra *.block, crypto si hace falta, up
 make monitoring-up   # requiere ute-net (Fabric ya arriba)
 make seed            # día 12; hoy es stub
-make test-cc         # Jest Hito + Pago (Node 18)
-make deploy-cc       # instala hito+pago en A+Admin; InitLedger
+make test-cc         # Jest 4 contratos (Node 18)
+make deploy-cc       # hito+pago+incidencia+estado-obra en A+Admin; InitLedger
 make api-up          # Express :4000 en ute-net
 make api-down
+make ui-up           # Next 15.5 :3000  NEXT_PUBLIC_API_URL=http://localhost:4000
+make pdc-up          # peers B/C/D un rato; join + approve incidencia
+make pdc-down
+make verify-pdc
 ./network/scripts/verify-api.sh
+./network/scripts/verify-ui.sh
 ```
 
 Certificados: `network/organizations/` (no se suben). Regenerar: `FORCE=1 ./network/scripts/generate-crypto.sh`.
+
+## Rebanada vertical (días 4–7)
+
+Flujo local: UI → API :4000 → Hito + Pago → Explorer (polling 3 s).
+
+```mermaid
+sequenceDiagram
+  participant U as Next :3000
+  participant A as API :4000
+  participant H as HitoContract
+  participant P as PagoContract
+  participant E as Explorer
+  participant B as Mock banco
+  U->>A: login JWT
+  U->>A: POST /hitos
+  A->>H: crearHito PENDIENTE
+  U->>A: iniciar → validar → completar
+  A->>H: completarHito COMPLETADO
+  A->>P: ponerEnCustodia
+  P-->>A: CUSTODIA
+  U->>A: POST /pagos/:id/autorizar
+  P-->>A: evento PagoAutorizado
+  A->>B: POST /mock/banco/pagos
+  U->>A: GET /explorer (cada 3 s)
+  A-->>E: altura + bloques
+```
+
+`NEXT_PUBLIC_API_URL=http://localhost:4000`. Pantallas Next (7): `/` login, `/dashboard`, `/hitos` (hitos+pagos+Explorer), `/pagos`, `/incidencias`, `/estado`, `/explorer`.
 
 ## Flujo de pago (objetivo de demo)
 
@@ -100,6 +133,10 @@ sequenceDiagram
   P-->>A: evento PagoAutorizado
   A->>B: POST /mock/banco/pagos
 ```
+
+## Estado de obra (día 9)
+
+EstadoObraContract guarda un JSON agregado. El backend lo calcula (hitos, pagos, incidencias) y hace `submit escribirEstado`. No hay `invokeChaincode` entre contratos.
 
 ## Monitorización
 

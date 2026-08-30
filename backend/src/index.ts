@@ -2,6 +2,7 @@ import 'dotenv/config';
 import { config } from './config';
 import { createApp } from './app';
 import { startPagoListener } from './events';
+import { startBlockListener } from './explorer';
 import { closeAll } from './fabric';
 
 async function main() {
@@ -13,6 +14,7 @@ async function main() {
     console.log(`UTE API :${config.port}`);
   });
   await startPagoListener();
+  await startBlockListener();
   const stop = async () => {
     server.close();
     await closeAll();

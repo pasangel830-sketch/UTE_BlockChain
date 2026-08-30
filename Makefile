@@ -4,7 +4,7 @@ COMPOSE_MON := docker compose -f monitoring/docker-compose.yaml
 COMPOSE_PROD := docker compose -f network/docker-compose.production.yaml
 ART_BLOCKS := network/channel-artifacts/*.block network/channel-artifacts/*.tx channel-obra.block
 
-.PHONY: crypto channel-dev channel-full up-dev down-dev logs-dev up-full down-full logs-full verify-full reset-dev reset-full seed monitoring-up monitoring-down ps clean-artifacts test-cc deploy-hito deploy-pago deploy-cc init-pago verify-cc verify-api api-up api-down
+.PHONY: crypto channel-dev channel-full up-dev down-dev logs-dev up-full down-full logs-full verify-full reset-dev reset-full seed monitoring-up monitoring-down ps clean-artifacts test-cc deploy-hito deploy-pago deploy-incidencia deploy-estado deploy-cc init-pago init-estado verify-cc verify-api verify-pdc verify-ui api-up api-down ui-up pdc-up pdc-down
 
 crypto:
 	./network/scripts/generate-crypto.sh
@@ -77,6 +77,8 @@ ps:
 test-cc:
 	. $(HOME)/.nvm/nvm.sh && nvm use 18 && cd chaincode/hito && npm test
 	. $(HOME)/.nvm/nvm.sh && nvm use 18 && cd chaincode/pago && npm test
+	. $(HOME)/.nvm/nvm.sh && nvm use 18 && cd chaincode/incidencia && npm test
+	. $(HOME)/.nvm/nvm.sh && nvm use 18 && cd chaincode/estado-obra && npm test
 
 deploy-hito:
 	./network/scripts/deploy-chaincode.sh hito "OR('EmpresaAMSP.peer','AdministracionMSP.peer')"
@@ -84,11 +86,21 @@ deploy-hito:
 deploy-pago:
 	./network/scripts/deploy-chaincode.sh pago "AND('EmpresaAMSP.peer','AdministracionMSP.peer')"
 
-deploy-cc: deploy-hito deploy-pago
+deploy-incidencia:
+	./network/scripts/deploy-chaincode.sh incidencia
+
+deploy-estado:
+	./network/scripts/deploy-chaincode.sh estado-obra
+
+deploy-cc: deploy-hito deploy-pago deploy-incidencia deploy-estado
 	./network/scripts/init-pago.sh
+	./network/scripts/init-estado.sh
 
 init-pago:
 	./network/scripts/init-pago.sh
+
+init-estado:
+	./network/scripts/init-estado.sh
 
 verify-cc:
 	./network/scripts/verify-hito-pago.sh
@@ -96,9 +108,25 @@ verify-cc:
 verify-api:
 	./network/scripts/verify-api.sh
 
+verify-pdc:
+	./network/scripts/verify-pdc.sh
+
+verify-ui:
+	./network/scripts/verify-ui.sh
+
 api-up:
 	. $(HOME)/.nvm/nvm.sh && nvm use 24 && cd backend && (test -f package-lock.json && npm ci || npm install) && npm run build
 	docker compose -f network/docker-compose.api.yaml up -d --force-recreate
 
 api-down:
 	docker compose -f network/docker-compose.api.yaml down --remove-orphans
+
+ui-up:
+	. $(HOME)/.nvm/nvm.sh && nvm use 24 && cd frontend && (test -f package-lock.json && npm ci || npm install) && npm run dev
+
+pdc-up:
+	docker compose -f network/docker-compose.pdc.yaml up -d
+	./network/scripts/join-pdc-peers.sh
+
+pdc-down:
+	docker compose -f network/docker-compose.pdc.yaml down --remove-orphans

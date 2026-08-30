@@ -21,6 +21,8 @@ export const config = {
   channelName: env('CHANNEL_NAME', 'channel-obra'),
   chaincodeHito: env('CHAINCODE_HITO', 'hito'),
   chaincodePago: env('CHAINCODE_PAGO', 'pago'),
+  chaincodeIncidencia: env('CHAINCODE_INCIDENCIA', 'incidencia'),
+  chaincodeEstado: env('CHAINCODE_ESTADO', 'estado-obra'),
   storageDriver: env('STORAGE_DRIVER', 'local'),
   uploadDir: env('UPLOAD_DIR', path.resolve(__dirname, '../uploads')),
   mockBancoUrl: env('MOCK_BANCO_URL', 'http://127.0.0.1:4000/mock/banco/pagos'),

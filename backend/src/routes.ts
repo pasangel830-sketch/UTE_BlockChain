@@ -1,9 +1,11 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import multer from 'multer';
-import { config } from './config';
+import { config, OrgMsp } from './config';
 import { auth, login } from './auth';
 import { submit, evaluate } from './fabric';
 import { saveLocal } from './storage';
+import { getExplorerSnapshot } from './explorer';
+import { agregarEstado } from './estado';
 
 export const bancoLog: unknown[] = [];
 
@@ -23,6 +25,42 @@ function orgOf(req: Request) {
 function pid(req: Request): string {
   const v = req.params.id;
   return Array.isArray(v) ? v[0] : v;
+}
+
+const ENDORSE_DAILY = ['EmpresaAMSP', 'AdministracionMSP'];
+
+async function itemsOf(org: OrgMsp, chaincode: string, contract: string, fn: string): Promise<unknown[]> {
+  try {
+    const raw = await evaluate(org, chaincode, contract, fn, ['100', '']);
+    const parsed = JSON.parse(raw) as { items?: unknown[] };
+    return parsed.items || [];
+  } catch {
+    return [];
+  }
+}
+
+async function refreshEstado(org: OrgMsp): Promise<void> {
+  try {
+    const hitos = (await itemsOf(org, config.chaincodeHito, 'HitoContract', 'listarHitos')) as {
+      estado?: string;
+    }[];
+    const pagos = (await itemsOf(org, config.chaincodePago, 'PagoContract', 'listarPagos')) as {
+      estado?: string;
+      importeTotal?: number;
+    }[];
+    const incidencias = (await itemsOf(
+      org,
+      config.chaincodeIncidencia,
+      'IncidenciaContract',
+      'listarIncidencias',
+    )) as { estado?: string }[];
+    const agg = agregarEstado(hitos, pagos, incidencias);
+    await submit(org, config.chaincodeEstado, 'EstadoObraContract', 'escribirEstado', [
+      JSON.stringify(agg),
+    ]);
+  } catch (err) {
+    console.error('estado obra', err);
+  }
 }
 
 router.post(
@@ -121,6 +159,7 @@ router.post(
       ['EmpresaAMSP', 'AdministracionMSP'],
     );
     res.json({ hito: JSON.parse(hitoRaw), pago: JSON.parse(pagoRaw) });
+    void refreshEstado(org);
   }),
 );
 
@@ -134,6 +173,7 @@ router.post(
       motivo,
     ]);
     res.json(JSON.parse(raw));
+    void refreshEstado(orgOf(req));
   }),
 );
 
@@ -172,11 +212,194 @@ router.post(
       'PagoContract',
       'autorizarPago',
       [pid(req)],
-      ['EmpresaAMSP', 'AdministracionMSP'],
+      ENDORSE_DAILY,
+    );
+    res.json(JSON.parse(raw));
+    void refreshEstado('AdministracionMSP');
+  }),
+);
+
+router.post(
+  '/pagos/:id/rechazar',
+  auth,
+  asyncH(async (req, res) => {
+    const motivo = (req.body as { motivo?: string }).motivo || 'rechazado';
+    const raw = await submit(
+      orgOf(req),
+      config.chaincodePago,
+      'PagoContract',
+      'rechazarPago',
+      [pid(req), motivo],
+      ENDORSE_DAILY,
+    );
+    res.json(JSON.parse(raw));
+    void refreshEstado(orgOf(req));
+  }),
+);
+
+router.get(
+  '/incidencias',
+  auth,
+  asyncH(async (req, res) => {
+    const page = String(req.query.pageSize || '20');
+    const bookmark = String(req.query.bookmark || '');
+    const raw = await evaluate(
+      orgOf(req),
+      config.chaincodeIncidencia,
+      'IncidenciaContract',
+      'listarIncidencias',
+      [page, bookmark],
     );
     res.json(JSON.parse(raw));
   }),
 );
+
+router.post(
+  '/incidencias',
+  auth,
+  asyncH(async (req, res) => {
+    const { id, titulo, empresa, lote, detalle, costeEstimado, notasTecnicas } = req.body as Record<
+      string,
+      string | number
+    >;
+    const iid = String(id || `I-${Date.now()}`);
+    const transient = {
+      detalle: JSON.stringify({
+        detalle: detalle || '',
+        costeEstimado: Number(costeEstimado || 0),
+        notasTecnicas: notasTecnicas || '',
+      }),
+    };
+    const raw = await submit(
+      orgOf(req),
+      config.chaincodeIncidencia,
+      'IncidenciaContract',
+      'crearIncidencia',
+      [iid, String(titulo || ''), String(empresa || 'EmpresaA'), String(lote || 'obra-gruesa-solar')],
+      ENDORSE_DAILY,
+      transient,
+    );
+    res.status(201).json(JSON.parse(raw));
+    void refreshEstado(orgOf(req));
+  }),
+);
+
+router.get(
+  '/incidencias/:id',
+  auth,
+  asyncH(async (req, res) => {
+    const raw = await evaluate(
+      orgOf(req),
+      config.chaincodeIncidencia,
+      'IncidenciaContract',
+      'consultarIncidencia',
+      [pid(req)],
+    );
+    res.json(JSON.parse(raw));
+  }),
+);
+
+router.get(
+  '/incidencias/:id/privado',
+  auth,
+  asyncH(async (req, res) => {
+    const raw = await evaluate(
+      orgOf(req),
+      config.chaincodeIncidencia,
+      'IncidenciaContract',
+      'consultarDetallePrivado',
+      [pid(req)],
+    );
+    res.json(JSON.parse(raw));
+  }),
+);
+
+router.post(
+  '/incidencias/:id/tratar',
+  auth,
+  asyncH(async (req, res) => {
+    const raw = await submit(
+      orgOf(req),
+      config.chaincodeIncidencia,
+      'IncidenciaContract',
+      'tratarIncidencia',
+      [pid(req)],
+      ENDORSE_DAILY,
+    );
+    res.json(JSON.parse(raw));
+    void refreshEstado(orgOf(req));
+  }),
+);
+
+router.post(
+  '/incidencias/:id/cerrar',
+  auth,
+  asyncH(async (req, res) => {
+    const raw = await submit(
+      orgOf(req),
+      config.chaincodeIncidencia,
+      'IncidenciaContract',
+      'cerrarIncidencia',
+      [pid(req)],
+      ENDORSE_DAILY,
+    );
+    res.json(JSON.parse(raw));
+    void refreshEstado(orgOf(req));
+  }),
+);
+
+router.post(
+  '/incidencias/:id/rechazar',
+  auth,
+  asyncH(async (req, res) => {
+    const motivo = (req.body as { motivo?: string }).motivo || 'rechazado';
+    const raw = await submit(
+      orgOf(req),
+      config.chaincodeIncidencia,
+      'IncidenciaContract',
+      'rechazarIncidencia',
+      [pid(req), motivo],
+      ENDORSE_DAILY,
+    );
+    res.json(JSON.parse(raw));
+    void refreshEstado(orgOf(req));
+  }),
+);
+
+router.get(
+  '/estado',
+  auth,
+  asyncH(async (req, res) => {
+    const raw = await evaluate(
+      orgOf(req),
+      config.chaincodeEstado,
+      'EstadoObraContract',
+      'consultarEstado',
+      [],
+    );
+    res.json(JSON.parse(raw));
+  }),
+);
+
+router.post(
+  '/estado/recalcular',
+  auth,
+  asyncH(async (req, res) => {
+    await refreshEstado(orgOf(req));
+    const raw = await evaluate(
+      orgOf(req),
+      config.chaincodeEstado,
+      'EstadoObraContract',
+      'consultarEstado',
+      [],
+    );
+    res.json(JSON.parse(raw));
+  }),
+);
+
+router.get('/explorer', auth, (_req, res) => {
+  res.json(getExplorerSnapshot());
+});
 
 router.post(
   '/mock/banco/pagos',
