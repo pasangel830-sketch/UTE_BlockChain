@@ -244,6 +244,7 @@ services:
     volumes:
       - ./:/workspace
       - ./organizations:/organizations
+      - ../chaincode:/chaincode
     working_dir: /workspace
     networks:
       - ute

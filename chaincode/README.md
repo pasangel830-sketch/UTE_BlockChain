@@ -14,3 +14,9 @@ No instalar 4 CC × 5 peers (20 contenedores `fabric-nodeenv`, ~2–3 GB extra).
 PDC: `network/collections-config.json` (`requiredPeerCount: 0`).
 
 Tests: Jest, sin red Fabric.
+
+```bash
+make test-cc          # nvm 18, hito + pago
+make deploy-cc        # instala solo A+Admin, InitLedger pago
+make verify-cc        # flujo hito→custodia→autorizar por CLI
+```
