@@ -105,3 +105,62 @@ Alertas en `monitoring/alerts.yml`:
 3. `ErrorEndorsementAlto` — ratio success=false > 5 %
 
 Demostración con tráfico: día 13.
+
+## Días 4–5 (30 ago 2026) — chaincode
+
+`nvm use 18`. Jest sin red:
+
+```
+cd chaincode/hito && npm test
+  Test Suites: 1 passed, 1 total
+  Tests:       12 passed, 12 total
+
+cd chaincode/pago && npm test
+  Test Suites: 1 passed, 1 total
+  Tests:       9 passed, 9 total
+```
+
+Deploy (CLI `ute-cli-dev`, install solo A+Admin):
+
+```
+make deploy-hito
+  Package ID: hito_1.0:eb3408107e3c2edb6590988eb48ec51a0733e55b7ee10d062136b5261c1fa5ed
+  commit policy=OR('EmpresaAMSP.peer','AdministracionMSP.peer')
+  Approvals: [AdministracionMSP: true, EmpresaAMSP: true, EmpresaBMSP: false, EmpresaCMSP: false, EmpresaDMSP: false]
+
+make deploy-pago
+  Package ID: pago_1.0:cc18dc627f761cad2529f2626f15b0d0898031a4cdecc970da055c8e4d8d552f
+  commit policy=AND('EmpresaAMSP.peer','AdministracionMSP.peer')
+  Approvals: [AdministracionMSP: true, EmpresaAMSP: true, B/C/D: false]
+
+./network/scripts/init-pago.sh
+  payload: {"EmpresaA":35,"EmpresaB":25,"EmpresaC":20,"EmpresaD":20}
+
+./network/scripts/verify-hito-pago.sh H-d5
+  H-d5 PENDIENTE → EN_EJECUCION → VALIDACION → COMPLETADO
+  pago-H-d5 CUSTODIA desglose 3500/2500/2000/2000 → AUTORIZADO
+```
+
+`docker ps` nodeenv: 4 cajas (`hito`+`pago` × peer A + peer Admin). Sin peers B/C/D.
+
+## Día 6 (30 ago 2026) — API
+
+```
+docker compose -f network/docker-compose.api.yaml up -d
+  ute-api  node:24.20.0-bookworm  :4000  red ute-net
+
+curl /health → {"ok":true}
+GET /metrics → process_cpu_* (prom-client)
+GET /api-docs/ → 200 (Swagger UI)
+Express 5.2.1 + @hyperledger/fabric-gateway 1.12.0
+STORAGE_DRIVER=local  GRPC_KEEPALIVE_TIME_MS=120000
+
+./network/scripts/verify-api.sh
+  POST /auth/login empresaA
+  H-api-1788121082 PENDIENTE → EN_EJECUCION → VALIDACION
+  POST /hitos/.../completar → COMPLETADO + pago CUSTODIA
+  POST /pagos/pago-.../autorizar → AUTORIZADO
+  GET /mock/banco/pagos → evento PagoAutorizado
+  docker logs ute-api: webhook mock banco 200
+```
+

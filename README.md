@@ -75,6 +75,11 @@ make verify-full
 make reset-dev       # down -v, borra *.block, crypto si hace falta, up
 make monitoring-up   # requiere ute-net (Fabric ya arriba)
 make seed            # día 12; hoy es stub
+make test-cc         # Jest Hito + Pago (Node 18)
+make deploy-cc       # instala hito+pago en A+Admin; InitLedger
+make api-up          # Express :4000 en ute-net
+make api-down
+./network/scripts/verify-api.sh
 ```
 
 Certificados: `network/organizations/` (no se suben). Regenerar: `FORCE=1 ./network/scripts/generate-crypto.sh`.

@@ -9,13 +9,13 @@ Fuente de tareas: [CHECKLIST.md](CHECKLIST.md).
 | Red Fabric 5 orgs + Raft 3 orderers | `network/configtx.yaml` perfil `UteFull`; compose full | HECHO | red local |
 | Canal único usable en diario | `create-channel.sh`; compose dev = 3 orderers + A + Admin | HECHO (`make reset-dev` 30 ago) | |
 | PDC obra-gruesa / quirófanos | `network/collections-config.json` | HECHO YAML; commit CC día 8 | |
-| 4 chaincodes **TypeScript** + tests unitarios | `chaincode/` (hito, pago, incidencia, estado-obra) | PENDIENTE | **4** |
-| Escrow / fondos custodiados (§4.2) | PagoContract + API | PENDIENTE (día 5) | funcional |
-| Evento `PagoAutorizado` + integración bancaria | listener Express + `POST /mock/banco/pagos` | PENDIENTE (día 6) | funcional |
-| Endorsement pago org + Administración | política al hacer commit del CC | PENDIENTE (día 5) | |
+| 4 chaincodes **TypeScript** + tests unitarios | `chaincode/` (hito, pago, incidencia, estado-obra) | PARCIAL (hito+pago HECHO días 4–5) | **4** |
+| Escrow / fondos custodiados (§4.2) | PagoContract + API | HECHO (día 5) | funcional |
+| Evento `PagoAutorizado` + integración bancaria | listener Express + `POST /mock/banco/pagos` | HECHO (día 6) | funcional |
+| Endorsement pago org + Administración | política al hacer commit del CC | HECHO `AND(EmpresaAMSP.peer, AdministracionMSP.peer)` | |
 | Incidencias 2 de 5 | IncidenciaContract OutOf(2,5) | PENDIENTE (día 8) | |
 | Estado de obra | EstadoObraContract alimentado por backend (sin cross-cc) | PENDIENTE (día 9) | |
-| API JWT, multer, Swagger, prom-client | `backend/` | PENDIENTE (día 6) | |
+| API JWT, multer, Swagger, prom-client | `backend/` | HECHO (día 6) | |
 | Frontend 7 pantallas + Explorer | `frontend/` | PENDIENTE (días 7 y 9) | |
 | Repo GitHub compartido con DomingoMr | `pasangel830-sketch/UTE_BlockChain` (`main`) | PARCIAL (remoto HECHO; falta invitar `DomingoMr`) | Fase 2 |
 | README detallado con diagramas | `README.md` | PARCIAL (esqueleto 30 ago) | Fase 2 |
