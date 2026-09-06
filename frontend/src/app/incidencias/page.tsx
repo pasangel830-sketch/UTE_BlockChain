@@ -119,8 +119,9 @@ export default function IncidenciasPage() {
         </form>
       ) : (
         <p className="mt-4 rounded-xl border bg-white p-4 text-sm text-slate-600">
-          Administración no abre incidencias de lote: no es socia de ninguna colección privada. Puede
-          consultar la lista pública y comprobar que el hash del detalle está en el canal.
+          Administración no abre ni tramita incidencias de lote: no es socia de ninguna colección
+          privada. Puede consultar la lista pública y comprobar que el hash del detalle está en el
+          canal.
         </p>
       )}
       {msg && <p className="mt-2 text-sm text-emerald-700">{msg}</p>}
@@ -133,19 +134,19 @@ export default function IncidenciasPage() {
               <Badge estado={i.estado} />
             </div>
             <p className="font-mono text-xs text-slate-500">
-              {i.id} · {i.lote}
+              {i.id} · {i.empresa} · {i.lote}
             </p>
             {privado[i.id] && <p className="mt-2 text-sm text-violet-800">{privado[i.id]}</p>}
             <div className="mt-3 flex flex-wrap gap-2">
               <button className="rounded-md bg-slate-200 px-3 py-1 text-sm" onClick={() => void verPrivado(i.id)}>
                 Ver PDC
               </button>
-              {i.estado === 'ABIERTA' && (
+              {perfil?.empresa === i.empresa && i.estado === 'ABIERTA' && (
                 <button className="rounded-md bg-amberx px-3 py-1 text-sm text-white" onClick={() => void act(i.id, 'tratar')}>
                   Tratar
                 </button>
               )}
-              {i.estado === 'EN_TRATAMIENTO' && (
+              {perfil?.empresa === i.empresa && i.estado === 'EN_TRATAMIENTO' && (
                 <button className="rounded-md bg-ink px-3 py-1 text-sm text-white" onClick={() => void act(i.id, 'cerrar')}>
                   Cerrar
                 </button>

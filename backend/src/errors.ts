@@ -319,10 +319,25 @@ export function traducirError(
 export function rechazoSoloAdministracion(org: string | undefined): RespuestaError {
   const quien = etiquetaOrg(org);
   return {
-    error: `Solo Administración (ayuntamiento) puede autorizar pagos. Tu sesión es ${quien}, constructora: puede completar hitos y dejar el pago en custodia, no liberarlo.`,
+    error: `Solo Administración (ayuntamiento) puede autorizar o rechazar pagos. Tu sesión es ${quien}, constructora: puede completar hitos y dejar el pago en custodia, no liberarlo ni anularlo.`,
     detalle: `guarda de rol en la API: org=${org ?? 'desconocida'}, requerida=AdministracionMSP`,
     codigo: 'ROL_NO_AUTORIZADO',
     nota: 'Comportamiento esperado: separación de funciones entre constructora y ayuntamiento.',
+  };
+}
+
+/** 403: otra constructora (o Admin) no tramita una incidencia que no abrió. */
+export function rechazoSoloCreadoraIncidencia(
+  org: string | undefined,
+  empresaCreadora: string | undefined,
+): RespuestaError {
+  const quien = etiquetaOrg(org);
+  const deQuien = empresaCreadora || 'otra empresa';
+  return {
+    error: `Solo ${deQuien} puede tratar o cerrar esta incidencia: la abrió ella. Tu sesión es ${quien}.`,
+    detalle: `guarda de creador en la API: org=${org ?? 'desconocida'}, empresa requerida=${deQuien}`,
+    codigo: 'ROL_NO_AUTORIZADO',
+    nota: 'Comportamiento esperado: la incidencia la tramita quien la registró.',
   };
 }
 
@@ -330,7 +345,7 @@ export function rechazoSoloAdministracion(org: string | undefined): RespuestaErr
 export function rechazoSoloConstructora(org: string | undefined, que: string): RespuestaError {
   const quien = etiquetaOrg(org);
   return {
-    error: `${quien} no ejecuta obra: ${que} lo registra la constructora responsable del lote. Administración valida y autoriza pagos, no da de alta trabajo propio.`,
+    error: `${quien} no ejecuta obra: ${que} lo registra la constructora responsable del lote. Administración autoriza o rechaza pagos, no da de alta ni avanza trabajo propio.`,
     detalle: `guarda de rol en la API: org=${org ?? 'desconocida'}, requerida=Empresa A/B/C/D`,
     codigo: 'ROL_NO_AUTORIZADO',
     nota: 'Comportamiento esperado: separación de funciones entre constructora y ayuntamiento.',

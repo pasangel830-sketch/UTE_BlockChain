@@ -6,8 +6,8 @@ import { submit, evaluate } from './fabric';
 import { saveLocal } from './storage';
 import { getExplorerSnapshot } from './explorer';
 import { agregarEstado } from './estado';
-import { rechazoSoloAdministracion, rechazoSoloConstructora } from './errors';
-import { endosantesDeLote, esLote, perfilDe, sociosDe } from './orgs';
+import { rechazoSoloAdministracion, rechazoSoloConstructora, rechazoSoloCreadoraIncidencia } from './errors';
+import { endosantesDeLote, esLote, perfilDe, PerfilOrg, sociosDe } from './orgs';
 
 export const bancoLog: unknown[] = [];
 
@@ -30,6 +30,42 @@ function pid(req: Request): string {
 }
 
 const ENDORSE_DAILY = ['EmpresaAMSP', 'AdministracionMSP'];
+
+function perfilConstructora(req: Request, res: Response, que: string): (PerfilOrg & { empresa: string }) | null {
+  const perfil = perfilDe(orgOf(req));
+  if (!perfil?.empresa) {
+    res.status(403).json(rechazoSoloConstructora(req.user?.org, que));
+    return null;
+  }
+  return perfil as PerfilOrg & { empresa: string };
+}
+
+function requireAdministracion(req: Request, res: Response): boolean {
+  if (req.user?.org !== 'AdministracionMSP') {
+    res.status(403).json(rechazoSoloAdministracion(req.user?.org));
+    return false;
+  }
+  return true;
+}
+
+async function requireCreadoraIncidencia(req: Request, res: Response, que: string): Promise<boolean> {
+  const perfil = perfilConstructora(req, res, que);
+  if (!perfil) return false;
+  const raw = await evaluate(
+    orgOf(req),
+    config.chaincodeIncidencia,
+    'IncidenciaContract',
+    'consultarIncidencia',
+    [pid(req)],
+  );
+  const inc = JSON.parse(raw) as { empresa?: string; lote?: string };
+  req.loteContexto = inc.lote;
+  if (inc.empresa !== perfil.empresa) {
+    res.status(403).json(rechazoSoloCreadoraIncidencia(req.user?.org, inc.empresa));
+    return false;
+  }
+  return true;
+}
 
 /** Escribir en la PDC de un lote exige el endoso de un socio de esa colección. */
 function endosantesIncidencia(lote: string): string[] {
@@ -105,11 +141,8 @@ router.post(
   '/hitos',
   auth,
   asyncH(async (req, res) => {
-    const perfil = perfilDe(orgOf(req));
-    if (!perfil?.empresa) {
-      res.status(403).json(rechazoSoloConstructora(req.user?.org, 'un hito de obra'));
-      return;
-    }
+    const perfil = perfilConstructora(req, res, 'un hito de obra');
+    if (!perfil) return;
     const { id, titulo, descripcion, empresa, importe } = req.body as Record<string, string>;
     const hid = id || `H-${Date.now()}`;
     const raw = await submit(orgOf(req), config.chaincodeHito, 'HitoContract', 'crearHito', [
@@ -139,6 +172,7 @@ router.post(
   '/hitos/:id/iniciar',
   auth,
   asyncH(async (req, res) => {
+    if (!perfilConstructora(req, res, 'el avance de un hito')) return;
     const raw = await submit(orgOf(req), config.chaincodeHito, 'HitoContract', 'iniciarHito', [
       pid(req),
     ]);
@@ -150,6 +184,7 @@ router.post(
   '/hitos/:id/validar',
   auth,
   asyncH(async (req, res) => {
+    if (!perfilConstructora(req, res, 'el avance de un hito')) return;
     const raw = await submit(orgOf(req), config.chaincodeHito, 'HitoContract', 'enviarValidacion', [
       pid(req),
     ]);
@@ -161,6 +196,7 @@ router.post(
   '/hitos/:id/completar',
   auth,
   asyncH(async (req, res) => {
+    if (!perfilConstructora(req, res, 'el avance de un hito')) return;
     const org = orgOf(req);
     const hitoRaw = await submit(org, config.chaincodeHito, 'HitoContract', 'completarHito', [
       pid(req),
@@ -184,6 +220,7 @@ router.post(
   '/hitos/:id/rechazar',
   auth,
   asyncH(async (req, res) => {
+    if (!perfilConstructora(req, res, 'el avance de un hito')) return;
     const motivo = (req.body as { motivo?: string }).motivo || 'rechazado';
     const raw = await submit(orgOf(req), config.chaincodeHito, 'HitoContract', 'rechazarHito', [
       pid(req),
@@ -223,10 +260,7 @@ router.post(
   '/pagos/:id/autorizar',
   auth,
   asyncH(async (req, res) => {
-    if (req.user?.org !== 'AdministracionMSP') {
-      res.status(403).json(rechazoSoloAdministracion(req.user?.org));
-      return;
-    }
+    if (!requireAdministracion(req, res)) return;
     const raw = await submit(
       'AdministracionMSP',
       config.chaincodePago,
@@ -244,9 +278,10 @@ router.post(
   '/pagos/:id/rechazar',
   auth,
   asyncH(async (req, res) => {
+    if (!requireAdministracion(req, res)) return;
     const motivo = (req.body as { motivo?: string }).motivo || 'rechazado';
     const raw = await submit(
-      orgOf(req),
+      'AdministracionMSP',
       config.chaincodePago,
       'PagoContract',
       'rechazarPago',
@@ -254,7 +289,7 @@ router.post(
       ENDORSE_DAILY,
     );
     res.json(JSON.parse(raw));
-    void refreshEstado(orgOf(req));
+    void refreshEstado('AdministracionMSP');
   }),
 );
 
@@ -284,7 +319,7 @@ router.post(
       res.status(403).json(rechazoSoloConstructora(req.user?.org, 'una incidencia de lote'));
       return;
     }
-    const { id, titulo, empresa, lote, detalle, costeEstimado, notasTecnicas } = req.body as Record<
+    const { id, titulo, lote, detalle, costeEstimado, notasTecnicas } = req.body as Record<
       string,
       string | number
     >;
@@ -303,7 +338,7 @@ router.post(
       config.chaincodeIncidencia,
       'IncidenciaContract',
       'crearIncidencia',
-      [iid, String(titulo || ''), String(empresa || perfil.empresa), loteFinal],
+      [iid, String(titulo || ''), perfil.empresa, loteFinal],
       endosantesIncidencia(loteFinal),
       transient,
     );
@@ -356,6 +391,7 @@ router.post(
   '/incidencias/:id/tratar',
   auth,
   asyncH(async (req, res) => {
+    if (!(await requireCreadoraIncidencia(req, res, 'el tratamiento de una incidencia'))) return;
     const raw = await submit(
       orgOf(req),
       config.chaincodeIncidencia,
@@ -373,6 +409,7 @@ router.post(
   '/incidencias/:id/cerrar',
   auth,
   asyncH(async (req, res) => {
+    if (!(await requireCreadoraIncidencia(req, res, 'el cierre de una incidencia'))) return;
     const raw = await submit(
       orgOf(req),
       config.chaincodeIncidencia,
@@ -390,6 +427,7 @@ router.post(
   '/incidencias/:id/rechazar',
   auth,
   asyncH(async (req, res) => {
+    if (!(await requireCreadoraIncidencia(req, res, 'el rechazo de una incidencia'))) return;
     const motivo = (req.body as { motivo?: string }).motivo || 'rechazado';
     const raw = await submit(
       orgOf(req),

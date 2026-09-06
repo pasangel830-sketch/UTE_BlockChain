@@ -59,23 +59,56 @@ export const openapi = {
       },
     },
     '/hitos/{id}': { get: { responses: { '200': { description: 'hito' } } } },
-    '/hitos/{id}/iniciar': { post: { responses: { '200': { description: 'EN_EJECUCION' } } } },
-    '/hitos/{id}/validar': { post: { responses: { '200': { description: 'VALIDACION' } } } },
-    '/hitos/{id}/completar': {
-      post: { responses: { '200': { description: 'COMPLETADO + CUSTODIA' } } },
+    '/hitos/{id}/iniciar': {
+      post: {
+        responses: {
+          '200': { description: 'EN_EJECUCION' },
+          '403': { description: 'AdministracionMSP no avanza obra' },
+        },
+      },
     },
-    '/hitos/{id}/rechazar': { post: { responses: { '200': { description: 'RECHAZADO' } } } },
+    '/hitos/{id}/validar': {
+      post: {
+        responses: {
+          '200': { description: 'VALIDACION' },
+          '403': { description: 'AdministracionMSP no avanza obra' },
+        },
+      },
+    },
+    '/hitos/{id}/completar': {
+      post: {
+        responses: {
+          '200': { description: 'COMPLETADO + CUSTODIA' },
+          '403': { description: 'AdministracionMSP no avanza obra' },
+        },
+      },
+    },
+    '/hitos/{id}/rechazar': {
+      post: {
+        responses: {
+          '200': { description: 'RECHAZADO' },
+          '403': { description: 'AdministracionMSP no avanza obra' },
+        },
+      },
+    },
     '/pagos': { get: { responses: { '200': { description: 'lista' } } } },
     '/pagos/{id}': { get: { responses: { '200': { description: 'pago' } } } },
     '/pagos/{id}/autorizar': {
       post: {
         responses: {
           '200': { description: 'AUTORIZADO + evento' },
-          '403': { description: 'solo AdministracionMSP puede autorizar' },
+          '403': { description: 'solo AdministracionMSP puede autorizar o rechazar' },
         },
       },
     },
-    '/pagos/{id}/rechazar': { post: { responses: { '200': { description: 'RECHAZADO' } } } },
+    '/pagos/{id}/rechazar': {
+      post: {
+        responses: {
+          '200': { description: 'RECHAZADO' },
+          '403': { description: 'solo AdministracionMSP puede autorizar o rechazar' },
+        },
+      },
+    },
     '/incidencias': {
       get: { responses: { '200': { description: 'lista pública' } } },
       post: {
@@ -97,9 +130,30 @@ export const openapi = {
         },
       },
     },
-    '/incidencias/{id}/tratar': { post: { responses: { '200': { description: 'EN_TRATAMIENTO' } } } },
-    '/incidencias/{id}/cerrar': { post: { responses: { '200': { description: 'CERRADA' } } } },
-    '/incidencias/{id}/rechazar': { post: { responses: { '200': { description: 'RECHAZADA' } } } },
+    '/incidencias/{id}/tratar': {
+      post: {
+        responses: {
+          '200': { description: 'EN_TRATAMIENTO' },
+          '403': { description: 'solo la empresa que la abrió puede tramitarla' },
+        },
+      },
+    },
+    '/incidencias/{id}/cerrar': {
+      post: {
+        responses: {
+          '200': { description: 'CERRADA' },
+          '403': { description: 'solo la empresa que la abrió puede tramitarla' },
+        },
+      },
+    },
+    '/incidencias/{id}/rechazar': {
+      post: {
+        responses: {
+          '200': { description: 'RECHAZADA' },
+          '403': { description: 'solo la empresa que la abrió puede tramitarla' },
+        },
+      },
+    },
     '/estado': { get: { responses: { '200': { description: 'agregado' } } } },
     '/estado/recalcular': {
       post: { responses: { '200': { description: 'backend escribe EstadoObra' } } },

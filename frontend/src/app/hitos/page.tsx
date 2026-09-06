@@ -103,8 +103,8 @@ export default function HitosPage() {
             </form>
           ) : (
             <p className="rounded-xl border border-slate-200 bg-white p-4 text-sm text-slate-600">
-              Administración no registra obra propia: valida hitos y autoriza pagos. El alta de hitos la
-              hacen las constructoras (Empresa A, B, C o D).
+              Administración no registra ni avanza obra: consulta el estado público y autoriza o
+              rechaza pagos. El alta y el avance de hitos los hacen las constructoras.
             </p>
           )}
           {msg && <p className="text-sm text-emerald-700">{msg}</p>}
@@ -131,7 +131,7 @@ export default function HitosPage() {
                       </>
                     )}
                   </p>
-                  {nxt && (
+                  {nxt && perfil?.empresa && (
                     <button
                       className="mt-3 rounded-md bg-amberx px-3 py-1.5 text-sm font-medium text-white"
                       onClick={() => void act(h, nxt[0])}

@@ -42,6 +42,20 @@ export default function PagosPage() {
     }
   }
 
+  async function rechazar(id: string) {
+    setErr(null);
+    try {
+      await api(`/pagos/${id}/rechazar`, {
+        method: 'POST',
+        body: JSON.stringify({ motivo: 'rechazado por Administración' }),
+      });
+      setMsg(`rechazado ${id}`);
+      await load();
+    } catch (e) {
+      setErr(e);
+    }
+  }
+
   return (
     <Shell>
       <h1 className="text-2xl font-bold">Pagos (escrow)</h1>
@@ -67,12 +81,20 @@ export default function PagosPage() {
             )}
             {p.estado === 'CUSTODIA' &&
               (esAdmin ? (
-                <button
-                  className="mt-3 rounded-md bg-ink px-3 py-1.5 text-sm text-white"
-                  onClick={() => void autorizar(p.id)}
-                >
-                  Autorizar
-                </button>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <button
+                    className="rounded-md bg-ink px-3 py-1.5 text-sm text-white"
+                    onClick={() => void autorizar(p.id)}
+                  >
+                    Autorizar
+                  </button>
+                  <button
+                    className="rounded-md bg-slate-600 px-3 py-1.5 text-sm text-white"
+                    onClick={() => void rechazar(p.id)}
+                  >
+                    Rechazar
+                  </button>
+                </div>
               ) : (
                 <p className="mt-3 text-sm text-slate-500">
                   En custodia — pendiente de autorización de Administración.
