@@ -80,6 +80,22 @@ export function etiquetaSocios(lote: Lote, union = ' o '): string {
     .join(union);
 }
 
+export function mspDeEmpresa(empresa: string | undefined | null): OrgMsp | null {
+  if (!empresa) return null;
+  const p = Object.values(PERFILES).find((x) => x.empresa === empresa);
+  return p?.org ?? null;
+}
+
+/** Endoso de avance de hito: solo la empresa del hito. */
+export function endosantesDeHito(empresa: string | undefined | null): OrgMsp[] {
+  return [mspDeEmpresa(empresa) ?? 'EmpresaAMSP'];
+}
+
+/** Endoso de un pago: la empresa del hito + ayuntamiento. */
+export function endosantesDePago(empresa: string | undefined | null): OrgMsp[] {
+  return [mspDeEmpresa(empresa) ?? 'EmpresaAMSP', 'AdministracionMSP'];
+}
+
 /** Orgs a las que pedir endoso al escribir en la colección privada de un lote. */
 export function endosantesDeLote(lote: Lote): string[] {
   return [...sociosDe(lote).slice(0, 1), 'AdministracionMSP'];

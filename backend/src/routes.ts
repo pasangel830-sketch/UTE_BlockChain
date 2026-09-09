@@ -6,8 +6,8 @@ import { submit, evaluate } from './fabric';
 import { saveLocal } from './storage';
 import { getExplorerSnapshot } from './explorer';
 import { agregarEstado } from './estado';
-import { rechazoSoloAdministracion, rechazoSoloConstructora, rechazoSoloCreadoraIncidencia } from './errors';
-import { endosantesDeLote, esLote, perfilDe, PerfilOrg, sociosDe } from './orgs';
+import { rechazoSoloAdministracion, rechazoSoloConstructora, rechazoSoloCreadoraIncidencia, rechazoSoloEmpresaHito } from './errors';
+import { endosantesDeHito, endosantesDeLote, endosantesDePago, esLote, perfilDe, PerfilOrg, sociosDe } from './orgs';
 
 export const bancoLog: unknown[] = [];
 
@@ -29,6 +29,7 @@ function pid(req: Request): string {
   return Array.isArray(v) ? v[0] : v;
 }
 
+/** Incidencias en red diaria (A+Admin). Los pagos usan `endosantesDePago`. */
 const ENDORSE_DAILY = ['EmpresaAMSP', 'AdministracionMSP'];
 
 function perfilConstructora(req: Request, res: Response, que: string): (PerfilOrg & { empresa: string }) | null {
@@ -46,6 +47,24 @@ function requireAdministracion(req: Request, res: Response): boolean {
     return false;
   }
   return true;
+}
+
+async function requireEmpresaHito(
+  req: Request,
+  res: Response,
+  que: string,
+): Promise<{ empresa: string } | null> {
+  const perfil = perfilConstructora(req, res, que);
+  if (!perfil) return null;
+  const raw = await evaluate(orgOf(req), config.chaincodeHito, 'HitoContract', 'consultarHito', [
+    pid(req),
+  ]);
+  const hito = JSON.parse(raw) as { empresa?: string };
+  if (hito.empresa !== perfil.empresa) {
+    res.status(403).json(rechazoSoloEmpresaHito(req.user?.org, hito.empresa));
+    return null;
+  }
+  return { empresa: hito.empresa };
 }
 
 async function requireCreadoraIncidencia(req: Request, res: Response, que: string): Promise<boolean> {
@@ -100,7 +119,7 @@ async function refreshEstado(org: OrgMsp): Promise<void> {
     const agg = agregarEstado(hitos, pagos, incidencias);
     await submit(org, config.chaincodeEstado, 'EstadoObraContract', 'escribirEstado', [
       JSON.stringify(agg),
-    ]);
+    ], [org]);
   } catch (err) {
     console.error('estado obra', err);
   }
@@ -145,13 +164,15 @@ router.post(
     if (!perfil) return;
     const { id, titulo, descripcion, empresa, importe } = req.body as Record<string, string>;
     const hid = id || `H-${Date.now()}`;
-    const raw = await submit(orgOf(req), config.chaincodeHito, 'HitoContract', 'crearHito', [
-      hid,
-      titulo,
-      descripcion || '',
-      empresa || perfil.empresa,
-      String(importe),
-    ]);
+    const empresaHito = empresa || perfil.empresa;
+    const raw = await submit(
+      orgOf(req),
+      config.chaincodeHito,
+      'HitoContract',
+      'crearHito',
+      [hid, titulo, descripcion || '', empresaHito, String(importe)],
+      endosantesDeHito(empresaHito),
+    );
     res.status(201).json(JSON.parse(raw));
     void refreshEstado(orgOf(req));
   }),
@@ -172,10 +193,16 @@ router.post(
   '/hitos/:id/iniciar',
   auth,
   asyncH(async (req, res) => {
-    if (!perfilConstructora(req, res, 'el avance de un hito')) return;
-    const raw = await submit(orgOf(req), config.chaincodeHito, 'HitoContract', 'iniciarHito', [
-      pid(req),
-    ]);
+    const hito = await requireEmpresaHito(req, res, 'el avance de un hito');
+    if (!hito) return;
+    const raw = await submit(
+      orgOf(req),
+      config.chaincodeHito,
+      'HitoContract',
+      'iniciarHito',
+      [pid(req)],
+      endosantesDeHito(hito.empresa),
+    );
     res.json(JSON.parse(raw));
   }),
 );
@@ -184,10 +211,16 @@ router.post(
   '/hitos/:id/validar',
   auth,
   asyncH(async (req, res) => {
-    if (!perfilConstructora(req, res, 'el avance de un hito')) return;
-    const raw = await submit(orgOf(req), config.chaincodeHito, 'HitoContract', 'enviarValidacion', [
-      pid(req),
-    ]);
+    const hito = await requireEmpresaHito(req, res, 'el avance de un hito');
+    if (!hito) return;
+    const raw = await submit(
+      orgOf(req),
+      config.chaincodeHito,
+      'HitoContract',
+      'enviarValidacion',
+      [pid(req)],
+      endosantesDeHito(hito.empresa),
+    );
     res.json(JSON.parse(raw));
   }),
 );
@@ -196,11 +229,17 @@ router.post(
   '/hitos/:id/completar',
   auth,
   asyncH(async (req, res) => {
-    if (!perfilConstructora(req, res, 'el avance de un hito')) return;
+    const dueño = await requireEmpresaHito(req, res, 'el avance de un hito');
+    if (!dueño) return;
     const org = orgOf(req);
-    const hitoRaw = await submit(org, config.chaincodeHito, 'HitoContract', 'completarHito', [
-      pid(req),
-    ]);
+    const hitoRaw = await submit(
+      org,
+      config.chaincodeHito,
+      'HitoContract',
+      'completarHito',
+      [pid(req)],
+      endosantesDePago(dueño.empresa),
+    );
     const hito = JSON.parse(hitoRaw) as { id: string; empresa: string; importe: number };
     const pagoId = `pago-${hito.id}`;
     const pagoRaw = await submit(
@@ -209,7 +248,7 @@ router.post(
       'PagoContract',
       'ponerEnCustodia',
       [pagoId, hito.id, hito.empresa, String(hito.importe)],
-      ['EmpresaAMSP', 'AdministracionMSP'],
+      endosantesDePago(hito.empresa),
     );
     res.json({ hito: JSON.parse(hitoRaw), pago: JSON.parse(pagoRaw) });
     void refreshEstado(org);
@@ -220,12 +259,17 @@ router.post(
   '/hitos/:id/rechazar',
   auth,
   asyncH(async (req, res) => {
-    if (!perfilConstructora(req, res, 'el avance de un hito')) return;
+    const hito = await requireEmpresaHito(req, res, 'el avance de un hito');
+    if (!hito) return;
     const motivo = (req.body as { motivo?: string }).motivo || 'rechazado';
-    const raw = await submit(orgOf(req), config.chaincodeHito, 'HitoContract', 'rechazarHito', [
-      pid(req),
-      motivo,
-    ]);
+    const raw = await submit(
+      orgOf(req),
+      config.chaincodeHito,
+      'HitoContract',
+      'rechazarHito',
+      [pid(req), motivo],
+      endosantesDeHito(hito.empresa),
+    );
     res.json(JSON.parse(raw));
     void refreshEstado(orgOf(req));
   }),
@@ -261,13 +305,22 @@ router.post(
   auth,
   asyncH(async (req, res) => {
     if (!requireAdministracion(req, res)) return;
+    const pago = JSON.parse(
+      await evaluate(
+        'AdministracionMSP',
+        config.chaincodePago,
+        'PagoContract',
+        'consultarPago',
+        [pid(req)],
+      ),
+    ) as { empresa?: string };
     const raw = await submit(
       'AdministracionMSP',
       config.chaincodePago,
       'PagoContract',
       'autorizarPago',
       [pid(req)],
-      ENDORSE_DAILY,
+      endosantesDePago(pago.empresa),
     );
     res.json(JSON.parse(raw));
     void refreshEstado('AdministracionMSP');
@@ -280,13 +333,22 @@ router.post(
   asyncH(async (req, res) => {
     if (!requireAdministracion(req, res)) return;
     const motivo = (req.body as { motivo?: string }).motivo || 'rechazado';
+    const pago = JSON.parse(
+      await evaluate(
+        'AdministracionMSP',
+        config.chaincodePago,
+        'PagoContract',
+        'consultarPago',
+        [pid(req)],
+      ),
+    ) as { empresa?: string };
     const raw = await submit(
       'AdministracionMSP',
       config.chaincodePago,
       'PagoContract',
       'rechazarPago',
       [pid(req), motivo],
-      ENDORSE_DAILY,
+      endosantesDePago(pago.empresa),
     );
     res.json(JSON.parse(raw));
     void refreshEstado('AdministracionMSP');

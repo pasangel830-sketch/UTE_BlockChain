@@ -1,9 +1,9 @@
 # Informe de progreso — plan de 14 días
 
 Informe para no técnicos. Proyecto **UTE / obras**.  
-Fuente de tareas: [CHECKLIST.md](CHECKLIST.md) · hechos y comandos: [INFORME-TECNICO.md](INFORME-TECNICO.md) · 30 de agosto de 2026.
+Fuente de tareas: [CHECKLIST.md](CHECKLIST.md) · hechos y comandos: [INFORME-TECNICO.md](INFORME-TECNICO.md) · 6 de septiembre de 2026.
 
-> El taller del portátil está montado, las oficinas de la UTE existen (modo diario), hay pliego de hitos/pagos, secretaría en el puerto 4000, tablón de 7 pantallas, incidencias con cajones con llave y estado de obra. Faltan el local en internet y los cuadros de mando. Las cuentas de internet las tiene que abrir el usuario.
+> El taller del portátil está montado, las oficinas de la UTE existen (modo diario), hay pliego de hitos/pagos, secretaría en el puerto 4000, tablón de 7 pantallas, incidencias con cajones con llave y estado de obra. Las cinco cuentas entran; cada una solo hace lo suyo. Faltan el local en internet y los cuadros de mando. Las cuentas de internet las tiene que abrir el usuario.
 
 Vista visual en Cursor (al lado del chat): canvas `informe-progreso-plan-14-dias`. El canvas de planificación no se ha modificado.
 
@@ -22,6 +22,7 @@ Vista visual en Cursor (al lado del chat): canvas `informe-progreso-plan-14-dias
 - [Día 7 — El tablón](#día-7--el-tablón)
 - [Día 8 — Incidencias y cajones](#día-8--incidencias-y-cajones)
 - [Día 9 — Estado de obra y siete pantallas](#día-9--estado-de-obra-y-siete-pantallas)
+- [Después del día 9 — Quién hace qué](#después-del-día-9--quién-hace-qué)
 - [Qué no está hecho todavía](#qué-no-está-hecho-todavía)
 
 ---
@@ -30,7 +31,7 @@ Vista visual en Cursor (al lado del chat): canvas `informe-progreso-plan-14-dias
 
 Imagina una Unión Temporal de Empresas que construye una obra. Hay que dejar constancia de hitos y pagos de forma que nadie pueda negar lo firmado. Eso es este trabajo.
 
-Hoy hay **caseta, llaves, pliego, secretaría y tablón**. El local en internet es el siguiente paso.
+Hoy hay **caseta, llaves, pliego, secretaría, tablón y papeles de quién firma qué**. El local en internet es el siguiente paso.
 
 ---
 
@@ -38,10 +39,10 @@ Hoy hay **caseta, llaves, pliego, secretaría y tablón**. El local en internet 
 
 | | |
 | --- | --- |
-| Días de calendario cerrados | **9 de 14** (días 1 a 9) |
-| Puntos marcados hecho | **45** |
-| Días por delante | **5** |
-| Máquina ahora | **Modo diario + API :4000 + Next :3000** |
+| Días de calendario cerrados | **9 de 14** (días 1 a 9; huecos de UI del día 10 ya hechos en local) |
+| Puntos marcados hecho | **42** |
+| Días por delante | **5** (cloud; la mañana de huecos UI está cerrada) |
+| Máquina ahora | **Modo diario + API :4000 + Next :3000** (5 sesiones; B/C/D escritura PDC con `pdc-up`) |
 
 El día 1 está cerrado en el ordenador; faltan solo las cuentas de internet (GitHub colaborador, Google Cloud, Vercel). Esas cuentas **no bloquean** seguir trabajando en casa; sí bloquean publicar más adelante.
 
@@ -67,9 +68,13 @@ Reglas de hitos y pagos (con dinero en custodia hasta que el ayuntamiento autori
 
 Siete pantallas. Incidencias con dos cajones con llave. El estado de la obra lo calcula la secretaría.
 
-### 5. Lo que aún no existe — pendiente
+### 5. Quién hace qué en el tablón — hecho (31 ago – 6 sep)
 
-El local en internet y los cuadros de mando. Días 10 a 14.
+Las cinco cuentas entran. El ayuntamiento autoriza o rechaza pagos y no avanza obra. Cada constructora solo tramita las incidencias que abrió. Si la red dice que no, el tablón lo explica en castellano.
+
+### 6. Lo que aún no existe — pendiente
+
+El local en internet y los cuadros de mando. Días 10 (VM) a 14.
 
 ---
 
@@ -355,6 +360,34 @@ Pantallas: login, inicio, hitos, pagos, incidencias, estado de obra, Explorer.
 
 ---
 
+## Después del día 9 — Quién hace qué
+
+Objetivo: que el tablón muestre con quién estás, que cada sello solo haga lo suyo, y que un «no» de la red se lea en castellano. Plan: [MEJORAS-UI.md](MEJORAS-UI.md).
+
+### 1. Las cinco cuentas (31 ago, `25bd7dc`)
+
+**Qué es.** Entran A, B, C, D y Administración. El chip de la cabecera dice oficio, lote y porcentaje. El alta de hitos e incidencias usa la empresa de la sesión, no un nombre fijo de A.
+
+**Para qué sirve en esta UTE.** Una UTE no es solo Empresa A. B y D pueden firmar; para el cajón de quirófanos hace falta encender su oficina (`make pdc-up`).
+
+### 2. El ayuntamiento suelta o anula el dinero (31 ago + 6 sep, `68699bd`)
+
+**Qué es.** Completar un hito deja el pago en custodia. Solo Administración ve Autorizar y Rechazar. La constructora lee «pendiente de Administración». El mostrador responde 403 si otra cuenta lo intenta. Administración tampoco da de alta ni avanza hitos.
+
+**Para qué sirve en esta UTE.** Separación de funciones: quien ejecuta no se paga a sí mismo.
+
+### 3. La incidencia la cierra quien la abrió (6 sep)
+
+**Qué es.** El parte lleva el nombre de la empresa. Tratar, cerrar o rechazar solo lo hace esa empresa. Otra constructora o el ayuntamiento reciben 403.
+
+**Para qué sirve en esta UTE.** El parte de un lote no lo tramita el socio del lote rival.
+
+### 4. El «no» se lee en castellano (31 ago)
+
+**Qué es.** Si Fabric rechaza (cajón ajeno, nodo apagado, identificador repetido), el tablón explica y deja el detalle técnico plegado.
+
+---
+
 ## Qué no está hecho todavía
 
 No hay local alquilado en internet. No hay cuadros de mando demostrados con tráfico.
@@ -369,7 +402,7 @@ Estas cuentas no bloquean el trabajo en casa; sí bloquean publicar más adelant
 
 ### Lo que falta del plan
 
-- **Día 10** — alquiler de prueba del local en internet.
+- **Día 10** — alquiler de prueba del local en internet (los huecos de UI de esa mañana ya están en local).
 - **Día 11** — congelar cambios y dejar el local creado (apagado).
 - **Día 12** — oficinas + mostrador en el local; pantallas publicadas.
 - **Día 13** — termómetros (cuadros de mando) y ensayo de calidad.

@@ -43,7 +43,9 @@ Diario en el portátil: mismos MSP y políticas; solo arrancan 3 orderers + peer
 | Qué | Política | Satisfacible con A+Admin |
 | --- | --- | --- |
 | Lifecycle (approve/commit) | OutOf(2, 5) | sí |
-| Pago | org + Administración | sí |
+| Hito | OR(A, B, C, D); completar pide también Admin en API | sí (A; B/C/D exige su peer) |
+| Estado de obra | OR(A, B, C, D, Admin); endosa quien recálcula | sí (A o Admin; B/C/D exige su peer) |
+| Pago | OR(AND(A,Admin), AND(B,Admin), AND(C,Admin), AND(D,Admin)) | sí (pareja A+Admin; B/C/D exige su peer) |
 | Incidencia | OutOf(2, 5) | sí |
 | PDC `obra-gruesa-solar` | A o C, `requiredPeerCount: 0` | endoso A con C apagado |
 | PDC `quirofanos-tech` | B o D | hace falta peer B o D (perfil full) |

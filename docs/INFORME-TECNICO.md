@@ -1,7 +1,7 @@
 # Informe técnico (factual)
 
 Pareja del informe en metáforas: [INFORME-PROGRESO.md](INFORME-PROGRESO.md).
-Checklist: [CHECKLIST.md](CHECKLIST.md). Fecha: 30 ago 2026.
+Checklist: [CHECKLIST.md](CHECKLIST.md). Fecha: 6 sep 2026.
 
 Este archivo solo admite comandos, versiones y salidas. Sin analogías.
 
@@ -18,16 +18,15 @@ Este archivo solo admite comandos, versiones y salidas. Sin analogías.
 | Repo Windows (obsoleto) | `C:\Proyectos\UTE\app` (drvfs) |
 | Repo objetivo | `~/ute/app` en ext4; Cursor `\\wsl$\Ubuntu-22.04\home\<user>\ute\app` |
 
-## Git (30 ago 2026)
+## Git (6 sep 2026)
 
 ```
-df -T ~/ute/app
-  /dev/sdd  ext4  ...  / 
-
-git log --oneline --decorate -3
-  42374c9 (HEAD -> develop, origin/develop) Mark
-  b02db9f Unify
-  c08b7c2 (origin/main) Initial commit   # main desfasado; se alinea en el mismo día
+git log --oneline --decorate -5
+  68699bd (HEAD -> develop, origin/develop) Ajustes app
+  25bd7dc Expose B/C/D sessions, translate Fabric errors, and add the app manual.
+  231032e Mark days 7-9 complete in checklist and progress reports.
+  8e369d5 Add Next.js screens, Explorer polling, and API routes for incidencias.
+  4f12c25 Add Incidencia and EstadoObra TypeScript chaincode with PDC lifecycle.
 
 git remote -v
   origin  https://github.com/pasangel830-sketch/UTE_BlockChain.git (fetch)
@@ -36,7 +35,9 @@ git remote -v
 
 Remoto real: `pasangel830-sketch/UTE_BlockChain` (no `ute-blockchain-tfm`). `gh` CLI no está instalado en WSL; el push usa `git` + credenciales ya configuradas. Colaborador `DomingoMr`: pendiente de invitación (API collaborators 403 con el token de Cursor).
 
-Antes del primer commit (misma mañana): `git log` vacío, `git remote -v` vacío. Eso ya no aplica.
+Snapshot 30 ago 2026 (antes de alinear `main`): `42374c9 Mark` / `b02db9f Unify` / `c08b7c2 Initial commit`. Eso ya no es HEAD.
+
+Antes del primer commit (30 ago, misma mañana): `git log` vacío, `git remote -v` vacío. Eso ya no aplica.
 
 ## Día 1 (29 ago 2026)
 
@@ -209,5 +210,39 @@ frontend Next 15.5.24  GET :3000 → 200
 
 make pdc-up  peers B/C/D en ute-net, join channel-obra, install+approve incidencia
 ```
+
+## Post día 9 (31 ago – 6 sep 2026) — sesiones, roles, errores
+
+Sin redeploy de chaincode. Commits `25bd7dc` (31 ago) y `68699bd` (6 sep).
+
+```
+git show 25bd7dc --stat
+  backend: auth, config, errors.ts (nuevo), explorer, fabric, orgs.ts (nuevo), routes, swagger
+  frontend: Shell, login 5 cuentas, hitos/pagos/incidencias/estado, ExplorerPanel, ErrorBox, lib/orgs.ts
+  network: AUTH_USERS 5 MSP; create-channel.sh / join-pdc-peers.sh: join ya activo = OK
+  docs: MANUAL.md, MEJORAS-UI.md
+  27 files, +1679 −133
+
+git show 68699bd --stat
+  backend/src/{errors,routes,swagger}.ts
+  frontend/src/app/{hitos,incidencias,pagos}/page.tsx
+  6 files, +170 −40
+```
+
+`25bd7dc` (código, no salida de runtime):
+
+- `AUTH_USERS` = A/B/C/D + Administración. Gateway de B/C/D firma con su MSP; evaluate/submit diario sigue a `PEER_ENDPOINT` (peer A).
+- `empresa` y `lote` salen de `perfilDe(org)`, no de `'EmpresaA'` / `'obra-gruesa-solar'` fijos.
+- `POST /pagos/:id/autorizar` 403 si `org !== AdministracionMSP`. `verify-api.sh` autoriza como `administracion`.
+- Explorer: `previousHash`, `dataHash`, `txId`, `chaincode.fn`, `creatorMsp`, `endorsers`.
+- `backend/src/errors.ts`: `traducirError` → JSON `{ error, detalle, codigo, nota }`. UI: `ErrorBox`.
+- `create-channel.sh` / `join-pdc-peers.sh`: canal ya unido no falla `make up-dev`.
+
+`68699bd` (código, no salida de runtime):
+
+- Guardas API: `perfilConstructora` en alta/avance/rechazo de hito; `requireAdministracion` en autorizar y rechazar pago (`submit` siempre `AdministracionMSP`); `requireCreadoraIncidencia` (evaluate + `empresa` del perfil) en tratar/cerrar/rechazar incidencia.
+- `POST /incidencias`: `empresa` = `perfil.empresa` (el body no la elige).
+- Swagger: 403 en avance de hito, pago y trámite de incidencia.
+- UI: Admin sin botones de avance de hito; pagos CUSTODIA → Autorizar + Rechazar; incidencias muestran `empresa`; Tratar/Cerrar solo si `perfil.empresa === i.empresa`.
 
 

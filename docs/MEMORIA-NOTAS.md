@@ -25,3 +25,7 @@ Alineado con el alcance local y el plazo de 14 días. Identidades de prueba, no 
 ## 5. LevelDB en lugar de CouchDB
 
 Listados con composite keys y `GetStateByRangeWithPagination`. Sin rich queries. Menos RAM en el portátil de 16 GB.
+
+## 6. Roles en la API, no en el chaincode
+
+La separación constructora / Administración (avanzar obra, autorizar o rechazar pagos, tramitar solo la incidencia propia) se aplica en Express (`perfilConstructora`, `requireAdministracion`, `requireCreadoraIncidencia`). El chaincode de pago sigue exigiendo endoso org+Admin; no se redeployó para estas guardas. Anotar: la UI y el JWT son la demostración de quién pulsa; un cliente que ignore la API no es el camino de defensa.

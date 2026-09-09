@@ -81,16 +81,16 @@ test-cc:
 	. $(HOME)/.nvm/nvm.sh && nvm use 18 && cd chaincode/estado-obra && npm test
 
 deploy-hito:
-	./network/scripts/deploy-chaincode.sh hito "OR('EmpresaAMSP.peer','AdministracionMSP.peer')"
+	./network/scripts/deploy-chaincode.sh hito "OR('EmpresaAMSP.peer','EmpresaBMSP.peer','EmpresaCMSP.peer','EmpresaDMSP.peer')"
 
 deploy-pago:
-	./network/scripts/deploy-chaincode.sh pago "AND('EmpresaAMSP.peer','AdministracionMSP.peer')"
+	./network/scripts/deploy-chaincode.sh pago "OR(AND('EmpresaAMSP.peer','AdministracionMSP.peer'),AND('EmpresaBMSP.peer','AdministracionMSP.peer'),AND('EmpresaCMSP.peer','AdministracionMSP.peer'),AND('EmpresaDMSP.peer','AdministracionMSP.peer'))"
 
 deploy-incidencia:
 	./network/scripts/deploy-chaincode.sh incidencia
 
 deploy-estado:
-	./network/scripts/deploy-chaincode.sh estado-obra
+	./network/scripts/deploy-chaincode.sh estado-obra "OR('EmpresaAMSP.peer','EmpresaBMSP.peer','EmpresaCMSP.peer','EmpresaDMSP.peer','AdministracionMSP.peer')"
 
 deploy-cc: deploy-hito deploy-pago deploy-incidencia deploy-estado
 	./network/scripts/init-pago.sh

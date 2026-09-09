@@ -88,8 +88,8 @@ export class HitoContract extends Contract {
     const items = await this.drain(iterator);
     return JSON.stringify({
       items,
-      bookmark: metadata.bookmark || '',
-      fetched: metadata.fetchedRecordsCount,
+      bookmark: metadata?.bookmark || '',
+      fetched: metadata?.fetchedRecordsCount ?? items.length,
     });
   }
 
@@ -126,8 +126,8 @@ export class HitoContract extends Contract {
     }
     return JSON.stringify({
       items,
-      bookmark: metadata.bookmark || '',
-      fetched: metadata.fetchedRecordsCount,
+      bookmark: metadata?.bookmark || '',
+      fetched: metadata?.fetchedRecordsCount ?? items.length,
     });
   }
 

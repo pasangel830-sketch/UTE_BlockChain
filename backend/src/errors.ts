@@ -341,6 +341,21 @@ export function rechazoSoloCreadoraIncidencia(
   };
 }
 
+/** 403: otra constructora no avanza un hito que no es suyo. */
+export function rechazoSoloEmpresaHito(
+  org: string | undefined,
+  empresaHito: string | undefined,
+): RespuestaError {
+  const quien = etiquetaOrg(org);
+  const deQuien = empresaHito || 'otra empresa';
+  return {
+    error: `Solo ${deQuien} puede iniciar, validar, completar o rechazar este hito: es su obra. Tu sesión es ${quien}.`,
+    detalle: `guarda de empresa del hito en la API: org=${org ?? 'desconocida'}, empresa requerida=${deQuien}`,
+    codigo: 'ROL_NO_AUTORIZADO',
+    nota: 'Comportamiento esperado: cada constructora avanza solo sus hitos.',
+  };
+}
+
 /** 403 de la guarda de rol para altas que solo hacen las constructoras. */
 export function rechazoSoloConstructora(org: string | undefined, que: string): RespuestaError {
   const quien = etiquetaOrg(org);

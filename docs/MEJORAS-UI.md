@@ -1,6 +1,8 @@
 # Informe de mejoras UI/API — UTE Blockchain
 
-**Alcance:** identidad en pantalla, separación de roles en pagos, Explorer con detalle Fabric, usuarios B/C/D, docs.
+**Estado:** fases 0–4 **HECHO** (31 ago 2026, `25bd7dc`). Refuerzo de roles **HECHO** (6 sep 2026, `68699bd`). Este archivo era el plan; abajo queda el registro de lo aplicado.
+
+**Alcance:** identidad en pantalla, separación de roles en pagos e incidencias, Explorer con detalle Fabric, usuarios B/C/D, docs.
 **Restricción:** no borrar ledger desde la app, no reescribir chaincode salvo que una fase lo pida, no romper el flujo hito → custodia → evento → Explorer.
 **Red diaria actual:** 3 orderers + peer A + peer Admin. B/C/D solo con `make up-full` / `make pdc-up`.
 
@@ -16,11 +18,11 @@ Dominio ya documentado en `docs/INFORME-PROGRESO.md`: A+C sobre de cimentación 
 - No quitar rutas, badges, polling 3 s, mock banco, ni el Explorer compacto en `/hitos`.
 - `POST /pagos/:id/autorizar` debe seguir haciendo `submit(..., 'autorizarPago')` como `AdministracionMSP` y disparar el evento. Solo se añade el **quién puede llamarlo**.
 
-Cambio de demo aceptado: **empresaA ya no autoriza pagos**. Flujo: A completa hito → Salir → `administracion` autoriza.
+Cambio de demo aceptado: **empresaA ya no autoriza pagos**. Flujo: A completa hito → Salir → `administracion` autoriza (o rechaza).
 
 ---
 
-## Fase 0 — Identidad en UI (bajo riesgo)
+## Fase 0 — Identidad en UI (bajo riesgo) · HECHO (`25bd7dc`)
 
 **Problema:** JWT tiene `{ sub, org }` (`backend/src/auth.ts`) y solo se guarda el token (`frontend/src/lib/api.ts`). `Shell` no muestra usuario.
 
@@ -70,7 +72,7 @@ Placeholder A se mantiene para no romper el hábito diario.
 
 ---
 
-## Fase 1 — Solo Administración autoriza (necesario, cambia UX)
+## Fase 1 — Solo Administración autoriza (necesario, cambia UX) · HECHO (`25bd7dc`; rechazar: `68699bd`)
 
 **Problema:** `backend/src/routes.ts` ~206–219 ignora `req.user` y firma siempre como `AdministracionMSP`. `pagos/page.tsx` muestra Autorizar a cualquiera si `estado === 'CUSTODIA'`.
 
@@ -85,9 +87,9 @@ if (req.user?.org !== 'AdministracionMSP') {
 }
 ```
 
-No cambiar `submit('AdministracionMSP', ..., 'autorizarPago', ..., ENDORSE_DAILY)` ni `refreshEstado`.
+`submit('AdministracionMSP', ..., 'autorizarPago', ..., endosantesDePago(pago.empresa))`: el par es la empresa del hito + Admin, no siempre A. `refreshEstado` no cambia.
 
-Opcional misma guarda en `POST /pagos/:id/rechazar`.
+Opcional misma guarda en `POST /pagos/:id/rechazar`. **Hecho** el 6 sep: `requireAdministracion` + `submit('AdministracionMSP', ...)`.
 
 **No tocar chaincode** `autorizarPago` (exigiría `make deploy-cc`). La guarda en API basta para la UI.
 
@@ -103,7 +105,7 @@ Si es empresa y hay CUSTODIA: texto tipo `Pendiente de Administración` (sin bot
 
 ---
 
-## Fase 1b — Recalcular al crear hito (mínimo)
+## Fase 1b — Recalcular al crear hito (mínimo) · HECHO (`25bd7dc`)
 
 `POST /hitos` en `routes.ts` no llama `refreshEstado`. Dashboard/Estado se quedan en % viejo hasta Completar o Recalcular.
 
@@ -113,7 +115,7 @@ No hace falta cambiar `agregarEstado` (`backend/src/estado.ts`).
 
 ---
 
-## Fase 2 — Explorer con detalle Fabric (aditivo)
+## Fase 2 — Explorer con detalle Fabric (aditivo) · HECHO (`25bd7dc`)
 
 **Hoy:** `backend/src/explorer.ts` guarda `{ number, txCount, receivedAt }`. `txCount` = `block.getData().getDataList().length`. UI: `ExplorerPanel.tsx`.
 
@@ -148,13 +150,13 @@ Textos: “endosos (peers)”, “orderers Raft (no se listan por bloque)”. No
 
 ---
 
-## Fase 3 — Usuarios B/C/D (más delicado; no romper diario)
+## Fase 3 — Usuarios B/C/D (más delicado; no romper diario) · HECHO (`25bd7dc`)
 
 **Hoy:** `OrgMsp` = `'EmpresaAMSP' | 'AdministracionMSP'` en `backend/src/config.ts`.
 `AUTH_USERS` en config, `.env.example`, `network/docker-compose.api.yaml`.
 `backend/src/fabric.ts` `ORG_DOMAIN` solo A y Admin. Gateway siempre a `PEER_ENDPOINT` = peer A.
 
-Crypto de B/C/D **ya existe** (`cryptogen` genera las 5 orgs). Falta cablear login + identidad.
+Crypto de B/C/D **ya existe** (`cryptogen` genera las 5 orgs). Login + identidad cableados.
 
 ### 3.1 Auth
 
@@ -174,11 +176,7 @@ Mismo formato `user:pass:MSP`. Default en `config.ts` y compose API. JWT igual (
 - EmpresaCMSP → `empresac.ute.local`
 - EmpresaDMSP → `empresad.ute.local`
 
-`connectOrg` ya arma `Admin@${domain}/msp`. TLS y `PEER_ENDPOINT` **seguir en peer A** en modo diario: B puede *evaluate* estado público contra peer A con cert B. No apuntar a peer B si no está caído el diario.
-
-`submit` como B de `quirofanos-tech` fallará sin peer B: devolver 500 con el error de endorsement, no tumbar la API.
-
-Opcional más adelante: si `org` es B/D y existe peer B, cambiar endpoint. Fuera de esta fase.
+`connectOrg` ya arma `Admin@${domain}/msp`. Evaluate diario sigue en peer A: B puede *evaluate* estado público contra peer A con cert B. Submit de hito/pago pide el peer de la empresa del hito; B/C/D no endosan hasta `make pdc-up` o `make up-full` con ese chaincode instalado en su peer.
 
 ### 3.3 UI: empresa y lote según sesión
 
@@ -195,13 +193,13 @@ Usar perfil:
 
 **Diario:** solo A y Admin tienen peer. Login B/C/D puede listar hitos (evaluate vía peer A) y fallar al escribir PDC B. En login, nota: *B/C/D escritura PDC requiere `make pdc-up`*.
 
-**No tocar:** `network/collections-config.json`, política pago `AND(A, Admin)`, `ENDORSE_DAILY`.
+**No tocar:** `network/collections-config.json`. Política hito: `OR(A,B,C,D)` (completar pide también Admin en API). Política pago: `OR(AND(A,Admin), AND(B,Admin), AND(C,Admin), AND(D,Admin))`. `ENDORSE_DAILY` sigue en incidencias (A+Admin).
 
 **Verificar:** `make up-dev` + login A y Admin como ahora. B login no rompe A. `verify-pdc.sh` (A lee PDC, Admin no) sigue.
 
 ---
 
-## Fase 4 — Manual (docs, cero riesgo runtime)
+## Fase 4 — Manual (docs, cero riesgo runtime) · HECHO (`25bd7dc`; roles 6 sep en el mismo archivo)
 
 Nuevo `docs/MANUAL.md` (no duplicar el checklist de 14 días). Contenido ya hablado:
 
@@ -216,6 +214,28 @@ Enlace corto desde `README.md` (una línea). No reescribir `PLAN-14-DIAS.md`.
 
 ---
 
+## Fase 5 — Refuerzo de roles (6 sep 2026) · HECHO (`68699bd`)
+
+Sin chaincode. Guardas en API + botones en UI.
+
+| Guarda | Rutas | 403 si |
+| --- | --- | --- |
+| `perfilConstructora` | POST hitos (alta, iniciar, validar, completar, rechazar) | no hay `empresa` (Administración) |
+| `requireAdministracion` | POST pagos autorizar/rechazar | `org !== AdministracionMSP`; submit siempre como Admin |
+| `requireCreadoraIncidencia` | POST incidencias tratar/cerrar/rechazar | `inc.empresa !== perfil.empresa` |
+
+Alta de incidencia: `empresa` = `perfil.empresa` (el body no la elige).
+
+UI:
+
+- `/hitos`: Admin sin botones de avance; texto «no registra ni avanza obra».
+- `/pagos`: Admin ve Autorizar y Rechazar en CUSTODIA.
+- `/incidencias`: lista `id · empresa · lote`; Tratar/Cerrar solo si `perfil.empresa === i.empresa`; Admin no tramita.
+
+Swagger documenta esos 403.
+
+---
+
 ## Orden de implementación
 
 1. Fase 0 (chip + `orgs.ts` + `getSession`)
@@ -224,6 +244,7 @@ Enlace corto desde `README.md` (una línea). No reescribir `PLAN-14-DIAS.md`.
 4. Fase 2 (Explorer)
 5. Fase 3 (B/C/D)
 6. Fase 4 (manual)
+7. Fase 5 (refuerzo roles: creadora, rechazar pago, Admin no avanza hitos) — 6 sep
 
 Tras cada fase: `make api-up` (el API corre `dist/`; hay que `npm run build`). Frontend con `make ui-up` recarga solo.
 
@@ -237,13 +258,14 @@ Tras cada fase: `make api-up` (el API corre `dist/`; hay que `npm run build`). F
 | `frontend/src/lib/api.ts` | 0 |
 | `frontend/src/components/Shell.tsx` | 0 |
 | `frontend/src/app/page.tsx` | 0, 3 |
-| `frontend/src/app/pagos/page.tsx` | 1 |
-| `frontend/src/app/hitos/page.tsx` | 3 |
-| `frontend/src/app/incidencias/page.tsx` | 3 |
+| `frontend/src/app/pagos/page.tsx` | 1, 5 |
+| `frontend/src/app/hitos/page.tsx` | 3, 5 |
+| `frontend/src/app/incidencias/page.tsx` | 3, 5 |
 | `frontend/src/components/ExplorerPanel.tsx` | 2 |
-| `backend/src/routes.ts` | 1, 1b, 0 opcional `/auth/me` |
+| `backend/src/routes.ts` | 1, 1b, 0 opcional `/auth/me`, 5 |
+| `backend/src/errors.ts` | 5 (`rechazoSoloCreadoraIncidencia`) |
 | `backend/src/explorer.ts` | 2 |
-| `backend/src/swagger.ts` | 0, 2 |
+| `backend/src/swagger.ts` | 0, 2, 5 |
 | `backend/src/config.ts` | 3 |
 | `backend/src/fabric.ts` | 3 |
 | `backend/.env.example` | 3 |
@@ -259,7 +281,7 @@ Tras cada fase: `make api-up` (el API corre `dist/`; hay que `npm run build`). F
 ## Criterio de no-regresión
 
 - Login `empresaA`/`empresaA` y `administracion`/`administracion` siguen.
-- Crear → Iniciar → Validar → Completar → pago `CUSTODIA` (solo Admin autoriza).
+- Crear → Iniciar → Validar → Completar → pago `CUSTODIA` (solo Admin autoriza o rechaza).
 - Evento `PagoAutorizado` → `POST /mock/banco/pagos`.
 - Explorer: altura crece; compacto en hitos igual.
 - A ve PDC `obra-gruesa-solar`; Admin no (`verify-pdc.sh`).
@@ -270,6 +292,6 @@ Tras cada fase: `make api-up` (el API corre `dist/`; hay que `npm run build`). F
 ## Demo post-cambio (defensa)
 
 1. `empresaA` — chip cimentación. Crear y completar hito. Pago CUSTODIA, sin Autorizar. Explorer: txs con función y MSP.
-2. Salir. `administracion` — chip ayuntamiento. Autorizar. Mock banco.
-3. Incidencias como A: Ver PDC OK; como Admin: error.
-4. (Si fase 3 + `pdc-up`) `empresaB` — chip quirófanos; incidencia `quirofanos-tech`.
+2. Salir. `administracion` — chip ayuntamiento. Autorizar o Rechazar. Mock banco solo si autoriza.
+3. Incidencias como A: Ver PDC OK; Tratar/Cerrar solo las suyas. Como Admin: error al leer PDC; sin trámite.
+4. (Si fase 3 + `pdc-up`) `empresaB` — chip quirófanos; incidencia `quirofanos-tech`. A no tramita la de B.

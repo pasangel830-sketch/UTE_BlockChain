@@ -63,7 +63,7 @@ export const openapi = {
       post: {
         responses: {
           '200': { description: 'EN_EJECUCION' },
-          '403': { description: 'AdministracionMSP no avanza obra' },
+          '403': { description: 'solo la empresa del hito avanza su obra' },
         },
       },
     },
@@ -71,7 +71,7 @@ export const openapi = {
       post: {
         responses: {
           '200': { description: 'VALIDACION' },
-          '403': { description: 'AdministracionMSP no avanza obra' },
+          '403': { description: 'solo la empresa del hito avanza su obra' },
         },
       },
     },
@@ -79,7 +79,7 @@ export const openapi = {
       post: {
         responses: {
           '200': { description: 'COMPLETADO + CUSTODIA' },
-          '403': { description: 'AdministracionMSP no avanza obra' },
+          '403': { description: 'solo la empresa del hito avanza su obra' },
         },
       },
     },
@@ -87,7 +87,7 @@ export const openapi = {
       post: {
         responses: {
           '200': { description: 'RECHAZADO' },
-          '403': { description: 'AdministracionMSP no avanza obra' },
+          '403': { description: 'solo la empresa del hito avanza su obra' },
         },
       },
     },

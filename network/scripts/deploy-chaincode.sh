@@ -20,7 +20,11 @@ fi
 
 if [[ -z "${POLICY}" ]]; then
   if [[ "${CC_NAME}" == "pago" ]]; then
-    POLICY="AND('EmpresaAMSP.peer','AdministracionMSP.peer')"
+    POLICY="OR(AND('EmpresaAMSP.peer','AdministracionMSP.peer'),AND('EmpresaBMSP.peer','AdministracionMSP.peer'),AND('EmpresaCMSP.peer','AdministracionMSP.peer'),AND('EmpresaDMSP.peer','AdministracionMSP.peer'))"
+  elif [[ "${CC_NAME}" == "hito" ]]; then
+    POLICY="OR('EmpresaAMSP.peer','EmpresaBMSP.peer','EmpresaCMSP.peer','EmpresaDMSP.peer')"
+  elif [[ "${CC_NAME}" == "estado-obra" ]]; then
+    POLICY="OR('EmpresaAMSP.peer','EmpresaBMSP.peer','EmpresaCMSP.peer','EmpresaDMSP.peer','AdministracionMSP.peer')"
   elif [[ "${CC_NAME}" == "incidencia" ]]; then
     POLICY="OutOf(2, 'EmpresaAMSP.peer', 'EmpresaBMSP.peer', 'EmpresaCMSP.peer', 'EmpresaDMSP.peer', 'AdministracionMSP.peer')"
   else
@@ -108,7 +112,7 @@ fi
 
 INSTALLED="$(query_pkg)"
 echo "${INSTALLED}"
-PACKAGE_ID="$(echo "${INSTALLED}" | sed -n "s/^Package ID: \\(${CC_NAME}_${CC_VERSION}:[^ ,]*\\).*/\\1/p" | tail -1)"
+PACKAGE_ID="$(docker exec "${CLI}" peer lifecycle chaincode calculatepackageid "${PKG}")"
 if [[ -z "${PACKAGE_ID}" ]]; then
   echo "no se obtuvo package_id"
   exit 1
@@ -130,6 +134,15 @@ approve() {
 
 approve EmpresaAMSP peer0.empresaa.ute.local:7051 empresaa.ute.local
 approve AdministracionMSP peer0.administracion.ute.local:9051 administracion.ute.local
+if docker ps --format '{{.Names}}' | grep -qx 'peer0.empresab.ute.local'; then
+  approve EmpresaBMSP peer0.empresab.ute.local:8051 empresab.ute.local
+fi
+if docker ps --format '{{.Names}}' | grep -qx 'peer0.empresac.ute.local'; then
+  approve EmpresaCMSP peer0.empresac.ute.local:11051 empresac.ute.local
+fi
+if docker ps --format '{{.Names}}' | grep -qx 'peer0.empresad.ute.local'; then
+  approve EmpresaDMSP peer0.empresad.ute.local:12051 empresad.ute.local
+fi
 
 echo "commit ${CC_NAME} policy=${POLICY}"
 peer_exec EmpresaAMSP peer0.empresaa.ute.local:7051 empresaa.ute.local \

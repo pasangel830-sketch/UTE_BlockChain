@@ -5,10 +5,10 @@ Compilar a JS; `fabric-nodeenv:2.5` ejecuta Node 18 (`nvm use` este directorio).
 
 | Contrato | Endorsement | Instalar en | Cuándo |
 | --- | --- | --- | --- |
-| HitoContract | org ejecutora | A + Admin (diario); más orgs en full si invocan | día 4 |
+| HitoContract | OR(A,B,C,D); completar pide empresa+Admin en API | A + Admin (diario); B/C/D con `pdc-up` | día 4 |
 | PagoContract | org + Administración; escrow (custodia) | A + Admin | día 5 |
 | IncidenciaContract | OutOf(2, 5) + PDC `obra-gruesa-solar` / `quirofanos-tech` | A + Admin diario; B/C/D con `make pdc-up` | día 8 |
-| EstadoObraContract | escritura desde API (agregado, sin cross-cc) | A + Admin | día 9 |
+| EstadoObraContract | OR(A,B,C,D,Admin); endosa quien escribe | A + Admin (diario); B/C/D con `pdc-up` | día 9 |
 
 No instalar 4 CC × 5 peers (20 contenedores `fabric-nodeenv`, ~2–3 GB extra).
 PDC: `network/collections-config.json` (`requiredPeerCount: 0`).

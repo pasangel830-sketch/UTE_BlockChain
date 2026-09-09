@@ -2,7 +2,7 @@
 
 **Fuente de verdad.** El resto de `docs/` apunta aquí.
 Leyenda: **HECHO** · **EN CURSO** · **PENDIENTE**
-Actualizado: 30 ago 2026.
+Actualizado: 9 sep 2026.
 
 | | |
 | --- | --- |
@@ -98,7 +98,7 @@ Invertido respecto al plan original: punta a punta **antes del día 8**. Inciden
 | HECHO | `nvm use 18`. HitoContract TypeScript + Jest | `npm test` en `chaincode/hito` (12 tests) |
 | HECHO | Estados PENDIENTE → EN_EJECUCION → VALIDACION → COMPLETADO\|RECHAZADO | tests de transición |
 | HECHO | Composite keys + `GetStateByRangeWithPagination` | listados LevelDB |
-| HECHO | Instalar **solo** en peer A y Admin | 4 `dev-peer0.{empresaa,administracion}-*` ; sin B/C/D |
+| HECHO | Endorsement `OR(A,B,C,D)`; completar pide empresa+Admin en API | commit + `endosantesDeHito` / `endosantesDePago` |
 
 ### Día 5 — PagoContract TS + escrow · HECHO (30 ago 2026)
 
@@ -106,7 +106,7 @@ Invertido respecto al plan original: punta a punta **antes del día 8**. Inciden
 | --- | --- | --- |
 | HECHO | PagoContract TS + Jest | `npm test` en `chaincode/pago` (9 tests) |
 | HECHO | Escrow: fondos CUSTODIA hasta `PagoAutorizado` (PDF §4.2) | tests + invoke `H-d5` |
-| HECHO | Endorsement `AND(org, Administracion)` | commit `AND('EmpresaAMSP.peer','AdministracionMSP.peer')` |
+| HECHO | Endorsement `OR(AND(org, Admin)…)` por empresa del hito | commit `OR(AND(A,Admin),AND(B,Admin),AND(C,Admin),AND(D,Admin))`; API pide el par de esa empresa |
 | HECHO | Init participaciones 35/25/20/20 | `InitLedger` → `{"EmpresaA":35,...}` |
 | HECHO | `completarHito` dispara lógica de pago (sin cross-cc a EstadoObra) | API `POST /hitos/:id/completar` → CUSTODIA |
 
@@ -149,13 +149,25 @@ Invertido respecto al plan original: punta a punta **antes del día 8**. Inciden
 | HECHO | EstadoObraContract TS: el backend escribe el agregado; **sin** invoke cruzado | tests + API |
 | HECHO | README detallado + diagramas (entregable Fase 2) | [README.md](../README.md) |
 
+### Post día 9 — huecos UI y roles · HECHO (31 ago – 6 sep 2026)
+
+Plan original: [MEJORAS-UI.md](MEJORAS-UI.md). Commits `25bd7dc`, `68699bd`. Sin cambio de chaincode.
+
+| Estado | Tarea | Hecho si |
+| --- | --- | --- |
+| HECHO | Chip de sesión + 5 logins (A/B/C/D/Admin); lote/empresa según MSP | UI + `AUTH_USERS` |
+| HECHO | Solo Administración autoriza o rechaza pagos; constructora no avanza si es Admin | 403 API + botones |
+| HECHO | Incidencia: empresa de sesión; tramitar solo la creadora | 403 `ROL_NO_AUTORIZADO` |
+| HECHO | Explorer con txs Fabric; errores traducidos (`ErrorBox`) | `GET /explorer`, `errors.ts` |
+| HECHO | Manual de uso | [MANUAL.md](MANUAL.md) |
+
 ---
 
 ## Día 10 — Tarde prueba cloud · PENDIENTE
 
 | Estado | Tarea | Hecho si |
 | --- | --- | --- |
-| PENDIENTE | Mañana: huecos UI | |
+| HECHO | Mañana: huecos UI | [MEJORAS-UI.md](MEJORAS-UI.md); ver Post día 9 |
 | PENDIENTE | VM e2-standard-4, IP estática, certs con **SAN de esa IP** | `openssl x509 -in ... -text` muestra la IP |
 | PENDIENTE | API en la misma VM; Gateway → peer por red Docker | curl HTTPS o :4000 interno |
 | PENDIENTE | Apagar VM | consola GCP |

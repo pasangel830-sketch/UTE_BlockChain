@@ -131,7 +131,7 @@ export default function HitosPage() {
                       </>
                     )}
                   </p>
-                  {nxt && perfil?.empresa && (
+                  {nxt && perfil?.empresa === h.empresa && (
                     <button
                       className="mt-3 rounded-md bg-amberx px-3 py-1.5 text-sm font-medium text-white"
                       onClick={() => void act(h, nxt[0])}

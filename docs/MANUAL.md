@@ -33,17 +33,18 @@ que la red distingue quién hace cada cosa, no solo la aplicación.
 | `empresaB` | `empresaB` | EmpresaBMSP | Constructora, quirófanos / instalaciones | `quirofanos-tech` | 25 % |
 | `empresaC` | `empresaC` | EmpresaCMSP | Constructora, socia de A | `obra-gruesa-solar` | 20 % |
 | `empresaD` | `empresaD` | EmpresaDMSP | Constructora, socia de B | `quirofanos-tech` | 20 % |
-| `administracion` | `administracion` | AdministracionMSP | Ayuntamiento: autoriza pagos | ninguno | — |
+| `administracion` | `administracion` | AdministracionMSP | Ayuntamiento: autoriza o rechaza pagos | ninguno | — |
 
 La sesión dura 8 horas. El chip de la cabecera muestra siempre con quién estás dentro.
 
 ### Qué puede hacer cada uno
 
 - **Constructoras (A, B, C, D):** crear hitos, avanzarlos, abrir incidencias de su lote y leer el
-  detalle privado de su lote. No pueden autorizar pagos.
-- **Administración:** ver todo lo público, autorizar o rechazar pagos. No registra obra propia ni
-  abre incidencias de lote, y **no puede leer** el detalle privado de ninguna colección: su nodo solo
-  guarda el hash.
+  detalle privado de su lote. Tratan o cierran **solo las incidencias que abrieron ellas**. No
+  pueden autorizar ni rechazar pagos.
+- **Administración:** ver todo lo público, autorizar o rechazar pagos. No registra ni avanza obra
+  propia, no abre ni tramita incidencias de lote, y **no puede leer** el detalle privado de ninguna
+  colección: su nodo solo guarda el hash.
 
 ### Nodos y red diaria
 
@@ -59,15 +60,16 @@ escribir en la colección privada `quirofanos-tech` exige un nodo de B o de D: h
 | 1 | `/` | Login. Lista las cinco cuentas y avisa del alcance de la red diaria. |
 | 2 | `/dashboard` | Resumen: avance, hitos, pagos en custodia e incidencias abiertas. |
 | 3 | `/hitos` | Alta de hitos y máquina de estados, con los pagos asociados y el Explorer compacto al lado. |
-| 4 | `/pagos` | Escrow: pagos en custodia, desglose por participación y autorización (solo Administración). |
-| 5 | `/incidencias` | Incidencias públicas del canal y botón **Ver PDC** para el detalle privado. |
+| 4 | `/pagos` | Escrow: pagos en custodia, desglose por participación; Autorizar y Rechazar (solo Administración). |
+| 5 | `/incidencias` | Incidencias públicas del canal, empresa y lote, y botón **Ver PDC** para el detalle privado. |
 | 6 | `/estado` | Estado de obra agregado y botón **Recalcular**. |
 | 7 | `/explorer` | Bloques del canal: altura, hashes, transacciones, función invocada y MSP endosantes. |
 
 ### Hitos
 
-Crear un hito lo registra a nombre de la constructora de la sesión. El botón que aparece es siempre
-el único movimiento válido desde el estado actual.
+Crear un hito lo registra a nombre de la constructora de la sesión (el body no elige empresa). El
+botón que aparece es siempre el único movimiento válido desde el estado actual. Administración no
+ve esos botones: no da de alta ni avanza obra.
 
 ```
 PENDIENTE → EN_EJECUCION → VALIDACION → COMPLETADO
@@ -84,10 +86,11 @@ CUSTODIA → AUTORIZADO
         └→ RECHAZADO
 ```
 
-El dinero queda retenido hasta que el ayuntamiento lo libera. La constructora ve
+El dinero queda retenido hasta que el ayuntamiento lo libera o lo anula. La constructora ve
 *«En custodia — pendiente de autorización de Administración»*, sin botón: no es un error, es el
-circuito. Cuando Administración autoriza, el chaincode emite el evento `PagoAutorizado`, el backend
-lo escucha y llama al banco simulado (`POST /mock/banco/pagos`).
+circuito. Administración ve **Autorizar** y **Rechazar**. Cuando autoriza, el chaincode emite el
+evento `PagoAutorizado`, el backend lo escucha y llama al banco simulado (`POST /mock/banco/pagos`).
+Rechazar no dispara ese evento.
 
 El importe se reparte por participación: A 35 %, B 25 %, C 20 %, D 20 %. El desglose se calcula en el
 chaincode y se guarda en el pago.
@@ -99,8 +102,10 @@ ABIERTA → EN_TRATAMIENTO → CERRADA
    └──────────────────────→ RECHAZADA
 ```
 
-Lo público (título, empresa, lote, estado) va al canal y lo ve todo el mundo. El detalle sensible
-(coste estimado, notas técnicas) va a la colección privada del lote:
+Lo público (título, empresa, lote, estado) va al canal y lo ve todo el mundo. El alta fija `empresa`
+y `lote` según la sesión; otra constructora no puede tratar, cerrar ni rechazar una incidencia que
+no abrió ella (403). El detalle sensible (coste estimado, notas técnicas) va a la colección privada
+del lote:
 
 | Colección | Socios |
 | --- | --- |
@@ -157,9 +162,10 @@ Para empezar de cero solo hay dos caminos honestos:
 1. Entrar como `empresaA`. El chip muestra *Empresa A · Cimentación (obra-gruesa-solar) · 35 %*.
 2. Crear un hito y llevarlo hasta **Completar**. Aparece el pago en `CUSTODIA` sin botón de autorizar.
 3. Mirar el Explorer: el bloque nuevo trae `completarHito` y `ponerEnCustodia` con sus endosantes.
-4. **Salir** y entrar como `administracion`. Autorizar el pago; comprobar el webhook en
-   `GET /mock/banco/pagos`.
-5. Incidencias como `empresaA`: **Ver PDC** devuelve el detalle. Como `administracion`: rechazo con la
-   explicación del hash.
+4. **Salir** y entrar como `administracion`. En pagos CUSTODIA aparecen Autorizar y Rechazar.
+   Autorizar; comprobar el webhook en `GET /mock/banco/pagos`.
+5. Incidencias como `empresaA`: **Ver PDC** devuelve el detalle; Tratar/Cerrar solo en las suyas.
+   Como `administracion`: sin trámite, rechazo al leer PDC con la explicación del hash.
 6. (Con `make pdc-up`) Entrar como `empresaB` y crear una incidencia de `quirofanos-tech`; leer su PDC.
-   Sin `pdc-up`, la misma acción muestra el aviso rojo con `make pdc-up`, que es el punto a explicar.
+   Como `empresaA` esa incidencia no muestra Tratar/Cerrar. Sin `pdc-up`, la misma acción muestra el
+   aviso rojo con `make pdc-up`, que es el punto a explicar.
