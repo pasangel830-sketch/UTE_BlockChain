@@ -6,6 +6,7 @@ import client from 'prom-client';
 import { swaggerMiddleware, swaggerSetup } from './swagger';
 import { router } from './routes';
 import { traducirError } from './errors';
+import { peersLevantados } from './fabric';
 
 const register = new client.Registry();
 client.collectDefaultMetrics({ register });
@@ -19,12 +20,16 @@ export function createApp() {
     rateLimit({
       windowMs: 60_000,
       limit: 120,
-      skip: (req) => req.path === '/metrics' || req.path === '/health',
+      skip: (req) => req.path === '/metrics' || req.path === '/health' || req.path === '/red',
     }),
   );
 
   app.get('/health', (_req, res) => {
     res.json({ ok: true });
+  });
+
+  app.get('/red', async (_req, res) => {
+    res.json({ peers: await peersLevantados() });
   });
 
   app.get('/metrics', async (_req, res) => {

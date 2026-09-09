@@ -1,4 +1,5 @@
 import { config } from './config';
+import { mspConPeerCache } from './fabric';
 import {
   LOTES,
   Lote,
@@ -250,7 +251,12 @@ export function traducirError(
     );
 
   const lote = loteMencionado(detalle, ctx);
-  if (!peerDeEntradaCaido && lote && loteSinPeerDiario(lote) && esFalloDeEndoso(detalle, grpc)) {
+  if (
+    !peerDeEntradaCaido &&
+    lote &&
+    loteSinPeerDiario(lote, mspConPeerCache()) &&
+    esFalloDeEndoso(detalle, grpc)
+  ) {
     return {
       status: 503,
       body: {

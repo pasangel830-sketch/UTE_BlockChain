@@ -80,9 +80,10 @@ export function profileLabel(org: string | undefined | null): string {
   return parts.join(' · ');
 }
 
-/** El propio nodo de esta org no arranca con `make up-dev`; entra por el peer de Empresa A. */
-export function orgSinPeerDiario(org: string | null | undefined): boolean {
-  return Boolean(org) && !ORGS_PEER_DIARIO.includes(org as string);
+/** El propio nodo de esta org no está vivo. `vivos` null = aún no se ha sondeado. */
+export function orgSinPeerDiario(org: string | null | undefined, vivos: string[] | null): boolean {
+  if (!org || !vivos) return false;
+  return !vivos.includes(org);
 }
 
 export function sociosLabel(lote: string | null | undefined, union = ' o '): string {
@@ -91,9 +92,9 @@ export function sociosLabel(lote: string | null | undefined, union = ' o '): str
     .join(union);
 }
 
-/** Escribir la PDC de este lote necesita `make pdc-up`: ningún socio tiene peer en la red diaria. */
-export function lotePdcApagada(lote: string | null | undefined): boolean {
-  if (!lote) return false;
+/** Escribir la PDC de este lote necesita `make pdc-up`: ningún socio tiene peer vivo. */
+export function lotePdcApagada(lote: string | null | undefined, vivos: string[] | null): boolean {
+  if (!lote || !vivos) return false;
   const socios = SOCIOS_LOTE[lote] ?? [];
-  return !socios.some((o) => ORGS_PEER_DIARIO.includes(o));
+  return !socios.some((o) => vivos.includes(o));
 }

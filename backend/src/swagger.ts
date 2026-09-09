@@ -30,6 +30,16 @@ export const openapi = {
   security: [{ bearerAuth: [] }],
   paths: {
     '/health': { get: { security: [], responses: { '200': { description: 'ok' } } } },
+    '/red': {
+      get: {
+        security: [],
+        responses: {
+          '200': {
+            description: 'peers vivos por MSP (TCP al puerto gRPC; B/C/D false hasta make pdc-up)',
+          },
+        },
+      },
+    },
     '/metrics': { get: { security: [], responses: { '200': { description: 'Prometheus' } } } },
     '/auth/login': {
       post: {

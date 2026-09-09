@@ -3,7 +3,7 @@ import { config } from './config';
 import { createApp } from './app';
 import { startPagoListener } from './events';
 import { startBlockListener } from './explorer';
-import { closeAll } from './fabric';
+import { closeAll, peersLevantados } from './fabric';
 
 async function main() {
   if (config.storageDriver !== 'local') {
@@ -12,6 +12,7 @@ async function main() {
   const app = createApp();
   const server = app.listen(config.port, '0.0.0.0', () => {
     console.log(`UTE API :${config.port}`);
+    void peersLevantados();
   });
   await startPagoListener();
   await startBlockListener();

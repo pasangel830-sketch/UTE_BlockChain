@@ -2,6 +2,7 @@ import * as grpc from '@grpc/grpc-js';
 import { connect, hash, signers, Gateway, Contract } from '@hyperledger/fabric-gateway';
 import { createPrivateKey } from 'crypto';
 import { promises as fs } from 'fs';
+import net from 'net';
 import path from 'path';
 import { config, OrgMsp } from './config';
 
@@ -152,6 +153,54 @@ export async function evaluate(
     ? await c.evaluate(fn, { arguments: args, endorsingOrganizations: endorsing })
     : await c.evaluateTransaction(fn, ...args);
   return Buffer.from(bytes).toString('utf8');
+}
+
+const PEER_PROBE_MS = 800;
+const PEER_CACHE_MS = 10_000;
+let peerCache: { at: number; value: Record<OrgMsp, boolean> } | null = null;
+
+function probeTcp(host: string, port: number): Promise<boolean> {
+  return new Promise((resolve) => {
+    const socket = new net.Socket();
+    let settled = false;
+    const finish = (ok: boolean) => {
+      if (settled) return;
+      settled = true;
+      socket.destroy();
+      resolve(ok);
+    };
+    socket.setTimeout(PEER_PROBE_MS);
+    socket.once('connect', () => finish(true));
+    socket.once('timeout', () => finish(false));
+    socket.once('error', () => finish(false));
+    socket.connect(port, host);
+  });
+}
+
+/** Peers que responden en su puerto gRPC (A/Admin diario; B/C/D tras pdc-up). */
+export async function peersLevantados(): Promise<Record<OrgMsp, boolean>> {
+  if (peerCache && Date.now() - peerCache.at < PEER_CACHE_MS) {
+    return peerCache.value;
+  }
+  const orgs = Object.keys(ORG_PEER_PORT) as OrgMsp[];
+  const pairs = await Promise.all(
+    orgs.map(async (org) => {
+      const { endpoint } = endpointOf(org);
+      const idx = endpoint.lastIndexOf(':');
+      const host = endpoint.slice(0, idx);
+      const port = Number(endpoint.slice(idx + 1));
+      return [org, await probeTcp(host, port)] as const;
+    }),
+  );
+  const value = Object.fromEntries(pairs) as Record<OrgMsp, boolean>;
+  peerCache = { at: Date.now(), value };
+  return value;
+}
+
+/** MSP con peer vivo según la última sonda; undefined si aún no se ha sondeado. */
+export function mspConPeerCache(): OrgMsp[] | undefined {
+  if (!peerCache) return undefined;
+  return (Object.keys(peerCache.value) as OrgMsp[]).filter((o) => peerCache!.value[o]);
 }
 
 export async function closeAll(): Promise<void> {

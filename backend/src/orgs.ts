@@ -101,9 +101,9 @@ export function endosantesDeLote(lote: Lote): string[] {
   return [...sociosDe(lote).slice(0, 1), 'AdministracionMSP'];
 }
 
-/** Ningún socio del lote tiene peer en la red diaria: escribir su PDC exige `make pdc-up`. */
-export function loteSinPeerDiario(lote: Lote): boolean {
-  return !sociosDe(lote).some((o) => ORGS_PEER_DIARIO.includes(o));
+/** Ningún socio del lote tiene peer vivo: escribir su PDC exige `make pdc-up`. */
+export function loteSinPeerDiario(lote: Lote, vivos: readonly OrgMsp[] = ORGS_PEER_DIARIO): boolean {
+  return !sociosDe(lote).some((o) => vivos.includes(o));
 }
 
 export const RESUMEN_SOCIOS = LOTES.map(

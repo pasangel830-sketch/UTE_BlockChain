@@ -5,7 +5,14 @@ import { Shell } from '@/components/Shell';
 import { Badge } from '@/components/Badge';
 import { ErrorBox } from '@/components/ErrorBox';
 import { api, getSession } from '@/lib/api';
-import { lotePdcApagada, orgSinPeerDiario, profileOf, sociosLabel, type OrgProfile } from '@/lib/orgs';
+import {
+  lotePdcApagada,
+  orgSinPeerDiario,
+  ORGS_PEER_DIARIO,
+  profileOf,
+  sociosLabel,
+  type OrgProfile,
+} from '@/lib/orgs';
 
 type Inc = {
   id: string;
@@ -24,6 +31,7 @@ export default function IncidenciasPage() {
   const [err, setErr] = useState<unknown>(null);
   const [msg, setMsg] = useState('');
   const [perfil, setPerfil] = useState<OrgProfile | null>(null);
+  const [vivos, setVivos] = useState<string[] | null>(null);
 
   const load = useCallback(async () => {
     const r = await api<{ items: Inc[] }>('/incidencias');
@@ -33,6 +41,9 @@ export default function IncidenciasPage() {
   useEffect(() => {
     setPerfil(profileOf(getSession()?.org));
     void load().catch(setErr);
+    void api<{ peers: Record<string, boolean> }>('/red')
+      .then((r) => setVivos(Object.keys(r.peers).filter((k) => r.peers[k])))
+      .catch(() => setVivos(ORGS_PEER_DIARIO));
   }, [load]);
 
   async function crear(e: FormEvent) {
@@ -77,7 +88,7 @@ export default function IncidenciasPage() {
     }
   }
 
-  const pdcApagada = lotePdcApagada(perfil?.lote);
+  const pdcApagada = lotePdcApagada(perfil?.lote, vivos);
 
   return (
     <Shell>
@@ -100,7 +111,7 @@ export default function IncidenciasPage() {
           registrar datos privados de <code>{perfil?.lote}</code> hace falta <code>make pdc-up</code>.
         </p>
       )}
-      {!pdcApagada && orgSinPeerDiario(perfil?.org) && perfil?.lote && (
+      {!pdcApagada && orgSinPeerDiario(perfil?.org, vivos) && perfil?.lote && (
         <p className="mt-3 rounded-xl border border-slate-200 bg-white p-3 text-sm text-slate-600">
           Red diaria: el nodo de {perfil.label} está apagado. Las altas del lote{' '}
           <code>{perfil.lote}</code> salen igual, porque las endosa el nodo de{' '}
