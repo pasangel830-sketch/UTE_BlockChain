@@ -135,17 +135,18 @@ export default function HitosPage() {
     <Shell>
       <div className="grid gap-6 lg:grid-cols-3">
         <div className="lg:col-span-2 space-y-6">
-          <h1 className="text-2xl font-bold">Hitos y pagos</h1>
+          <h1 className="page-title">Hitos y pagos</h1>
+          <div className="gold-rule animate-hairline" />
           {perfil?.empresa ? (
-            <form onSubmit={crear} className="flex flex-wrap gap-3 rounded-xl border border-slate-200 bg-white p-4">
+            <form onSubmit={crear} className="card flex flex-wrap gap-3 p-4">
               <input
-                className="flex-1 rounded-lg border px-3 py-2"
+                className="flex-1 rounded-lg border border-slate-300 bg-white px-3 py-2"
                 value={titulo}
                 onChange={(e) => setTitulo(e.target.value)}
                 required
               />
               <input
-                className="w-32 rounded-lg border px-3 py-2"
+                className="w-32 rounded-lg border border-slate-300 bg-white px-3 py-2"
                 value={importe}
                 onChange={(e) => setImporte(e.target.value)}
               />
@@ -155,7 +156,7 @@ export default function HitosPage() {
               </p>
             </form>
           ) : (
-            <p className="rounded-xl border border-slate-200 bg-white p-4 text-sm text-slate-600">
+            <p className="card p-4 text-sm text-slate-600">
               Administración no registra ni avanza obra: consulta el estado público y autoriza o
               rechaza pagos. El alta y el avance de hitos los hacen las constructoras.
             </p>
@@ -169,7 +170,7 @@ export default function HitosPage() {
               const puedeCompletar = h.estado === 'VALIDACION' && perfil?.empresa === h.empresa;
               const acta = files[h.id];
               return (
-                <li key={h.id} className="rounded-xl border border-slate-200 bg-white p-4">
+                <li key={h.id} className="card p-4">
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <div>
                       <p className="font-semibold">{h.titulo}</p>

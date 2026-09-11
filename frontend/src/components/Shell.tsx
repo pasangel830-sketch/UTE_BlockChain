@@ -6,6 +6,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { clearToken, getSession, getToken, type Session } from '@/lib/api';
 import { profileLabel } from '@/lib/orgs';
 import { useEffect, useState } from 'react';
+import { BrandLockup } from '@/components/Brand';
 
 const LINKS = [
   ['/dashboard', 'Inicio'],
@@ -30,34 +31,30 @@ export function Shell({ children }: { children: ReactNode }) {
   }, [router]);
 
   return (
-    <div className="min-h-screen bg-slate-100">
-      <header className="border-b border-slate-200 bg-ink text-white">
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3">
-          <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-            <p className="font-semibold tracking-tight">UTE Blockchain</p>
+    <div className="flex min-h-screen flex-col bg-cream">
+      <div className="h-1.5 bg-gradient-to-r from-gold via-amberx to-ink" />
+      <header className="border-b border-gold/30 bg-ink text-white">
+        <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3">
+          <div className="flex min-w-0 items-center gap-4">
+            <BrandLockup size="sm" invert />
+            <div className="min-w-0">
+              <p className="font-serif text-lg font-bold tracking-tight">UTE Blockchain</p>
+              <p className="truncate text-[11px] uppercase tracking-[0.16em] text-gold/90">
+                Ayuntamiento de Madrid · registro de obra
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
             {session && (
               <span
-                className="rounded-full bg-slate-800 px-3 py-1 text-xs text-slate-200"
+                className="hidden max-w-xs truncate rounded-full border border-gold/40 bg-white/5 px-3 py-1 text-xs text-slate-200 md:inline"
                 title={session.org}
               >
                 {profileLabel(session.org)}
               </span>
             )}
-          </div>
-          <nav className="flex flex-wrap gap-1 text-sm">
-            {LINKS.map(([href, label]) => (
-              <Link
-                key={href}
-                href={href}
-                className={`rounded-md px-3 py-1.5 ${
-                  path === href ? 'bg-amberx text-white' : 'text-slate-200 hover:bg-slate-800'
-                }`}
-              >
-                {label}
-              </Link>
-            ))}
             <button
-              className="rounded-md px-3 py-1.5 text-slate-300 hover:bg-slate-800"
+              className="rounded-md px-3 py-1.5 text-sm text-slate-300 hover:bg-white/10 hover:text-white"
               onClick={() => {
                 clearToken();
                 router.replace('/');
@@ -65,10 +62,43 @@ export function Shell({ children }: { children: ReactNode }) {
             >
               Salir
             </button>
-          </nav>
+          </div>
         </div>
+        <nav className="border-t border-white/10 bg-ink/80">
+          <div className="mx-auto flex max-w-6xl flex-wrap gap-1 px-4 py-1.5 text-sm">
+            {session && (
+              <span
+                className="mb-1 w-full rounded-full border border-gold/30 bg-white/5 px-3 py-1 text-xs text-slate-200 md:hidden"
+                title={session.org}
+              >
+                {profileLabel(session.org)}
+              </span>
+            )}
+            {LINKS.map(([href, label]) => (
+              <Link
+                key={href}
+                href={href}
+                className={`relative rounded-md px-3 py-1.5 ${
+                  path === href
+                    ? 'bg-amberx text-white after:absolute after:inset-x-3 after:bottom-0.5 after:h-0.5 after:bg-gold'
+                    : 'text-slate-200 hover:bg-white/10 hover:text-white'
+                }`}
+              >
+                {label}
+              </Link>
+            ))}
+          </div>
+        </nav>
       </header>
-      <main className="mx-auto max-w-6xl px-4 py-6">{children}</main>
+      <main key={path} className="mx-auto w-full max-w-6xl flex-1 animate-page-in px-4 py-8">
+        {children}
+      </main>
+      <footer className="mt-auto border-t border-gold/30 bg-ink">
+        <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-2 px-4 py-4 text-[11px] uppercase tracking-[0.14em] text-gold/80">
+          <p>UTE Blockchain Solutions · Ayuntamiento de Madrid</p>
+          <p>Convenio de colaboración · canal channel-obra</p>
+        </div>
+      </footer>
     </div>
   );
 }

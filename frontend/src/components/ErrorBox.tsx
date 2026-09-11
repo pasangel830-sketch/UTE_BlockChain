@@ -43,7 +43,7 @@ export function ErrorBox({ error }: { error: unknown }) {
     : 'border-rose-300 bg-rose-50 text-rose-900';
 
   return (
-    <div className={`mt-3 rounded-xl border p-3 text-sm ${tono}`} role="alert">
+    <div className={`mt-3 animate-fade-in rounded-xl border p-3 text-sm shadow-sm ${tono}`} role="alert">
       <p className="text-xs font-semibold uppercase tracking-wide opacity-80">
         {TITULO[codigo] ?? 'No se ha podido completar'}
       </p>

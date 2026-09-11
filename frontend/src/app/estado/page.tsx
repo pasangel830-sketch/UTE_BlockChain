@@ -56,18 +56,19 @@ export default function EstadoPage() {
   return (
     <Shell>
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Estado de obra</h1>
-        <button className="rounded-lg bg-ink px-4 py-2 text-sm text-white" onClick={() => void recalc()}>
+        <h1 className="page-title">Estado de obra</h1>
+        <button className="rounded-lg bg-ink px-4 py-2 text-sm text-white hover:shadow-official" onClick={() => void recalc()}>
           Recalcular
         </button>
       </div>
-      <p className="mt-1 text-sm text-slate-500">Lo escribe el backend. Sin invoke entre chaincodes.</p>
+      <p className="page-kicker">Lo escribe el backend. Sin invoke entre chaincodes.</p>
+      <div className="gold-rule my-4 animate-hairline" />
       <ErrorBox error={err} />
       <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {cards.map(([k, v]) => (
-          <div key={k} className="rounded-xl border bg-white p-4">
-            <p className="text-xs uppercase tracking-wide text-slate-500">{k}</p>
-            <p className="mt-1 text-2xl font-semibold">{v}</p>
+          <div key={k} className="card p-4">
+            <p className="text-xs uppercase tracking-[0.14em] text-slate-500">{k}</p>
+            <p className="mt-1 font-serif text-2xl font-semibold">{v}</p>
           </div>
         ))}
       </div>

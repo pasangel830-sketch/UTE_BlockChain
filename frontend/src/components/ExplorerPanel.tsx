@@ -103,13 +103,13 @@ export function ExplorerPanel({ compact = false }: { compact?: boolean }) {
   }, []);
 
   return (
-    <section className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+    <section className="card p-4">
       <div className="mb-3 flex items-baseline justify-between">
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-500">Explorer</h2>
+        <h2 className="text-sm font-semibold uppercase tracking-[0.14em] text-slate-500">Explorer</h2>
         <p className="text-xs text-slate-400">polling 3 s · {snap?.channel || '—'}</p>
       </div>
       {err && <p className="text-sm text-rose-600">{err}</p>}
-      <p className="mb-3 font-mono text-2xl font-bold text-ink">
+      <p className="mb-3 font-serif text-2xl font-bold text-ink">
         altura {snap?.height ?? '…'}
       </p>
       <ul className={`space-y-2 ${compact ? 'max-h-64 overflow-y-auto' : ''}`}>

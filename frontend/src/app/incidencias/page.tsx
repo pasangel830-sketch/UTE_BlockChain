@@ -186,8 +186,8 @@ export default function IncidenciasPage() {
 
   return (
     <Shell>
-      <h1 className="text-2xl font-bold">Incidencias</h1>
-      <p className="mt-1 text-sm text-slate-500">
+      <h1 className="page-title">Incidencias</h1>
+      <p className="page-kicker">
         {perfil?.lote ? (
           <>
             Público en el canal. Detalle en PDC <code>{perfil.lote}</code> ({sociosLabel(perfil.lote)}).
@@ -200,6 +200,7 @@ export default function IncidenciasPage() {
           </>
         )}
       </p>
+      <div className="gold-rule my-4 animate-hairline" />
       {pdcApagada && (
         <p className="mt-3 rounded-xl border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">
           Red diaria: los nodos de B, C y D están apagados. Puedes consultar hitos e incidencias; para
@@ -214,10 +215,10 @@ export default function IncidenciasPage() {
         </p>
       )}
       {perfil?.empresa && perfil.lote ? (
-        <form onSubmit={crear} className="mt-4 grid gap-3 rounded-xl border bg-white p-4 md:grid-cols-2">
-          <input className="rounded-lg border px-3 py-2" value={titulo} onChange={(e) => setTitulo(e.target.value)} />
-          <input className="rounded-lg border px-3 py-2" value={detalle} onChange={(e) => setDetalle(e.target.value)} />
-          <input className="rounded-lg border px-3 py-2" value={coste} onChange={(e) => setCoste(e.target.value)} />
+        <form onSubmit={crear} className="card mt-4 grid gap-3 p-4 md:grid-cols-2">
+          <input className="rounded-lg border border-slate-300 bg-white px-3 py-2" value={titulo} onChange={(e) => setTitulo(e.target.value)} />
+          <input className="rounded-lg border border-slate-300 bg-white px-3 py-2" value={detalle} onChange={(e) => setDetalle(e.target.value)} />
+          <input className="rounded-lg border border-slate-300 bg-white px-3 py-2" value={coste} onChange={(e) => setCoste(e.target.value)} />
           <label className="flex flex-col gap-1 text-sm text-slate-600">
             Evidencia (foto o PDF, máx. 5 MB)
             <input
@@ -237,7 +238,7 @@ export default function IncidenciasPage() {
           </p>
         </form>
       ) : (
-        <p className="mt-4 rounded-xl border bg-white p-4 text-sm text-slate-600">
+        <p className="card mt-4 p-4 text-sm text-slate-600">
           Administración no abre ni tramita incidencias de lote: no es socia de ninguna colección
           privada. Puede consultar la lista pública y comprobar que el hash del detalle está en el
           canal.
@@ -247,7 +248,7 @@ export default function IncidenciasPage() {
       <ErrorBox error={err} />
       <ul className="mt-6 space-y-3">
         {items.map((i) => (
-          <li key={i.id} className="rounded-xl border bg-white p-4">
+          <li key={i.id} className="card p-4">
             <div className="flex items-center justify-between">
               <div>
                 <p className="font-semibold">{i.titulo}</p>

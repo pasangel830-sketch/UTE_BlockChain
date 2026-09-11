@@ -74,8 +74,9 @@ export default function PagosPage() {
 
   return (
     <Shell>
-      <h1 className="text-2xl font-bold">Pagos (escrow)</h1>
-      <p className="mt-1 text-sm text-slate-500">CUSTODIA hasta autorización de Administración.</p>
+      <h1 className="page-title">Pagos (escrow)</h1>
+      <p className="page-kicker">CUSTODIA hasta autorización de Administración.</p>
+      <div className="gold-rule my-4 animate-hairline" />
       {ok && (
         <div className="mt-3 rounded-xl border border-emerald-300 bg-emerald-50 p-3 text-sm text-emerald-900" role="status">
           <p>{ok.funcional}</p>
@@ -92,7 +93,7 @@ export default function PagosPage() {
       <ErrorBox error={err} />
       <ul className="mt-6 space-y-3">
         {items.map((p) => (
-          <li key={p.id} className="rounded-xl border border-slate-200 bg-white p-4">
+          <li key={p.id} className="card p-4">
             <div className="flex items-center justify-between">
               <div>
                 <p className="font-mono text-sm">{p.id}</p>
