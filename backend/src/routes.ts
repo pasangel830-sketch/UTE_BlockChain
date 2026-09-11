@@ -3,11 +3,18 @@ import multer from 'multer';
 import { config, OrgMsp } from './config';
 import { auth, login } from './auth';
 import { submit, evaluate } from './fabric';
-import { saveLocal } from './storage';
 import { getExplorerSnapshot } from './explorer';
 import { agregarEstado } from './estado';
-import { rechazoSoloAdministracion, rechazoSoloConstructora, rechazoSoloCreadoraIncidencia, rechazoSoloEmpresaHito } from './errors';
+import {
+  rechazoAdjuntoIncidencia,
+  rechazoEvidenciaNoSocio,
+  rechazoSoloAdministracion,
+  rechazoSoloConstructora,
+  rechazoSoloCreadoraIncidencia,
+  rechazoSoloEmpresaHito,
+} from './errors';
 import { endosantesDeHito, endosantesDeLote, endosantesDePago, esLote, perfilDe, PerfilOrg, sociosDe } from './orgs';
+import { guardarEvidencia, listarEvidencias, rutaEvidencia, saveLocal } from './storage';
 
 export const bancoLog: unknown[] = [];
 
@@ -20,6 +27,20 @@ function asyncH(fn: (req: Request, res: Response) => Promise<void>) {
   };
 }
 
+type ConFecha = { createdAt?: string; at?: string };
+
+function ordenarPorFechaDesc<T extends ConFecha>(items: T[]): T[] {
+  return [...items].sort((a, b) => (b.createdAt || b.at || '').localeCompare(a.createdAt || a.at || ''));
+}
+
+function listaOrdenada(raw: string): unknown {
+  const parsed = JSON.parse(raw) as { items?: ConFecha[] };
+  if (Array.isArray(parsed.items)) {
+    parsed.items = ordenarPorFechaDesc(parsed.items);
+  }
+  return parsed;
+}
+
 function orgOf(req: Request) {
   return req.user?.org ?? 'EmpresaAMSP';
 }
@@ -27,6 +48,35 @@ function orgOf(req: Request) {
 function pid(req: Request): string {
   const v = req.params.id;
   return Array.isArray(v) ? v[0] : v;
+}
+
+function peid(req: Request): string {
+  const v = req.params.eid;
+  return Array.isArray(v) ? v[0] : v;
+}
+
+type IncPublica = { id?: string; empresa?: string; lote?: string; estado?: string };
+
+const ESTADOS_ADJUNTO = new Set(['ABIERTA', 'EN_TRATAMIENTO']);
+
+function mimeEvidenciaOk(file: Express.Multer.File): boolean {
+  if (file.mimetype.startsWith('image/') || file.mimetype === 'application/pdf') {
+    return true;
+  }
+  return /\.(pdf|png|jpe?g|gif|webp)$/i.test(file.originalname || '');
+}
+
+async function leerIncidencia(req: Request): Promise<IncPublica> {
+  const raw = await evaluate(
+    orgOf(req),
+    config.chaincodeIncidencia,
+    'IncidenciaContract',
+    'consultarIncidencia',
+    [pid(req)],
+  );
+  const inc = JSON.parse(raw) as IncPublica;
+  req.loteContexto = inc.lote;
+  return inc;
 }
 
 /** Incidencias en red diaria (A+Admin). Los pagos usan `endosantesDePago`. */
@@ -70,20 +120,41 @@ async function requireEmpresaHito(
 async function requireCreadoraIncidencia(req: Request, res: Response, que: string): Promise<boolean> {
   const perfil = perfilConstructora(req, res, que);
   if (!perfil) return false;
-  const raw = await evaluate(
-    orgOf(req),
-    config.chaincodeIncidencia,
-    'IncidenciaContract',
-    'consultarIncidencia',
-    [pid(req)],
-  );
-  const inc = JSON.parse(raw) as { empresa?: string; lote?: string };
-  req.loteContexto = inc.lote;
+  const inc = await leerIncidencia(req);
   if (inc.empresa !== perfil.empresa) {
     res.status(403).json(rechazoSoloCreadoraIncidencia(req.user?.org, inc.empresa));
     return false;
   }
   return true;
+}
+
+async function requireAdjuntoIncidencia(req: Request, res: Response): Promise<IncPublica | null> {
+  const perfil = perfilConstructora(req, res, 'una evidencia de incidencia');
+  if (!perfil) return null;
+  const inc = await leerIncidencia(req);
+  if (inc.empresa !== perfil.empresa) {
+    res.status(403).json(rechazoAdjuntoIncidencia(req.user?.org, inc.empresa));
+    return null;
+  }
+  if (!ESTADOS_ADJUNTO.has(inc.estado || '')) {
+    res.status(400).json({
+      error: 'Esta incidencia ya está cerrada o rechazada: no se pueden adjuntar evidencias.',
+      detalle: `estado=${inc.estado ?? 'desconocido'}`,
+      codigo: 'DATO_INVALIDO',
+    });
+    return null;
+  }
+  return inc;
+}
+
+async function requireSocioEvidencia(req: Request, res: Response): Promise<IncPublica | null> {
+  const inc = await leerIncidencia(req);
+  const org = orgOf(req);
+  if (!esLote(inc.lote) || !sociosDe(inc.lote).includes(org as OrgMsp)) {
+    res.status(403).json(rechazoEvidenciaNoSocio(req.user?.org, inc.lote));
+    return null;
+  }
+  return inc;
 }
 
 /** Escribir en la PDC de un lote exige el endoso de un socio de esa colección. */
@@ -146,13 +217,13 @@ router.get(
   '/hitos',
   auth,
   asyncH(async (req, res) => {
-    const page = String(req.query.pageSize || '20');
+    const page = String(req.query.pageSize || '100');
     const bookmark = String(req.query.bookmark || '');
     const raw = await evaluate(orgOf(req), config.chaincodeHito, 'HitoContract', 'listarHitos', [
       page,
       bookmark,
     ]);
-    res.json(JSON.parse(raw));
+    res.json(listaOrdenada(raw));
   }),
 );
 
@@ -232,7 +303,7 @@ router.post(
     const dueño = await requireEmpresaHito(req, res, 'el avance de un hito');
     if (!dueño) return;
     const org = orgOf(req);
-    const hitoRaw = await submit(
+    const raw = await submit(
       org,
       config.chaincodeHito,
       'HitoContract',
@@ -240,17 +311,11 @@ router.post(
       [pid(req)],
       endosantesDePago(dueño.empresa),
     );
-    const hito = JSON.parse(hitoRaw) as { id: string; empresa: string; importe: number };
-    const pagoId = `pago-${hito.id}`;
-    const pagoRaw = await submit(
-      org,
-      config.chaincodePago,
-      'PagoContract',
-      'ponerEnCustodia',
-      [pagoId, hito.id, hito.empresa, String(hito.importe)],
-      endosantesDePago(hito.empresa),
-    );
-    res.json({ hito: JSON.parse(hitoRaw), pago: JSON.parse(pagoRaw) });
+    const parsed = JSON.parse(raw) as { hito?: unknown; pago?: unknown };
+    if (!parsed.hito || !parsed.pago) {
+      throw new Error('completarHito no devolvió hito y pago en la misma transacción');
+    }
+    res.json({ hito: parsed.hito, pago: parsed.pago });
     void refreshEstado(org);
   }),
 );
@@ -279,13 +344,13 @@ router.get(
   '/pagos',
   auth,
   asyncH(async (req, res) => {
-    const page = String(req.query.pageSize || '20');
+    const page = String(req.query.pageSize || '100');
     const bookmark = String(req.query.bookmark || '');
     const raw = await evaluate(orgOf(req), config.chaincodePago, 'PagoContract', 'listarPagos', [
       page,
       bookmark,
     ]);
-    res.json(JSON.parse(raw));
+    res.json(listaOrdenada(raw));
   }),
 );
 
@@ -359,7 +424,7 @@ router.get(
   '/incidencias',
   auth,
   asyncH(async (req, res) => {
-    const page = String(req.query.pageSize || '20');
+    const page = String(req.query.pageSize || '100');
     const bookmark = String(req.query.bookmark || '');
     const raw = await evaluate(
       orgOf(req),
@@ -368,7 +433,7 @@ router.get(
       'listarIncidencias',
       [page, bookmark],
     );
-    res.json(JSON.parse(raw));
+    res.json(listaOrdenada(raw));
   }),
 );
 
@@ -446,6 +511,69 @@ router.get(
       esLote(publica.lote) ? sociosDe(publica.lote) : undefined,
     );
     res.json(JSON.parse(raw));
+  }),
+);
+
+router.get(
+  '/incidencias/:id/evidencias',
+  auth,
+  asyncH(async (req, res) => {
+    if (!(await requireSocioEvidencia(req, res))) return;
+    const items = await listarEvidencias(pid(req));
+    res.json({ items });
+  }),
+);
+
+router.post(
+  '/incidencias/:id/evidencias',
+  auth,
+  upload.single('file'),
+  asyncH(async (req, res) => {
+    if (!(await requireAdjuntoIncidencia(req, res))) return;
+    if (!req.file) {
+      res.status(400).json({
+        error: 'No has adjuntado ningún archivo. Selecciona la evidencia y vuelve a enviar.',
+        detalle: 'campo multipart "file" ausente',
+        codigo: 'DATO_INVALIDO',
+      });
+      return;
+    }
+    if (!mimeEvidenciaOk(req.file)) {
+      res.status(400).json({
+        error: 'Solo se admiten fotos (jpg, png, gif, webp) o PDF.',
+        detalle: `mime=${req.file.mimetype} nombre=${req.file.originalname}`,
+        codigo: 'DATO_INVALIDO',
+      });
+      return;
+    }
+    const meta = await guardarEvidencia(
+      pid(req),
+      req.file.originalname,
+      req.file.buffer,
+      req.file.mimetype,
+      orgOf(req),
+    );
+    res.status(201).json(meta);
+  }),
+);
+
+router.get(
+  '/incidencias/:id/evidencias/:eid',
+  auth,
+  asyncH(async (req, res) => {
+    if (!(await requireSocioEvidencia(req, res))) return;
+    const found = await rutaEvidencia(pid(req), peid(req));
+    if (!found) {
+      res.status(404).json({
+        error: 'No hay ninguna evidencia con ese identificador en esta incidencia.',
+        detalle: `incidencia=${pid(req)} evidencia=${peid(req)}`,
+        codigo: 'NO_ENCONTRADO',
+      });
+      return;
+    }
+    res.setHeader('Content-Type', found.meta.mime);
+    res.setHeader('Content-Disposition', `inline; filename="${found.meta.nombre}"`);
+    res.sendFile(found.abs);
   }),
 );
 

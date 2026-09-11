@@ -71,6 +71,24 @@ export function createMockCtx(mspId = 'EmpresaAMSP'): Context {
       },
     ),
     setEvent: jest.fn(),
+    getChannelID: jest.fn(() => 'channel-obra'),
+    invokeChaincode: jest.fn(async (name: string, args: string[]) => {
+      if (name === 'pago' && args[0] === 'PagoContract:ponerEnCustodia') {
+        const pago = {
+          id: args[1],
+          hitoId: args[2],
+          empresa: args[3],
+          importeTotal: Number(args[4]),
+          estado: 'CUSTODIA',
+          participaciones: {},
+          desglose: {},
+          createdAt: '2025-08-30T00:00:00.000Z',
+          updatedAt: '2025-08-30T00:00:00.000Z',
+        };
+        return { status: 200, message: '', payload: Buffer.from(JSON.stringify(pago)) };
+      }
+      return { status: 500, message: `no mock ${name} ${args[0]}`, payload: Buffer.alloc(0) };
+    }),
     getTxTimestamp: jest.fn(() => ({
       seconds: { low: 1756580000, high: 0 },
       nanos: 0,

@@ -15,6 +15,9 @@ make ui-up      # Next.js en :3000
 Opcional: `make pdc-up` añade los peers de Empresa B, C y D (necesario para escribir datos privados
 del lote `quirofanos-tech`), y `make monitoring-up` levanta Prometheus y Grafana.
 
+Tras el cambio del 11 sep (`completarHito` → pago en el mismo tx) hace falta **`make deploy-cc`**
+si la red ya estaba desplegada con la versión anterior.
+
 | Servicio | URL | Credenciales |
 | --- | --- | --- |
 | Aplicación | http://localhost:3000 | ver tabla de usuarios |
@@ -76,8 +79,9 @@ PENDIENTE → EN_EJECUCION → VALIDACION → COMPLETADO
                               └────────→ RECHAZADO
 ```
 
-Completar un hito hace dos cosas en la misma acción: marca el hito `COMPLETADO` y crea el pago en
-`CUSTODIA`. En el Explorer se ven como dos transacciones, `completarHito` y `ponerEnCustodia`.
+Completar un hito hace dos cosas **en la misma transacción**: marca el hito `COMPLETADO` y crea el pago en
+`CUSTODIA` (`HitoContract` llama a `PagoContract:ponerEnCustodia`). En el Explorer se ve una transacción
+`completarHito`; el pago no es un `submit` aparte.
 
 ### Pagos (escrow)
 
@@ -115,6 +119,15 @@ del lote:
 **Ver PDC** como socio devuelve el detalle. Como no socio devuelve un rechazo de la red explicando
 que ese nodo solo almacena el hash que prueba que el dato existe y que no ha cambiado. Es la
 demostración de la confidencialidad: el hash está en el canal, el contenido no.
+
+Las **evidencias** (foto o PDF, máx. 5 MB) se pueden adjuntar al crear o después, mientras la
+incidencia esté `ABIERTA` o `EN_TRATAMIENTO`, y **solo quien la abrió**. El archivo queda en disco
+local (`uploads/`); **no entra en Fabric**. El hash SHA-256 se muestra en la ficha y, al crear, se
+escribe en `notasTecnicas` del PDC (`hashEvidencia …`). Listar y descargar: solo socios del lote.
+Administración no ve las fotos. Fixtures de demo (no se suben al repo): `ficheros_evidencias_test/`.
+
+Las listas de hitos, pagos, incidencias y evidencias salen de **más reciente a más antiguo**, con
+fecha y hora.
 
 ### Estado de obra
 
@@ -161,11 +174,11 @@ Para empezar de cero solo hay dos caminos honestos:
 
 1. Entrar como `empresaA`. El chip muestra *Empresa A · Cimentación (obra-gruesa-solar) · 35 %*.
 2. Crear un hito y llevarlo hasta **Completar**. Aparece el pago en `CUSTODIA` sin botón de autorizar.
-3. Mirar el Explorer: el bloque nuevo trae `completarHito` y `ponerEnCustodia` con sus endosantes.
+3. Mirar el Explorer: el bloque nuevo trae `completarHito` (hito y pago en el mismo tx).
 4. **Salir** y entrar como `administracion`. En pagos CUSTODIA aparecen Autorizar y Rechazar.
    Autorizar; comprobar el webhook en `GET /mock/banco/pagos`.
-5. Incidencias como `empresaA`: **Ver PDC** devuelve el detalle; Tratar/Cerrar solo en las suyas.
-   Como `administracion`: sin trámite, rechazo al leer PDC con la explicación del hash.
-6. (Con `make pdc-up`) Entrar como `empresaB` y crear una incidencia de `quirofanos-tech`; leer su PDC.
-   Como `empresaA` esa incidencia no muestra Tratar/Cerrar. Sin `pdc-up`, la misma acción muestra el
+5. Incidencias como `empresaA`: adjuntar foto o PDF; **Ver PDC** muestra el hash; Tratar/Cerrar solo en las suyas.
+   Como `administracion`: sin trámite, rechazo al leer PDC y al listar evidencias.
+6. (Con `make pdc-up`) Entrar como `empresaB` y crear una incidencia de `quirofanos-tech`; leer su PDC y evidencias.
+   Como `empresaA` esa incidencia no muestra Tratar/Cerrar ni las fotos. Sin `pdc-up`, la misma acción muestra el
    aviso rojo con `make pdc-up`, que es el punto a explicar.

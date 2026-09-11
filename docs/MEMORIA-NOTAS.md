@@ -16,7 +16,7 @@ La rúbrica pide 4 chaincodes en TypeScript con tests unitarios. Implementación
 
 ## 3. EstadoObra sin llamadas cruzadas entre chaincodes
 
-El PDF describe un estado de obra consolidado. Fabric 2.5 permite invoke entre contratos, pero es frágil en el camino crítico (timeouts, identidad, PDC). EstadoObraContract guarda el agregado; el backend lo calcula a partir de Hito/Pago/Incidencia y hace un `submit` único. Los cuatro contratos TypeScript existen; no hay `ctx.stub.invokeChaincode` en el path de demo.
+El PDF describe un estado de obra consolidado. Fabric 2.5 permite invoke entre contratos, pero es frágil (timeouts, identidad, PDC, invoke anidado con el mismo txid). EstadoObraContract guarda el agregado; el backend lo calcula a partir de Hito/Pago/Incidencia y hace un `submit` único. **No** hay `invokeChaincode` hacia EstadoObra.
 
 ## 4. cryptogen en lugar de Fabric CA
 
@@ -28,4 +28,12 @@ Listados con composite keys y `GetStateByRangeWithPagination`. Sin rich queries.
 
 ## 6. Roles en la API, no en el chaincode
 
-La separación constructora / Administración (avanzar obra, autorizar o rechazar pagos, tramitar solo la incidencia propia) se aplica en Express (`perfilConstructora`, `requireAdministracion`, `requireCreadoraIncidencia`). El chaincode de pago sigue exigiendo endoso org+Admin; no se redeployó para estas guardas. Anotar: la UI y el JWT son la demostración de quién pulsa; un cliente que ignore la API no es el camino de defensa.
+La separación constructora / Administración (avanzar obra, autorizar o rechazar pagos, tramitar solo la incidencia propia, adjuntar evidencias) se aplica en Express (`perfilConstructora`, `requireAdministracion`, `requireCreadoraIncidencia`, `requireAdjuntoIncidencia`, `requireSocioEvidencia`). El chaincode de pago sigue exigiendo endoso org+Admin. Anotar: la UI y el JWT son la demostración de quién pulsa; un cliente que ignore la API no es el camino de defensa.
+
+## 7. Hito → Pago sí usa invoke cruzado (11 sep)
+
+`completarHito` llama a `PagoContract:ponerEnCustodia` en la misma transacción para que no quede hito COMPLETADO sin custodia. `ponerEnCustodia` recibe `origen=completarHito` y **no** consulta el hito: Fabric rechaza un segundo invoke anidado con el mismo txid. Si se llama a custodia por otro camino, sí exige hito COMPLETADO. Jest 11/11. Redeploy en la red diaria (`make deploy-cc`) pendiente de captura.
+
+## 8. Evidencias fuera de cadena; hash en PDC
+
+El multer del día 6 subía un archivo suelto. El 11 sep el adjunto se ancla a la incidencia: disco local + SHA-256; el hash va a `notasTecnicas` del detalle privado. El binario no entra en Fabric (RAM y tamaño de bloque). Las mismas reglas de socio de lote que el PDC. GCS queda para el día 12.

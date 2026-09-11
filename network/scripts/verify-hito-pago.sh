@@ -43,6 +43,21 @@ hito_invoke() {
       --waitForEvent
 }
 
+# completarHito escribe hito+pago en el mismo tx: endoso empresa+Admin (política de pago).
+completar_invoke() {
+  peer_exec EmpresaAMSP peer0.empresaa.ute.local:7051 empresaa.ute.local \
+    peer chaincode invoke \
+      -o "${ORDERER}" --ordererTLSHostnameOverride orderer1.ute.local \
+      -C "${CHANNEL}" -n hito \
+      --tls --cafile "${ORDERER_CA}" \
+      --peerAddresses peer0.empresaa.ute.local:7051 \
+      --tlsRootCertFiles "${TLS_A}" \
+      --peerAddresses peer0.administracion.ute.local:9051 \
+      --tlsRootCertFiles "${TLS_ADM}" \
+      -c "$1" \
+      --waitForEvent
+}
+
 pago_invoke() {
   peer_exec EmpresaAMSP peer0.empresaa.ute.local:7051 empresaa.ute.local \
     peer chaincode invoke \
@@ -73,12 +88,14 @@ if [[ "${ok}" -ne 1 ]]; then
 fi
 hito_invoke "{\"function\":\"iniciarHito\",\"Args\":[\"${ID}\"]}"
 hito_invoke "{\"function\":\"enviarValidacion\",\"Args\":[\"${ID}\"]}"
-hito_invoke "{\"function\":\"completarHito\",\"Args\":[\"${ID}\"]}"
+completar_invoke "{\"function\":\"completarHito\",\"Args\":[\"${ID}\"]}"
 
 peer_exec EmpresaAMSP peer0.empresaa.ute.local:7051 empresaa.ute.local \
   peer chaincode query -C "${CHANNEL}" -n hito -c "{\"function\":\"consultarHito\",\"Args\":[\"${ID}\"]}"
 
-pago_invoke "{\"function\":\"ponerEnCustodia\",\"Args\":[\"pago-${ID}\",\"${ID}\",\"EmpresaA\",\"10000\"]}"
+peer_exec EmpresaAMSP peer0.empresaa.ute.local:7051 empresaa.ute.local \
+  peer chaincode query -C "${CHANNEL}" -n pago -c "{\"function\":\"consultarPago\",\"Args\":[\"pago-${ID}\"]}"
+
 pago_invoke "{\"function\":\"autorizarPago\",\"Args\":[\"pago-${ID}\"]}"
 
 peer_exec EmpresaAMSP peer0.empresaa.ute.local:7051 empresaa.ute.local \

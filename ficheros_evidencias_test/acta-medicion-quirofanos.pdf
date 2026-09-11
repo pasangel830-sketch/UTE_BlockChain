@@ -1,0 +1,54 @@
+%PDF-1.4
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Kids [3 0 R] /Count 1 >>
+endobj
+3 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Contents 4 0 R /Resources << /Font << /F1 5 0 R >> >> >>
+endobj
+4 0 obj
+<< /Length 546 >>
+stream
+BT
+/F1 16 Tf
+50 780 Td
+(UTE Hospital - Acta de medicion (DEMO)) Tj
+/F1 11 Tf
+0 -28 Td
+(Codigo: INC-DEMO-002    Lote: quirofanos-tech) Tj
+0 -16 Td
+(Empresa: Empresa B    Fecha: 11/09/2026) Tj
+0 -16 Td
+() Tj
+0 -16 Td
+(Titulo: Desvio en instalacion de gases medicinales) Tj
+0 -16 Td
+(Descripcion: Trazado no coincide con plano P-Q-14.) Tj
+0 -16 Td
+(Coste estimado: 2.450 EUR.) Tj
+0 -16 Td
+() Tj
+0 -16 Td
+(Documento de simulacion para el tribunal. No es un acta real.) Tj
+0 -16 Td
+(Adjuntar en la ficha de incidencia \(foto o PDF, max. 5 MB\).) Tj
+ET
+endstream
+endobj
+5 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>
+endobj
+xref
+0 6
+0000000000 65535 f 
+0000000009 00000 n 
+0000000058 00000 n 
+0000000115 00000 n 
+0000000241 00000 n 
+0000000838 00000 n 
+trailer << /Size 6 /Root 1 0 R >>
+startxref
+908
+%%EOF

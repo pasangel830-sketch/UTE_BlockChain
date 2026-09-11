@@ -33,10 +33,9 @@ PC: Windows 11, 16 GB. Docker Engine en WSL2 (Ubuntu 22.04, ext4 `~/ute/app`). S
 - Makefile: `up-dev` baja full; reset borra `*.block`; `seed` tiene stub.
 - Docs: un checklist; informe técnico aparte del informe en metáforas.
 
-## Post día 9 (31 ago – 6 sep 2026)
+## Post día 9 (31 ago – 11 sep 2026)
 
-5 sesiones, Explorer con txs, errores en castellano, guardas de rol en API. Sin redeploy de chaincode. Detalle: [MEJORAS-UI.md](MEJORAS-UI.md).
-
+5 sesiones, Explorer con txs, errores en castellano, guardas de rol en API (31 ago – 6 sep). Políticas de commit y gateway al peer que endosa (9 sep). Evidencias ancladas + `completarHito` → pago en el mismo tx (11 sep, working tree). Detalle UI: [MEJORAS-UI.md](MEJORAS-UI.md). Desviación invoke Hito→Pago: [MEMORIA-NOTAS.md](MEMORIA-NOTAS.md).
 
 ## Calendario
 

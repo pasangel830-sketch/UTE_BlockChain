@@ -1,7 +1,7 @@
 # Informe técnico (factual)
 
 Pareja del informe en metáforas: [INFORME-PROGRESO.md](INFORME-PROGRESO.md).
-Checklist: [CHECKLIST.md](CHECKLIST.md). Fecha: 6 sep 2026.
+Checklist: [CHECKLIST.md](CHECKLIST.md). Fecha: 11 sep 2026.
 
 Este archivo solo admite comandos, versiones y salidas. Sin analogías.
 
@@ -18,15 +18,24 @@ Este archivo solo admite comandos, versiones y salidas. Sin analogías.
 | Repo Windows (obsoleto) | `C:\Proyectos\UTE\app` (drvfs) |
 | Repo objetivo | `~/ute/app` en ext4; Cursor `\\wsl$\Ubuntu-22.04\home\<user>\ute\app` |
 
-## Git (6 sep 2026)
+## Git (11 sep 2026)
 
 ```
 git log --oneline --decorate -5
-  68699bd (HEAD -> develop, origin/develop) Ajustes app
+  fca92c3 (HEAD -> develop, origin/develop) Modif Varias
+  0e24eb8 Hasta día 9 ok
+  68699bd Ajustes app
   25bd7dc Expose B/C/D sessions, translate Fabric errors, and add the app manual.
   231032e Mark days 7-9 complete in checklist and progress reports.
-  8e369d5 Add Next.js screens, Explorer polling, and API routes for incidencias.
-  4f12c25 Add Incidencia and EstadoObra TypeScript chaincode with PDC lifecycle.
+
+git status --short
+  M backend/src/{errors,routes,storage,swagger}.ts
+  M chaincode/hito/{src/hito-contract.ts,test/hito-contract.test.ts,test/mock-ctx.ts}
+  M chaincode/pago/{src/pago-contract.ts,test/pago-contract.test.ts,test/mock-ctx.ts}
+  M frontend/src/app/{hitos,incidencias,pagos}/page.tsx
+  M frontend/src/lib/api.ts
+  M network/scripts/verify-hito-pago.sh
+  ?? ficheros_evidencias_test/
 
 git remote -v
   origin  https://github.com/pasangel830-sketch/UTE_BlockChain.git (fetch)
@@ -244,5 +253,66 @@ git show 68699bd --stat
 - `POST /incidencias`: `empresa` = `perfil.empresa` (el body no la elige).
 - Swagger: 403 en avance de hito, pago y trámite de incidencia.
 - UI: Admin sin botones de avance de hito; pagos CUSTODIA → Autorizar + Rechazar; incidencias muestran `empresa`; Tratar/Cerrar solo si `perfil.empresa === i.empresa`.
+
+## 9 sep 2026 — políticas, gateway, sonda de peers
+
+Commits `0e24eb8` (22:17 CEST) y `fca92c3` (22:47 CEST). Código; el redeploy de políticas en la red diaria no está capturado aquí.
+
+```
+git show 0e24eb8 --stat
+  Makefile (políticas commit hito/pago/estado)
+  backend: errors, fabric, orgs, routes, swagger
+  chaincode: hito/incidencia/pago (textos)
+  frontend: hitos/page.tsx
+  network/scripts/deploy-chaincode.sh
+  docs/*
+  22 files, +404 −138
+
+git show fca92c3 --stat
+  backend: app.ts GET /red; fabric peersLevantados; errors, index, orgs, swagger
+  frontend: incidencias/page.tsx, lib/orgs.ts
+  8 files, +99 −16
+```
+
+`0e24eb8`:
+
+- `make deploy-hito` → `OR(EmpresaA/B/C/D.peer)`.
+- `make deploy-pago` → `OR(AND(A,Admin), AND(B,Admin), AND(C,Admin), AND(D,Admin))`.
+- `make deploy-estado` → `OR(A/B/C/D/Admin.peer)`.
+- `submit` de hito/pago/estado entra por el peer del primer endosante (`ORG_PEER_PORT`: A 7051, B 8051, C 11051, D 12051, Admin 9051). Evaluate diario sigue por peer A.
+- `requireEmpresaHito` + `endosantesDeHito` / `endosantesDePago`. Completar pide el par empresa+Admin.
+- Completar hito: dos `submit` (HitoContract + PagoContract). Eso cambia el 11 sep (working tree).
+
+`fca92c3`:
+
+- `GET /red` → `{ peers: Record<OrgMsp, boolean> }`. Sonda TCP 800 ms, caché 10 s. Arranque API llama `peersLevantados()`.
+- `loteSinPeerDiario(lote, vivos)` / UI `lotePdcApagada(lote, vivos)`: aviso `make pdc-up` según peers vivos, no solo A+Admin fijos.
+
+## 11 sep 2026 — evidencias, listas, hito→pago mismo tx
+
+Working tree (sin commit a las 20:50 CEST). Jest en Node 18:
+
+```
+cd chaincode/hito && npm test
+  Test Suites: 1 passed, 1 total
+  Tests:       12 passed, 12 total
+
+cd chaincode/pago && npm test
+  Test Suites: 1 passed, 1 total
+  Tests:       11 passed, 11 total
+```
+
+Pago: 9 tests (30 ago) → 11 (añade «no custodia si el hito no está COMPLETADO» y «origen completarHito no consulta el hito»).
+
+Código (no salida de runtime de red):
+
+- `completarHito` hace `ctx.stub.invokeChaincode('pago', ['PagoContract:ponerEnCustodia', ...], channel)` y devuelve `{ hito, pago }`. Un solo `submit` en la API. `verify-hito-pago.sh`: `completar_invoke` endosa A+Admin.
+- `ponerEnCustodia(..., origen)`: si `origen === 'completarHito'` no llama a hito (Fabric rechaza invoke anidado con el mismo txid). Si el origen es otro, `leerHito` exige estado `COMPLETADO` e importe/empresa coincidentes.
+- Evidencias ancladas: `POST/GET /incidencias/:id/evidencias`, `GET .../evidencias/:eid`. Disco `UPLOAD_DIR` + `index.json`; SHA-256; máx. 5 MB; mime imagen/PDF. Binario **no** entra en Fabric. Al crear, el frontend pone `hashEvidencia <sha256> <nombre>` en `notasTecnicas` (PDC).
+- Guardas: `requireAdjuntoIncidencia` (creadora + ABIERTA|EN_TRATAMIENTO); `requireSocioEvidencia` (socios del lote; Admin 403 `PDC_SIN_ACCESO`). Multer `LIMIT_FILE_SIZE` → 400.
+- Listas `GET /hitos|/pagos|/incidencias` `pageSize` default 100, orden `createdAt` desc. UI: `formatFecha` + `porFechaDesc`. Pagos: detalle técnico al autorizar.
+- Fixtures locales (untracked): `ficheros_evidencias_test/` (PDF/PNG/JPG de fisura, quirófano, forjado, actas).
+
+Hace falta `make deploy-cc` para que el ledger ejecute el invoke cruzado; el Jest no instala chaincode.
 
 

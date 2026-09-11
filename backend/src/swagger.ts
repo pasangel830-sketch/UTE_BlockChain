@@ -140,6 +140,35 @@ export const openapi = {
         },
       },
     },
+    '/incidencias/{id}/evidencias': {
+      get: {
+        description:
+          'Metadatos (nombre, sha256, tamaño). El binario no está en Fabric. Solo socios del lote.',
+        responses: {
+          '200': { description: 'lista de evidencias' },
+          '403': { description: 'no socio del lote (PDC_SIN_ACCESO)' },
+        },
+      },
+      post: {
+        description:
+          'Adjunta foto o PDF (máx. 5 MB) a una incidencia ABIERTA o EN_TRATAMIENTO. Solo la creadora. El archivo queda en disco local; el hash se muestra en la UI y, al crear, en notasTecnicas del PDC.',
+        responses: {
+          '201': { description: 'metadatos con sha256' },
+          '400': { description: 'sin archivo, tipo no admitido o incidencia cerrada' },
+          '403': { description: 'solo la empresa que la abrió puede adjuntar' },
+        },
+      },
+    },
+    '/incidencias/{id}/evidencias/{eid}': {
+      get: {
+        description: 'Descarga el archivo. Solo socios del lote.',
+        responses: {
+          '200': { description: 'binario' },
+          '403': { description: 'no socio del lote' },
+          '404': { description: 'evidencia no encontrada' },
+        },
+      },
+    },
     '/incidencias/{id}/tratar': {
       post: {
         responses: {
@@ -183,7 +212,11 @@ export const openapi = {
       get: { security: [], responses: { '200': { description: 'log' } } },
     },
     '/evidencias': {
-      post: { responses: { '201': { description: 'archivo local' } } },
+      post: {
+        description:
+          'Subida suelta (compatibilidad). Preferir POST /incidencias/{id}/evidencias para anclar a una incidencia.',
+        responses: { '201': { description: 'archivo local' } },
+      },
     },
   },
 };

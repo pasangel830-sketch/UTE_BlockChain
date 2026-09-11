@@ -1,9 +1,9 @@
 # Informe de progreso — plan de 14 días
 
 Informe para no técnicos. Proyecto **UTE / obras**.  
-Fuente de tareas: [CHECKLIST.md](CHECKLIST.md) · hechos y comandos: [INFORME-TECNICO.md](INFORME-TECNICO.md) · 6 de septiembre de 2026.
+Fuente de tareas: [CHECKLIST.md](CHECKLIST.md) · hechos y comandos: [INFORME-TECNICO.md](INFORME-TECNICO.md) · 11 de septiembre de 2026.
 
-> El taller del portátil está montado, las oficinas de la UTE existen (modo diario), hay pliego de hitos/pagos, secretaría en el puerto 4000, tablón de 7 pantallas, incidencias con cajones con llave y estado de obra. Las cinco cuentas entran; cada una solo hace lo suyo. Faltan el local en internet y los cuadros de mando. Las cuentas de internet las tiene que abrir el usuario.
+> El taller del portátil está montado, las oficinas de la UTE existen (modo diario), hay pliego de hitos/pagos, secretaría en el puerto 4000, tablón de 7 pantallas, incidencias con cajones con llave y estado de obra. Las cinco cuentas entran; cada una solo hace lo suyo. Las fotos del parte se guardan en la caseta y el sello (hash) va al sobre lacrado. Al marcar un hito acabado, el dinero entra en custodia en el mismo acto. Faltan el local en internet y los cuadros de mando. Las cuentas de internet las tiene que abrir el usuario.
 
 Vista visual en Cursor (al lado del chat): canvas `informe-progreso-plan-14-dias`. El canvas de planificación no se ha modificado.
 
@@ -23,6 +23,7 @@ Vista visual en Cursor (al lado del chat): canvas `informe-progreso-plan-14-dias
 - [Día 8 — Incidencias y cajones](#día-8--incidencias-y-cajones)
 - [Día 9 — Estado de obra y siete pantallas](#día-9--estado-de-obra-y-siete-pantallas)
 - [Después del día 9 — Quién hace qué](#después-del-día-9--quién-hace-qué)
+- [9–11 de septiembre — Firmas, fotos y un solo acto](#911-de-septiembre--firmas-fotos-y-un-solo-acto)
 - [Qué no está hecho todavía](#qué-no-está-hecho-todavía)
 
 ---
@@ -31,7 +32,7 @@ Vista visual en Cursor (al lado del chat): canvas `informe-progreso-plan-14-dias
 
 Imagina una Unión Temporal de Empresas que construye una obra. Hay que dejar constancia de hitos y pagos de forma que nadie pueda negar lo firmado. Eso es este trabajo.
 
-Hoy hay **caseta, llaves, pliego, secretaría, tablón y papeles de quién firma qué**. El local en internet es el siguiente paso.
+Hoy hay **caseta, llaves, pliego, secretaría, tablón, papeles de quién firma qué y fotos del parte con sello**. El local en internet es el siguiente paso.
 
 ---
 
@@ -40,9 +41,9 @@ Hoy hay **caseta, llaves, pliego, secretaría, tablón y papeles de quién firma
 | | |
 | --- | --- |
 | Días de calendario cerrados | **9 de 14** (días 1 a 9; huecos de UI del día 10 ya hechos en local) |
-| Puntos marcados hecho | **42** |
+| Puntos marcados hecho | **49** |
 | Días por delante | **5** (cloud; la mañana de huecos UI está cerrada) |
-| Máquina ahora | **Modo diario + API :4000 + Next :3000** (5 sesiones; B/C/D escritura PDC con `pdc-up`) |
+| Máquina ahora | **Modo diario + API :4000 + Next :3000** (5 sesiones; evidencias locales; B/C/D escritura PDC con `pdc-up`) |
 
 El día 1 está cerrado en el ordenador; faltan solo las cuentas de internet (GitHub colaborador, Google Cloud, Vercel). Esas cuentas **no bloquean** seguir trabajando en casa; sí bloquean publicar más adelante.
 
@@ -72,7 +73,11 @@ Siete pantallas. Incidencias con dos cajones con llave. El estado de la obra lo 
 
 Las cinco cuentas entran. El ayuntamiento autoriza o rechaza pagos y no avanza obra. Cada constructora solo tramita las incidencias que abrió. Si la red dice que no, el tablón lo explica en castellano.
 
-### 6. Lo que aún no existe — pendiente
+### 6. Firmas, fotos y un solo acto — hecho (9–11 sep)
+
+La secretaría pregunta a la oficina que tiene que firmar. El tablón mira qué casetas tienen luz. La foto del parte se guarda en la caseta; el sello (hash) va al sobre. Completar un hito y meter el dinero en custodia es el mismo acto notarial.
+
+### 7. Lo que aún no existe — pendiente
 
 El local en internet y los cuadros de mando. Días 10 (VM) a 14.
 
@@ -385,6 +390,44 @@ Objetivo: que el tablón muestre con quién estás, que cada sello solo haga lo 
 ### 4. El «no» se lee en castellano (31 ago)
 
 **Qué es.** Si Fabric rechaza (cajón ajeno, nodo apagado, identificador repetido), el tablón explica y deja el detalle técnico plegado.
+
+---
+
+## 9–11 de septiembre — Firmas, fotos y un solo acto
+
+Huecos locales después del día 9. El alquiler del local (día 10 tarde) sigue pendiente.
+
+### 1. Firmar en la oficina que toca (9 sep)
+
+**Qué es.** Las reglas de quién debe sellar un hito, un pago o el estado de obra ya no asumen solo Empresa A. La secretaría envía el papel a la oficina de quien endosa. Cada constructora avanza solo sus hitos.
+
+**Para qué sirve en esta UTE.** Si Empresa B completa un lote, no basta el sello de A. El ayuntamiento sigue haciendo falta para soltar el dinero.
+
+> No llevas el acta a la caseta de al lado: vas a la de quien tiene que firmar.
+
+### 2. Mirar qué casetas tienen luz (9 sep)
+
+**Qué es.** Un botón de la secretaría (`/red`) comprueba qué oficinas responden. El tablón de incidencias avisa de `make pdc-up` según esa luz, no según una lista fija de diario.
+
+**Para qué sirve en esta UTE.** Si B y D ya están arriba, no hay que fingir que el cajón de quirófanos está cerrado.
+
+> Antes de pedir el sobre de instalaciones, miras si la caseta de B o D tiene la persiana subida.
+
+### 3. La foto del parte, el sello en el sobre (11 sep)
+
+**Qué es.** Al abrir una incidencia se puede adjuntar foto o PDF (máximo 5 MB). El archivo se guarda en el disco de la secretaría. En el sobre lacrado (PDC) va el hash SHA-256. Solo quien abrió el parte adjunta; solo los socios del lote ven o descargan. El ayuntamiento no abre esas fotos.
+
+**Para qué sirve en esta UTE.** El tribunal ve el parte con prueba; la cadena no se hincha con megas. Si alguien cambia la foto, el sello ya no coincide.
+
+> La foto vive en el archivador de la caseta. En el libro notarial solo está la huella. El socio rival no abre ese cajón.
+
+### 4. Acabar el hito y dejar el dinero retenido en el mismo acto (11 sep)
+
+**Qué es.** Completar un hito ya no son dos gestiones sueltas: el pliego marca COMPLETADO y el pago entra en CUSTODIA en la misma transacción. El ayuntamiento autoriza después, igual que antes.
+
+**Para qué sirve en esta UTE.** No puede quedar un hito “acabado” sin el sobre de dinero. El libro no admite un entreacto.
+
+> El notario no cierra el acta de fin de lote y luego, a otra hora, mete el cheque en custodia: es la misma firma.
 
 ---
 

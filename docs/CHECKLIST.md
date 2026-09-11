@@ -2,7 +2,7 @@
 
 **Fuente de verdad.** El resto de `docs/` apunta aquí.
 Leyenda: **HECHO** · **EN CURSO** · **PENDIENTE**
-Actualizado: 9 sep 2026.
+Actualizado: 11 sep 2026.
 
 | | |
 | --- | --- |
@@ -32,6 +32,7 @@ Una fila pasa a HECHO solo si: (1) el comando o entrega existe en el repo o en l
 | 20 contenedores chaincode OOM | día 11 | Instalar cada CC solo en peers que endosan; medir `docker stats` antes del freeze |
 | `gh` sin login / sin remoto | hoy | Cerrado: remoto `UTE_BlockChain`, `main` alineado con `develop`. Falta invitar `DomingoMr` |
 | Cross-cc Hito→EstadoObra | días 4–8 | EstadoObra se escribe desde el backend; el CC no llama a otros CC |
+| Cross-cc Hito→Pago (mismo tx) | 11 sep | `completarHito` → `invokeChaincode` pago; `origen=completarHito` evita invoke anidado hito←pago. Redeploy (`make deploy-cc`) pendiente de runtime |
 | Render Free se duerme | defensa | API en la misma VM que Fabric (ya decidido) |
 | `chmod 600` en drvfs | keys peer | Repo en ext4 `~/ute/app`, no en `/mnt/c` |
 | Día 12 falla y no hay demo | defensa | Rebanada vertical (hito→pago→API→pantalla→Explorer) **antes del día 8** |
@@ -104,11 +105,11 @@ Invertido respecto al plan original: punta a punta **antes del día 8**. Inciden
 
 | Estado | Tarea | Hecho si |
 | --- | --- | --- |
-| HECHO | PagoContract TS + Jest | `npm test` en `chaincode/pago` (9 tests) |
+| HECHO | PagoContract TS + Jest | `npm test` en `chaincode/pago` (11 tests, 11 sep) |
 | HECHO | Escrow: fondos CUSTODIA hasta `PagoAutorizado` (PDF §4.2) | tests + invoke `H-d5` |
 | HECHO | Endorsement `OR(AND(org, Admin)…)` por empresa del hito | commit `OR(AND(A,Admin),AND(B,Admin),AND(C,Admin),AND(D,Admin))`; API pide el par de esa empresa |
 | HECHO | Init participaciones 35/25/20/20 | `InitLedger` → `{"EmpresaA":35,...}` |
-| HECHO | `completarHito` dispara lógica de pago (sin cross-cc a EstadoObra) | API `POST /hitos/:id/completar` → CUSTODIA |
+| HECHO | `completarHito` dispara custodia en el mismo tx (`invokeChaincode` pago); EstadoObra sigue en backend | API `POST /hitos/:id/completar` → `{hito, pago}` CUSTODIA (código 11 sep; redeploy pendiente) |
 
 ### Día 6 — API (trozo de hitos/pagos) · HECHO (30 ago 2026)
 
@@ -161,13 +162,35 @@ Plan original: [MEJORAS-UI.md](MEJORAS-UI.md). Commits `25bd7dc`, `68699bd`. Sin
 | HECHO | Explorer con txs Fabric; errores traducidos (`ErrorBox`) | `GET /explorer`, `errors.ts` |
 | HECHO | Manual de uso | [MANUAL.md](MANUAL.md) |
 
+### Post día 9b — políticas, gateway, sonda · HECHO (9 sep 2026)
+
+Commits `0e24eb8`, `fca92c3`. Políticas de commit alineadas con B/C/D.
+
+| Estado | Tarea | Hecho si |
+| --- | --- | --- |
+| HECHO | Políticas: hito `OR(A,B,C,D)`; pago `OR(AND(org,Admin)…)`; estado `OR(5 MSP)` | Makefile + `deploy-chaincode.sh` |
+| HECHO | Gateway submit hito/pago/estado al peer del primer endosante | `fabric.ts` `ORG_PEER_PORT` |
+| HECHO | Solo la empresa del hito lo avanza | `requireEmpresaHito` 403 |
+| HECHO | `GET /red` sonda TCP; UI PDC usa peers vivos | `/red` + `lotePdcApagada(vivos)` |
+
+### Post día 9c — evidencias, listas, hito→pago · HECHO (11 sep 2026)
+
+Working tree (sin commit). Jest: hito 12/12, pago 11/11. Redeploy de CC no demostrado en runtime.
+
+| Estado | Tarea | Hecho si |
+| --- | --- | --- |
+| HECHO | Evidencias ancladas a incidencia: disco + SHA-256; hash en `notasTecnicas` PDC al crear | `storage.ts` + `POST /incidencias/:id/evidencias` |
+| HECHO | Solo la creadora adjunta (ABIERTA/EN_TRATAMIENTO); solo socios listan/descargan | 403 `ROL_NO_AUTORIZADO` / `PDC_SIN_ACCESO` |
+| HECHO | Listas hitos/pagos/incidencias/evidencias más reciente primero; fecha en UI | `listaOrdenada` + `porFechaDesc` |
+| HECHO | `completarHito` → `PagoContract:ponerEnCustodia` en el mismo tx | tests Jest; `verify-hito-pago.sh` endosa A+Admin |
+
 ---
 
 ## Día 10 — Tarde prueba cloud · PENDIENTE
 
 | Estado | Tarea | Hecho si |
 | --- | --- | --- |
-| HECHO | Mañana: huecos UI | [MEJORAS-UI.md](MEJORAS-UI.md); ver Post día 9 |
+| HECHO | Mañana: huecos UI | [MEJORAS-UI.md](MEJORAS-UI.md); ver Post día 9 / 9b / 9c |
 | PENDIENTE | VM e2-standard-4, IP estática, certs con **SAN de esa IP** | `openssl x509 -in ... -text` muestra la IP |
 | PENDIENTE | API en la misma VM; Gateway → peer por red Docker | curl HTTPS o :4000 interno |
 | PENDIENTE | Apagar VM | consola GCP |
@@ -220,4 +243,4 @@ Compose local ya tiene: red `ute-net`, puertos operations, `alerts.yml` (3 alert
 
 ## Fuera de GitHub (nunca commitear)
 
-`.env`, claves, certs, `network/organizations/`, wallets, JSON de service account, JWT, volúmenes Fabric, evidencias, datos Grafana.
+`.env`, claves, certs, `network/organizations/`, wallets, JSON de service account, JWT, volúmenes Fabric, evidencias (`uploads/`, `ficheros_evidencias_test/`), datos Grafana.

@@ -49,7 +49,18 @@ describe('HitoContract', () => {
     await crear();
     expect(parse<Hito>(await cc.iniciarHito(ctx, 'H1')).estado).toBe('EN_EJECUCION');
     expect(parse<Hito>(await cc.enviarValidacion(ctx, 'H1')).estado).toBe('VALIDACION');
-    expect(parse<Hito>(await cc.completarHito(ctx, 'H1')).estado).toBe('COMPLETADO');
+    const r = parse<{ hito: Hito; pago: { estado: string; hitoId: string; id: string } }>(
+      await cc.completarHito(ctx, 'H1'),
+    );
+    expect(r.hito.estado).toBe('COMPLETADO');
+    expect(r.pago.estado).toBe('CUSTODIA');
+    expect(r.pago.hitoId).toBe('H1');
+    expect(r.pago.id).toBe('pago-H1');
+    expect(ctx.stub.invokeChaincode).toHaveBeenCalledWith(
+      'pago',
+      ['PagoContract:ponerEnCustodia', 'pago-H1', 'H1', 'EmpresaA', '10000', 'completarHito'],
+      'channel-obra',
+    );
   });
 
   test('VALIDACION → RECHAZADO', async () => {
@@ -64,6 +75,7 @@ describe('HitoContract', () => {
   test('transición inválida PENDIENTE → COMPLETADO', async () => {
     await crear();
     await expect(cc.completarHito(ctx, 'H1')).rejects.toThrow(/transición inválida/);
+    expect(ctx.stub.invokeChaincode).not.toHaveBeenCalled();
   });
 
   test('no se reabre COMPLETADO', async () => {

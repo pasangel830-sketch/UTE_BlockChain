@@ -5,7 +5,7 @@ import { Shell } from '@/components/Shell';
 import { Badge } from '@/components/Badge';
 import { ErrorBox } from '@/components/ErrorBox';
 import { ExplorerPanel } from '@/components/ExplorerPanel';
-import { api, getSession } from '@/lib/api';
+import { api, formatFecha, getSession, porFechaDesc } from '@/lib/api';
 import { profileOf, type OrgProfile } from '@/lib/orgs';
 
 type Hito = {
@@ -14,8 +14,9 @@ type Hito = {
   empresa: string;
   importe: number;
   estado: string;
+  createdAt?: string;
 };
-type Pago = { id: string; hitoId: string; importeTotal: number; estado: string };
+type Pago = { id: string; hitoId: string; importeTotal: number; estado: string; createdAt?: string };
 
 export default function HitosPage() {
   const [hitos, setHitos] = useState<Hito[]>([]);
@@ -31,8 +32,8 @@ export default function HitosPage() {
       api<{ items: Hito[] }>('/hitos'),
       api<{ items: Pago[] }>('/pagos'),
     ]);
-    setHitos(h.items || []);
-    setPagos(p.items || []);
+    setHitos(porFechaDesc(h.items || []));
+    setPagos(porFechaDesc(p.items || []));
   }, []);
 
   useEffect(() => {
@@ -119,6 +120,9 @@ export default function HitosPage() {
                     <div>
                       <p className="font-semibold">{h.titulo}</p>
                       <p className="font-mono text-xs text-slate-500">{h.id}</p>
+                      {h.createdAt && (
+                        <p className="text-xs text-slate-500">{formatFecha(h.createdAt)}</p>
+                      )}
                     </div>
                     <Badge estado={h.estado} />
                   </div>
@@ -128,6 +132,7 @@ export default function HitosPage() {
                       <>
                         {' '}
                         · pago <span className="font-mono">{pago.id}</span> <Badge estado={pago.estado} />
+                        {pago.createdAt && <> · {formatFecha(pago.createdAt)}</>}
                       </>
                     )}
                   </p>

@@ -198,6 +198,28 @@ export function traducirError(
     };
   }
 
+  if ((err as { name?: string }).name === 'MulterError') {
+    const code = (err as { code?: string }).code;
+    if (code === 'LIMIT_FILE_SIZE') {
+      return {
+        status: 400,
+        body: {
+          error: 'El archivo supera el máximo de 5 MB. Elige una foto o un PDF más pequeño.',
+          detalle,
+          codigo: 'DATO_INVALIDO',
+        },
+      };
+    }
+    return {
+      status: 400,
+      body: {
+        error: 'No se ha podido leer el archivo. Selecciona la evidencia y vuelve a enviar.',
+        detalle,
+        codigo: 'DATO_INVALIDO',
+      },
+    };
+  }
+
   const inexistente = /(hito|pago|incidencia) no existe: (\S+)/.exec(detalle);
   if (inexistente) {
     return {
@@ -344,6 +366,33 @@ export function rechazoSoloCreadoraIncidencia(
     detalle: `guarda de creador en la API: org=${org ?? 'desconocida'}, empresa requerida=${deQuien}`,
     codigo: 'ROL_NO_AUTORIZADO',
     nota: 'Comportamiento esperado: la incidencia la tramita quien la registró.',
+  };
+}
+
+/** 403: solo quien abrió la incidencia adjunta evidencias. */
+export function rechazoAdjuntoIncidencia(
+  org: string | undefined,
+  empresaCreadora: string | undefined,
+): RespuestaError {
+  const quien = etiquetaOrg(org);
+  const deQuien = empresaCreadora || 'otra empresa';
+  return {
+    error: `Solo ${deQuien} puede adjuntar evidencias a esta incidencia: la abrió ella. Tu sesión es ${quien}.`,
+    detalle: `guarda de adjunto: org=${org ?? 'desconocida'}, empresa requerida=${deQuien}`,
+    codigo: 'ROL_NO_AUTORIZADO',
+    nota: 'Comportamiento esperado: la evidencia la aporta quien registró la incidencia.',
+  };
+}
+
+/** 403: evidencias fuera de cadena, mismas reglas que el detalle PDC. */
+export function rechazoEvidenciaNoSocio(org: string | undefined, lote: string | undefined): RespuestaError {
+  const quien = etiquetaOrg(org);
+  const l = lote || 'este lote';
+  return {
+    error: `${quien} no es socia del lote ${l}: no puede listar ni descargar estas evidencias. El archivo vive fuera de la cadena; solo los socios del lote lo ven. El canal guarda, como mucho, el hash.`,
+    detalle: `guarda de evidencia: org=${org ?? 'desconocida'}, lote=${l}`,
+    codigo: 'PDC_SIN_ACCESO',
+    nota: NOTA_AISLAMIENTO,
   };
 }
 

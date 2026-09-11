@@ -57,7 +57,16 @@ export class HitoContract extends Contract {
 
   @Transaction()
   async completarHito(ctx: Context, id: string): Promise<string> {
-    return this.transicionar(ctx, id, 'COMPLETADO');
+    const hito = await this.transicionarObj(ctx, id, 'COMPLETADO');
+    const pago = await this.invokeJson(ctx, 'pago', [
+      'PagoContract:ponerEnCustodia',
+      `pago-${id}`,
+      hito.id,
+      hito.empresa,
+      String(hito.importe),
+      'completarHito',
+    ]);
+    return JSON.stringify({ hito, pago });
   }
 
   @Transaction()
@@ -231,6 +240,18 @@ export class HitoContract extends Contract {
     if (!v || !v.trim()) {
       throw new Error(`${name} obligatorio`);
     }
+  }
+
+  private async invokeJson(ctx: Context, chaincode: string, args: string[]): Promise<unknown> {
+    const resp = await ctx.stub.invokeChaincode(chaincode, args, ctx.stub.getChannelID());
+    if (resp.status !== 200) {
+      throw new Error(resp.message || `${chaincode} ${args[0]} status ${resp.status}`);
+    }
+    const payload = Buffer.from(resp.payload ?? []).toString('utf8');
+    if (!payload) {
+      throw new Error(`${chaincode} ${args[0]} sin payload`);
+    }
+    return JSON.parse(payload);
   }
 
   private now(ctx: Context): string {

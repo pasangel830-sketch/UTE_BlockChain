@@ -1,6 +1,6 @@
 # Informe de mejoras UI/API — UTE Blockchain
 
-**Estado:** fases 0–4 **HECHO** (31 ago 2026, `25bd7dc`). Refuerzo de roles **HECHO** (6 sep 2026, `68699bd`). Este archivo era el plan; abajo queda el registro de lo aplicado.
+**Estado:** fases 0–4 **HECHO** (31 ago 2026, `25bd7dc`). Refuerzo de roles **HECHO** (6 sep 2026, `68699bd`). Políticas/gateway/sonda **HECHO** (9 sep, `0e24eb8` + `fca92c3`). Evidencias y hito→pago mismo tx **HECHO** (11 sep, working tree). Este archivo era el plan; abajo queda el registro de lo aplicado.
 
 **Alcance:** identidad en pantalla, separación de roles en pagos e incidencias, Explorer con detalle Fabric, usuarios B/C/D, docs.
 **Restricción:** no borrar ledger desde la app, no reescribir chaincode salvo que una fase lo pida, no romper el flujo hito → custodia → evento → Explorer.
@@ -236,6 +236,16 @@ Swagger documenta esos 403.
 
 ---
 
+## Fase 6 — Políticas, gateway, sonda (9 sep 2026) · HECHO (`0e24eb8`, `fca92c3`)
+
+Políticas de commit: hito `OR(A,B,C,D)`; pago `OR(AND(org,Admin)…)`; estado `OR(5 MSP)`. `submit` de hito/pago/estado al peer del primer endosante. `requireEmpresaHito`. `GET /red` sonda TCP; UI PDC usa peers vivos.
+
+## Fase 7 — Evidencias y hito→pago mismo tx (11 sep 2026) · HECHO (working tree)
+
+`POST/GET /incidencias/:id/evidencias`: disco + SHA-256; hash en `notasTecnicas` al crear; creadora adjunta; socios listan/descargan. Listas más reciente primero. `completarHito` → `invokeChaincode` pago. Jest hito 12, pago 11.
+
+---
+
 ## Orden de implementación
 
 1. Fase 0 (chip + `orgs.ts` + `getSession`)
@@ -245,6 +255,8 @@ Swagger documenta esos 403.
 5. Fase 3 (B/C/D)
 6. Fase 4 (manual)
 7. Fase 5 (refuerzo roles: creadora, rechazar pago, Admin no avanza hitos) — 6 sep
+8. Fase 6 (políticas / gateway / `GET /red`) — 9 sep
+9. Fase 7 (evidencias + completarHito→pago) — 11 sep
 
 Tras cada fase: `make api-up` (el API corre `dist/`; hay que `npm run build`). Frontend con `make ui-up` recarga solo.
 
@@ -281,17 +293,17 @@ Tras cada fase: `make api-up` (el API corre `dist/`; hay que `npm run build`). F
 ## Criterio de no-regresión
 
 - Login `empresaA`/`empresaA` y `administracion`/`administracion` siguen.
-- Crear → Iniciar → Validar → Completar → pago `CUSTODIA` (solo Admin autoriza o rechaza).
+- Crear → Iniciar → Validar → Completar → pago `CUSTODIA` en el mismo tx (solo Admin autoriza o rechaza).
 - Evento `PagoAutorizado` → `POST /mock/banco/pagos`.
-- Explorer: altura crece; compacto en hitos igual.
-- A ve PDC `obra-gruesa-solar`; Admin no (`verify-pdc.sh`).
+- Explorer: altura crece; compacto en hitos igual; completar = `completarHito`.
+- A ve PDC `obra-gruesa-solar` y evidencias; Admin no (`verify-pdc.sh` + 403 evidencias).
 - Sin botón de borrar ledger.
 
 ---
 
 ## Demo post-cambio (defensa)
 
-1. `empresaA` — chip cimentación. Crear y completar hito. Pago CUSTODIA, sin Autorizar. Explorer: txs con función y MSP.
+1. `empresaA` — chip cimentación. Crear y completar hito. Pago CUSTODIA, sin Autorizar. Explorer: `completarHito`.
 2. Salir. `administracion` — chip ayuntamiento. Autorizar o Rechazar. Mock banco solo si autoriza.
-3. Incidencias como A: Ver PDC OK; Tratar/Cerrar solo las suyas. Como Admin: error al leer PDC; sin trámite.
-4. (Si fase 3 + `pdc-up`) `empresaB` — chip quirófanos; incidencia `quirofanos-tech`. A no tramita la de B.
+3. Incidencias como A: adjuntar evidencia; Ver PDC con hash; Tratar/Cerrar solo las suyas. Como Admin: error al leer PDC y evidencias; sin trámite.
+4. (Si fase 3 + `pdc-up`) `empresaB` — chip quirófanos; incidencia `quirofanos-tech` + evidencias. A no tramita ni ve las fotos de B.
