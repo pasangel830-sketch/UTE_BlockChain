@@ -88,7 +88,8 @@ if [[ "${ok}" -ne 1 ]]; then
 fi
 hito_invoke "{\"function\":\"iniciarHito\",\"Args\":[\"${ID}\"]}"
 hito_invoke "{\"function\":\"enviarValidacion\",\"Args\":[\"${ID}\"]}"
-completar_invoke "{\"function\":\"completarHito\",\"Args\":[\"${ID}\"]}"
+HASH="$(python3 -c 'print("a"*64)')"
+completar_invoke "{\"function\":\"completarHito\",\"Args\":[\"${ID}\",\"${HASH}\"]}"
 
 peer_exec EmpresaAMSP peer0.empresaa.ute.local:7051 empresaa.ute.local \
   peer chaincode query -C "${CHANNEL}" -n hito -c "{\"function\":\"consultarHito\",\"Args\":[\"${ID}\"]}"

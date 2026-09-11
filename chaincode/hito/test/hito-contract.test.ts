@@ -6,6 +6,8 @@ function parse<T>(s: string): T {
   return JSON.parse(s) as T;
 }
 
+const HASH = 'a'.repeat(64);
+
 describe('HitoContract', () => {
   let cc: HitoContract;
   let ctx: ReturnType<typeof createMockCtx>;
@@ -50,9 +52,10 @@ describe('HitoContract', () => {
     expect(parse<Hito>(await cc.iniciarHito(ctx, 'H1')).estado).toBe('EN_EJECUCION');
     expect(parse<Hito>(await cc.enviarValidacion(ctx, 'H1')).estado).toBe('VALIDACION');
     const r = parse<{ hito: Hito; pago: { estado: string; hitoId: string; id: string } }>(
-      await cc.completarHito(ctx, 'H1'),
+      await cc.completarHito(ctx, 'H1', HASH),
     );
     expect(r.hito.estado).toBe('COMPLETADO');
+    expect(r.hito.hashEvidencia).toBe(HASH);
     expect(r.pago.estado).toBe('CUSTODIA');
     expect(r.pago.hitoId).toBe('H1');
     expect(r.pago.id).toBe('pago-H1');
@@ -74,7 +77,16 @@ describe('HitoContract', () => {
 
   test('transición inválida PENDIENTE → COMPLETADO', async () => {
     await crear();
-    await expect(cc.completarHito(ctx, 'H1')).rejects.toThrow(/transición inválida/);
+    await expect(cc.completarHito(ctx, 'H1', HASH)).rejects.toThrow(/transición inválida/);
+    expect(ctx.stub.invokeChaincode).not.toHaveBeenCalled();
+  });
+
+  test('VALIDACION sin hash no invoca pago', async () => {
+    await crear();
+    await cc.iniciarHito(ctx, 'H1');
+    await cc.enviarValidacion(ctx, 'H1');
+    await expect(cc.completarHito(ctx, 'H1', '')).rejects.toThrow(/hashEvidencia/);
+    await expect(cc.completarHito(ctx, 'H1', 'xyz')).rejects.toThrow(/hashEvidencia/);
     expect(ctx.stub.invokeChaincode).not.toHaveBeenCalled();
   });
 
@@ -82,7 +94,7 @@ describe('HitoContract', () => {
     await crear();
     await cc.iniciarHito(ctx, 'H1');
     await cc.enviarValidacion(ctx, 'H1');
-    await cc.completarHito(ctx, 'H1');
+    await cc.completarHito(ctx, 'H1', HASH);
     await expect(cc.iniciarHito(ctx, 'H1')).rejects.toThrow(/transición inválida/);
   });
 

@@ -87,9 +87,50 @@ export const openapi = {
     },
     '/hitos/{id}/completar': {
       post: {
+        description:
+          'Guarda el acta (foto o PDF) fuera de cadena, calcula SHA-256 del buffer y llama completarHito(id, hash). COMPLETADO + CUSTODIA en la misma transacción. Solo en VALIDACION. Multipart campo file, o evidencia ya subida con POST /hitos/{id}/evidencias.',
+        requestBody: {
+          content: {
+            'multipart/form-data': {
+              schema: {
+                type: 'object',
+                properties: { file: { type: 'string', format: 'binary' } },
+              },
+            },
+          },
+        },
         responses: {
-          '200': { description: 'COMPLETADO + CUSTODIA' },
+          '200': { description: 'COMPLETADO + CUSTODIA + evidencia' },
+          '400': { description: 'sin archivo, tipo no admitido o hito no en VALIDACION' },
           '403': { description: 'solo la empresa del hito avanza su obra' },
+        },
+      },
+    },
+    '/hitos/{id}/evidencias': {
+      get: {
+        description:
+          'Metadatos (nombre, sha256, tamaño). El binario no está en Fabric. Cualquier sesión autenticada: el hito es público.',
+        responses: {
+          '200': { description: 'lista de evidencias' },
+          '404': { description: 'hito no encontrado' },
+        },
+      },
+      post: {
+        description:
+          'Adjunta foto o PDF (máx. 5 MB) a un hito en VALIDACION. Solo la empresa dueña. El archivo queda en disco; el hash se escribe en el hito al completar.',
+        responses: {
+          '201': { description: 'metadatos con sha256' },
+          '400': { description: 'sin archivo, tipo no admitido o hito no en VALIDACION' },
+          '403': { description: 'solo la empresa del hito puede adjuntar' },
+        },
+      },
+    },
+    '/hitos/{id}/evidencias/{eid}': {
+      get: {
+        description: 'Descarga el archivo. Cualquier sesión autenticada.',
+        responses: {
+          '200': { description: 'binario' },
+          '404': { description: 'evidencia no encontrada' },
         },
       },
     },
@@ -212,6 +253,11 @@ export const openapi = {
       get: { security: [], responses: { '200': { description: 'log' } } },
     },
     '/evidencias': {
+      get: {
+        description:
+          'Índice local de evidencias agrupadas por padre (hito o incidencia). Omite incidencias cuyo lote no es del llamante.',
+        responses: { '200': { description: '{ porPadre: { [id]: Evidencia[] } }' } },
+      },
       post: {
         description:
           'Subida suelta (compatibilidad). Preferir POST /incidencias/{id}/evidencias para anclar a una incidencia.',

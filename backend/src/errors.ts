@@ -172,6 +172,19 @@ export function traducirError(
     };
   }
 
+  if (/hashEvidencia obligatorio/.test(detalle)) {
+    return {
+      status: 400,
+      body: {
+        error:
+          'Para completar el hito hay que adjuntar una evidencia (foto o PDF). El hash SHA-256 queda registrado en el canal.',
+        detalle,
+        codigo: 'DATO_INVALIDO',
+        nota: 'El archivo no entra en Fabric; el hash sí, en la misma transacción que el pago.',
+      },
+    };
+  }
+
   const transicion = /transición inválida (\S+) → (\S+)/.exec(detalle);
   if (transicion) {
     const [, desde, hasta] = transicion;
@@ -393,6 +406,26 @@ export function rechazoEvidenciaNoSocio(org: string | undefined, lote: string | 
     detalle: `guarda de evidencia: org=${org ?? 'desconocida'}, lote=${l}`,
     codigo: 'PDC_SIN_ACCESO',
     nota: NOTA_AISLAMIENTO,
+  };
+}
+
+/** 400: completar hito exige el acta (foto o PDF). */
+export function rechazoCompletarSinEvidencia(): RespuestaError {
+  return {
+    error:
+      'Para completar el hito hay que adjuntar una evidencia (foto o PDF). El hash SHA-256 queda registrado en el canal.',
+    detalle: 'campo multipart "file" ausente y sin evidencia previa en VALIDACION',
+    codigo: 'DATO_INVALIDO',
+    nota: 'El archivo no entra en Fabric; el hash sí, en la misma transacción que el pago.',
+  };
+}
+
+/** 400: el acta de cierre solo se adjunta en VALIDACION. */
+export function rechazoAdjuntoHitoEstado(estado: string | undefined): RespuestaError {
+  return {
+    error: 'Solo se puede adjuntar la evidencia de cierre cuando el hito está en VALIDACION.',
+    detalle: `estado=${estado ?? 'desconocido'}`,
+    codigo: 'DATO_INVALIDO',
   };
 }
 

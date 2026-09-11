@@ -18,6 +18,8 @@ echo
 
 TOKEN="$(curl -sf -X POST "${BASE}/auth/login" -H 'content-type: application/json' \
   -d '{"username":"empresaA","password":"empresaA"}' | python3 -c 'import json,sys; print(json.load(sys.stdin)["token"])')"
+ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
+EV="${ROOT}/ficheros_evidencias_test/tarea_completada_forjado_planta_baja.pdf"
 auth() { curl -sf -H "authorization: Bearer ${TOKEN}" -H 'content-type: application/json' "$@"; }
 
 curl -sf -X POST "${BASE}/hitos" -H "authorization: Bearer ${TOKEN}" -H 'content-type: application/json' \
@@ -27,7 +29,9 @@ auth -X POST "${BASE}/hitos/${ID}/iniciar"
 echo
 auth -X POST "${BASE}/hitos/${ID}/validar"
 echo
-auth -X POST "${BASE}/hitos/${ID}/completar"
+curl -sf -X POST "${BASE}/hitos/${ID}/completar" \
+  -H "authorization: Bearer ${TOKEN}" \
+  -F "file=@${EV}"
 echo
 auth "${BASE}/pagos/pago-${ID}"
 echo

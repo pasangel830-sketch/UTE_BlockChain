@@ -79,9 +79,9 @@ PENDIENTE → EN_EJECUCION → VALIDACION → COMPLETADO
                               └────────→ RECHAZADO
 ```
 
-Completar un hito hace dos cosas **en la misma transacción**: marca el hito `COMPLETADO` y crea el pago en
-`CUSTODIA` (`HitoContract` llama a `PagoContract:ponerEnCustodia`). En el Explorer se ve una transacción
-`completarHito`; el pago no es un `submit` aparte.
+Completar un hito (solo en `VALIDACION`) exige un acta PDF o foto. El archivo queda en disco; el
+SHA-256 se escribe en `hashEvidencia` del hito **en la misma transacción** que marca `COMPLETADO` y
+crea el pago en `CUSTODIA`. En el Explorer se ve `completarHito` con el hash en los argumentos.
 
 ### Pagos (escrow)
 
@@ -173,8 +173,9 @@ Para empezar de cero solo hay dos caminos honestos:
 ## 6. Guion de demostración
 
 1. Entrar como `empresaA`. El chip muestra *Empresa A · Cimentación (obra-gruesa-solar) · 35 %*.
-2. Crear un hito y llevarlo hasta **Completar**. Aparece el pago en `CUSTODIA` sin botón de autorizar.
-3. Mirar el Explorer: el bloque nuevo trae `completarHito` (hito y pago en el mismo tx).
+2. Crear un hito y llevarlo hasta **Completar**. En `VALIDACION` hay que adjuntar PDF o foto; sin
+   archivo el botón no arranca. Aparece el pago en `CUSTODIA` y el hash del acta en la ficha.
+3. Mirar el Explorer: el bloque nuevo trae `completarHito` (hito, hash y pago en el mismo tx).
 4. **Salir** y entrar como `administracion`. En pagos CUSTODIA aparecen Autorizar y Rechazar.
    Autorizar; comprobar el webhook en `GET /mock/banco/pagos`.
 5. Incidencias como `empresaA`: adjuntar foto o PDF; **Ver PDC** muestra el hash; Tratar/Cerrar solo en las suyas.

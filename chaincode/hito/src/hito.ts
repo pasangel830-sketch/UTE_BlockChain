@@ -19,6 +19,7 @@ export interface Hito {
   importe: number;
   estado: EstadoHito;
   motivoRechazo?: string;
+  hashEvidencia?: string;
   createdAt: string;
   updatedAt: string;
 }

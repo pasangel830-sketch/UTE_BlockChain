@@ -6,7 +6,9 @@ import { submit, evaluate } from './fabric';
 import { getExplorerSnapshot } from './explorer';
 import { agregarEstado } from './estado';
 import {
+  rechazoAdjuntoHitoEstado,
   rechazoAdjuntoIncidencia,
+  rechazoCompletarSinEvidencia,
   rechazoEvidenciaNoSocio,
   rechazoSoloAdministracion,
   rechazoSoloConstructora,
@@ -14,7 +16,14 @@ import {
   rechazoSoloEmpresaHito,
 } from './errors';
 import { endosantesDeHito, endosantesDeLote, endosantesDePago, esLote, perfilDe, PerfilOrg, sociosDe } from './orgs';
-import { guardarEvidencia, listarEvidencias, rutaEvidencia, saveLocal } from './storage';
+import {
+  guardarEvidencia,
+  listarEvidencias,
+  listarIndiceEvidencias,
+  rutaEvidencia,
+  saveLocal,
+  type EvidenciaPublica,
+} from './storage';
 
 export const bancoLog: unknown[] = [];
 
@@ -103,18 +112,36 @@ async function requireEmpresaHito(
   req: Request,
   res: Response,
   que: string,
-): Promise<{ empresa: string } | null> {
+): Promise<{ empresa: string; estado?: string } | null> {
   const perfil = perfilConstructora(req, res, que);
   if (!perfil) return null;
   const raw = await evaluate(orgOf(req), config.chaincodeHito, 'HitoContract', 'consultarHito', [
     pid(req),
   ]);
-  const hito = JSON.parse(raw) as { empresa?: string };
+  const hito = JSON.parse(raw) as { empresa?: string; estado?: string };
   if (hito.empresa !== perfil.empresa) {
     res.status(403).json(rechazoSoloEmpresaHito(req.user?.org, hito.empresa));
     return null;
   }
-  return { empresa: hito.empresa };
+  return { empresa: hito.empresa, estado: hito.estado };
+}
+
+async function requireAdjuntoHito(req: Request, res: Response): Promise<{ empresa: string } | null> {
+  const dueño = await requireEmpresaHito(req, res, 'una evidencia de hito');
+  if (!dueño) return null;
+  if (dueño.estado !== 'VALIDACION') {
+    res.status(400).json(rechazoAdjuntoHitoEstado(dueño.estado));
+    return null;
+  }
+  return dueño;
+}
+
+function rechazoMimeEvidencia(file: Express.Multer.File) {
+  return {
+    error: 'Solo se admiten fotos (jpg, png, gif, webp) o PDF.',
+    detalle: `mime=${file.mimetype} nombre=${file.originalname}`,
+    codigo: 'DATO_INVALIDO' as const,
+  };
 }
 
 async function requireCreadoraIncidencia(req: Request, res: Response, que: string): Promise<boolean> {
@@ -260,6 +287,64 @@ router.get(
   }),
 );
 
+router.get(
+  '/hitos/:id/evidencias',
+  auth,
+  asyncH(async (req, res) => {
+    await evaluate(orgOf(req), config.chaincodeHito, 'HitoContract', 'consultarHito', [pid(req)]);
+    const items = await listarEvidencias(pid(req));
+    res.json({ items });
+  }),
+);
+
+router.post(
+  '/hitos/:id/evidencias',
+  auth,
+  upload.single('file'),
+  asyncH(async (req, res) => {
+    if (!(await requireAdjuntoHito(req, res))) return;
+    if (!req.file) {
+      res.status(400).json({
+        error: 'No has adjuntado ningún archivo. Selecciona la evidencia y vuelve a enviar.',
+        detalle: 'campo multipart "file" ausente',
+        codigo: 'DATO_INVALIDO',
+      });
+      return;
+    }
+    if (!mimeEvidenciaOk(req.file)) {
+      res.status(400).json(rechazoMimeEvidencia(req.file));
+      return;
+    }
+    const meta = await guardarEvidencia(
+      pid(req),
+      req.file.originalname,
+      req.file.buffer,
+      req.file.mimetype,
+      orgOf(req),
+    );
+    res.status(201).json(meta);
+  }),
+);
+
+router.get(
+  '/hitos/:id/evidencias/:eid',
+  auth,
+  asyncH(async (req, res) => {
+    const found = await rutaEvidencia(pid(req), peid(req));
+    if (!found) {
+      res.status(404).json({
+        error: 'No hay ninguna evidencia con ese identificador en este hito.',
+        detalle: `hito=${pid(req)} evidencia=${peid(req)}`,
+        codigo: 'NO_ENCONTRADO',
+      });
+      return;
+    }
+    res.setHeader('Content-Type', found.meta.mime);
+    res.setHeader('Content-Disposition', `inline; filename="${found.meta.nombre}"`);
+    res.sendFile(found.abs);
+  }),
+);
+
 router.post(
   '/hitos/:id/iniciar',
   auth,
@@ -299,23 +384,49 @@ router.post(
 router.post(
   '/hitos/:id/completar',
   auth,
+  upload.single('file'),
   asyncH(async (req, res) => {
     const dueño = await requireEmpresaHito(req, res, 'el avance de un hito');
     if (!dueño) return;
+    if (dueño.estado !== 'VALIDACION') {
+      res.status(400).json(rechazoAdjuntoHitoEstado(dueño.estado));
+      return;
+    }
+    let meta: EvidenciaPublica | undefined;
+    if (req.file) {
+      if (!mimeEvidenciaOk(req.file)) {
+        res.status(400).json(rechazoMimeEvidencia(req.file));
+        return;
+      }
+      meta = await guardarEvidencia(
+        pid(req),
+        req.file.originalname,
+        req.file.buffer,
+        req.file.mimetype,
+        orgOf(req),
+      );
+    } else {
+      const previas = await listarEvidencias(pid(req));
+      meta = previas[0];
+    }
+    if (!meta) {
+      res.status(400).json(rechazoCompletarSinEvidencia());
+      return;
+    }
     const org = orgOf(req);
     const raw = await submit(
       org,
       config.chaincodeHito,
       'HitoContract',
       'completarHito',
-      [pid(req)],
+      [pid(req), meta.sha256],
       endosantesDePago(dueño.empresa),
     );
     const parsed = JSON.parse(raw) as { hito?: unknown; pago?: unknown };
     if (!parsed.hito || !parsed.pago) {
       throw new Error('completarHito no devolvió hito y pago en la misma transacción');
     }
-    res.json({ hito: parsed.hito, pago: parsed.pago });
+    res.json({ hito: parsed.hito, pago: parsed.pago, evidencia: meta });
     void refreshEstado(org);
   }),
 );
@@ -680,6 +791,28 @@ router.post(
 router.get('/mock/banco/pagos', (_req, res) => {
   res.json({ eventos: bancoLog });
 });
+
+router.get(
+  '/evidencias',
+  auth,
+  asyncH(async (req, res) => {
+    const porPadre = await listarIndiceEvidencias();
+    const org = orgOf(req);
+    const incs = (await itemsOf(
+      org,
+      config.chaincodeIncidencia,
+      'IncidenciaContract',
+      'listarIncidencias',
+    )) as { id?: string; lote?: string }[];
+    for (const inc of incs) {
+      if (!inc.id) continue;
+      if (!esLote(inc.lote) || !sociosDe(inc.lote).includes(org as OrgMsp)) {
+        delete porPadre[inc.id];
+      }
+    }
+    res.json({ porPadre });
+  }),
+);
 
 router.post(
   '/evidencias',

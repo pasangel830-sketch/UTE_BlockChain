@@ -27,6 +27,8 @@ token_for() {
 
 TOKEN="$(token_for empresaA)"
 TOKEN_ADMIN="$(token_for administracion)"
+ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
+EV="${ROOT}/ficheros_evidencias_test/tarea_completada_forjado_planta_baja.pdf"
 
 auth() {
   curl -sf -H "authorization: Bearer ${TOKEN}" -H 'content-type: application/json' "$@"
@@ -43,7 +45,11 @@ auth -X POST "${BASE}/hitos/${ID}/iniciar"
 echo
 auth -X POST "${BASE}/hitos/${ID}/validar"
 echo
-auth -X POST "${BASE}/hitos/${ID}/completar"
+curl -sf -X POST "${BASE}/hitos/${ID}/completar" \
+  -H "authorization: Bearer ${TOKEN}" \
+  -F "file=@${EV}"
+echo
+auth "${BASE}/hitos/${ID}" | python3 -c 'import json,sys; h=json.load(sys.stdin); assert h.get("estado")=="COMPLETADO" and len(h.get("hashEvidencia") or "")==64, h'
 echo
 code="$(curl -s -o /dev/null -w '%{http_code}' -X POST "${BASE}/pagos/pago-${ID}/autorizar" \
   -H "authorization: Bearer ${TOKEN}" -H 'content-type: application/json')"

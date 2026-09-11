@@ -5,6 +5,7 @@ import { config } from './config';
 
 export type EvidenciaMeta = {
   id: string;
+  parentId: string;
   incidenciaId: string;
   nombre: string;
   sha256: string;
@@ -53,9 +54,14 @@ export function idIncidenciaSeguro(id: string): string | null {
   return id;
 }
 
+function parentDe(meta: Partial<EvidenciaMeta>): string {
+  return meta.parentId || meta.incidenciaId || '';
+}
+
 function publica(meta: EvidenciaMeta): EvidenciaPublica {
+  const parentId = parentDe(meta);
   const { storedAs: _omit, ...rest } = meta;
-  return rest;
+  return { ...rest, parentId, incidenciaId: parentId };
 }
 
 async function leerIndice(): Promise<Indice> {
@@ -78,14 +84,14 @@ async function escribirIndice(idx: Indice): Promise<void> {
 }
 
 export async function guardarEvidencia(
-  incidenciaId: string,
+  parentId: string,
   originalname: string,
   buf: Buffer,
   mime: string,
   org: string,
 ): Promise<EvidenciaPublica> {
   assertLocal();
-  const iid = idIncidenciaSeguro(incidenciaId);
+  const iid = idIncidenciaSeguro(parentId);
   if (!iid) {
     throw new Error('incidenciaId inválido');
   }
@@ -97,6 +103,7 @@ export async function guardarEvidencia(
   await fs.writeFile(path.join(config.uploadDir, storedAs), buf);
   const meta: EvidenciaMeta = {
     id,
+    parentId: iid,
     incidenciaId: iid,
     nombre,
     sha256: sha256Hex(buf),
@@ -112,8 +119,8 @@ export async function guardarEvidencia(
   return publica(meta);
 }
 
-export async function listarEvidencias(incidenciaId: string): Promise<EvidenciaPublica[]> {
-  const iid = idIncidenciaSeguro(incidenciaId);
+export async function listarEvidencias(parentId: string): Promise<EvidenciaPublica[]> {
+  const iid = idIncidenciaSeguro(parentId);
   if (!iid) {
     return [];
   }
@@ -123,11 +130,22 @@ export async function listarEvidencias(incidenciaId: string): Promise<EvidenciaP
     .sort((a, b) => (b.at || '').localeCompare(a.at || ''));
 }
 
+export async function listarIndiceEvidencias(): Promise<Record<string, EvidenciaPublica[]>> {
+  const idx = await leerIndice();
+  const out: Record<string, EvidenciaPublica[]> = {};
+  for (const [id, items] of Object.entries(idx)) {
+    out[id] = (items || [])
+      .map(publica)
+      .sort((a, b) => (b.at || '').localeCompare(a.at || ''));
+  }
+  return out;
+}
+
 export async function rutaEvidencia(
-  incidenciaId: string,
+  parentId: string,
   evidenciaId: string,
 ): Promise<{ meta: EvidenciaPublica; abs: string } | null> {
-  const iid = idIncidenciaSeguro(incidenciaId);
+  const iid = idIncidenciaSeguro(parentId);
   const eid = idIncidenciaSeguro(evidenciaId);
   if (!iid || !eid) {
     return null;

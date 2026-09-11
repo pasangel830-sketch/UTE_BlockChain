@@ -56,8 +56,18 @@ export class HitoContract extends Contract {
   }
 
   @Transaction()
-  async completarHito(ctx: Context, id: string): Promise<string> {
-    const hito = await this.transicionarObj(ctx, id, 'COMPLETADO');
+  async completarHito(ctx: Context, id: string, hashEvidencia: string): Promise<string> {
+    const hito = await this.mustGet(ctx, id);
+    const permitidos = TRANSICIONES[hito.estado] || [];
+    if (!permitidos.includes('COMPLETADO')) {
+      throw new Error(`transición inválida ${hito.estado} → COMPLETADO`);
+    }
+    const hash = this.assertHashEvidencia(hashEvidencia);
+    const previo = hito.estado;
+    hito.estado = 'COMPLETADO';
+    hito.hashEvidencia = hash;
+    hito.updatedAt = this.now(ctx);
+    await this.save(ctx, hito, previo);
     const pago = await this.invokeJson(ctx, 'pago', [
       'PagoContract:ponerEnCustodia',
       `pago-${id}`,
@@ -240,6 +250,14 @@ export class HitoContract extends Contract {
     if (!v || !v.trim()) {
       throw new Error(`${name} obligatorio`);
     }
+  }
+
+  private assertHashEvidencia(hash: string): string {
+    const h = (hash || '').trim().toLowerCase();
+    if (!/^[a-f0-9]{64}$/.test(h)) {
+      throw new Error('hashEvidencia obligatorio');
+    }
+    return h;
   }
 
   private async invokeJson(ctx: Context, chaincode: string, args: string[]): Promise<unknown> {

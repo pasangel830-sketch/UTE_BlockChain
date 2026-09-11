@@ -19,8 +19,13 @@ export function createApp() {
   app.use(
     rateLimit({
       windowMs: 60_000,
-      limit: 120,
-      skip: (req) => req.path === '/metrics' || req.path === '/health' || req.path === '/red',
+      limit: 600,
+      skip: (req) =>
+        req.path === '/metrics' ||
+        req.path === '/health' ||
+        req.path === '/red' ||
+        req.path === '/auth/login' ||
+        req.path === '/explorer',
     }),
   );
 

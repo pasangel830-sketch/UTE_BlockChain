@@ -47,31 +47,29 @@ export default function IncidenciasPage() {
   const [vivos, setVivos] = useState<string[] | null>(null);
   const [busy, setBusy] = useState('');
 
-  const loadEvidencias = useCallback(async (incs: Inc[], lote: string | null | undefined) => {
+  const load = useCallback(async () => {
+    const lote = profileOf(getSession()?.org)?.lote;
+    const [r, ev] = await Promise.all([
+      api<{ items: Inc[] }>('/incidencias'),
+      lote
+        ? api<{ porPadre: Record<string, Ev[]> }>('/evidencias').catch(() => ({ porPadre: {} }))
+        : Promise.resolve({ porPadre: {} as Record<string, Ev[]> }),
+    ]);
+    const list = porFechaDesc(r.items || []);
+    setItems(list);
     if (!lote) {
       setEvidencias({});
       return;
     }
-    const delLote = incs.filter((i) => i.lote === lote);
-    const pares = await Promise.all(
-      delLote.map(async (i) => {
-        try {
-          const r = await api<{ items: Ev[] }>(`/incidencias/${i.id}/evidencias`);
-          return [i.id, porFechaDesc(r.items || [])] as const;
-        } catch {
-          return [i.id, []] as const;
-        }
-      }),
+    const ids = new Set(list.filter((i) => i.lote === lote).map((i) => i.id));
+    setEvidencias(
+      Object.fromEntries(
+        Object.entries(ev.porPadre || {})
+          .filter(([id]) => ids.has(id))
+          .map(([id, items]) => [id, porFechaDesc(items || [])]),
+      ),
     );
-    setEvidencias(Object.fromEntries(pares));
   }, []);
-
-  const load = useCallback(async () => {
-    const r = await api<{ items: Inc[] }>('/incidencias');
-    const list = porFechaDesc(r.items || []);
-    setItems(list);
-    await loadEvidencias(list, profileOf(getSession()?.org)?.lote);
-  }, [loadEvidencias]);
 
   useEffect(() => {
     setPerfil(profileOf(getSession()?.org));
