@@ -76,6 +76,8 @@ make down-dev
 make up-full         # baja dev; 5 peers + 3 orderers
 make verify-full
 make reset-dev       # down -v, borra *.block, crypto si hace falta, up
+make reset-demo-dev  # api/pdc/mon down, uploads, reset-dev, deploy-cc, api-up
+make reset-demo-full # igual con 5 peers (tribunal)
 make monitoring-up   # requiere ute-net (Fabric ya arriba)
 make seed            # día 12; hoy es stub
 make test-cc         # Jest 4 contratos (Node 18)

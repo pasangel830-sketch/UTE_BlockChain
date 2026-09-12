@@ -4,7 +4,7 @@ COMPOSE_MON := docker compose -f monitoring/docker-compose.yaml
 COMPOSE_PROD := docker compose -f network/docker-compose.production.yaml
 ART_BLOCKS := network/channel-artifacts/*.block network/channel-artifacts/*.tx channel-obra.block
 
-.PHONY: crypto channel-dev channel-full up-dev down-dev logs-dev up-full down-full logs-full verify-full reset-dev reset-full seed monitoring-up monitoring-down ps clean-artifacts test-cc deploy-hito deploy-pago deploy-incidencia deploy-estado deploy-cc init-pago init-estado verify-cc verify-api verify-pdc verify-ui api-up api-down ui-up pdc-up pdc-down
+.PHONY: crypto channel-dev channel-full up-dev down-dev logs-dev up-full down-full logs-full verify-full reset-dev reset-full reset-demo-dev reset-demo-full clean-offchain seed monitoring-up monitoring-down ps clean-artifacts test-cc deploy-hito deploy-pago deploy-incidencia deploy-estado deploy-cc init-pago init-estado verify-cc verify-api verify-pdc verify-ui api-up api-down ui-up pdc-up pdc-down
 
 crypto:
 	./network/scripts/generate-crypto.sh
@@ -48,6 +48,7 @@ clean-artifacts:
 reset-dev:
 	$(COMPOSE_FULL) down -v --remove-orphans || true
 	$(COMPOSE_DEV) down -v --remove-orphans || true
+	-docker ps -aq --filter 'name=dev-peer' | xargs -r docker rm -f
 	rm -f $(ART_BLOCKS)
 	./network/scripts/generate-crypto.sh
 	$(COMPOSE_DEV) up -d
@@ -56,10 +57,34 @@ reset-dev:
 reset-full:
 	$(COMPOSE_DEV) down -v --remove-orphans || true
 	$(COMPOSE_FULL) down -v --remove-orphans || true
+	-docker ps -aq --filter 'name=dev-peer' | xargs -r docker rm -f
 	rm -f $(ART_BLOCKS)
 	./network/scripts/generate-crypto.sh
 	$(COMPOSE_FULL) up -d
 	./network/scripts/create-channel.sh full
+
+clean-offchain:
+	mkdir -p backend/uploads
+	docker run --rm -v "$(CURDIR)/backend/uploads:/uploads" node:24.20.0-bookworm bash -c 'find /uploads -mindepth 1 -delete'
+
+# Red nueva para demo: baja API primero (Explorer en RAM), borra ledger y evidencias, redespliega CC.
+reset-demo-dev:
+	$(MAKE) api-down
+	$(MAKE) pdc-down
+	$(MAKE) monitoring-down
+	$(MAKE) clean-offchain
+	$(MAKE) reset-dev
+	$(MAKE) deploy-cc
+	$(MAKE) api-up
+
+reset-demo-full:
+	$(MAKE) api-down
+	$(MAKE) pdc-down
+	$(MAKE) monitoring-down
+	$(MAKE) clean-offchain
+	$(MAKE) reset-full
+	$(MAKE) deploy-cc
+	$(MAKE) api-up
 
 seed:
 	./network/scripts/seed-data.sh

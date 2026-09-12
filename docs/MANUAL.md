@@ -166,8 +166,9 @@ identificador ya usado devuelve *«Ya existe un hito con el identificador …: e
 
 Para empezar de cero solo hay dos caminos honestos:
 
-1. **Red nueva**: `make reset-dev` + `make deploy-cc` + `make api-up`. Borra volúmenes y bloques: es
-   una cadena distinta, no un ledger editado.
+1. **Red nueva**: `make reset-demo-dev` (portátil) o `make reset-demo-full` (tribunal, 5 peers).
+   Baja la API antes de tocar el ledger (si no, el Explorer conserva txs en RAM). Borra volúmenes,
+   bloques y evidencias; redespliega chaincode y levanta la API. Es una cadena distinta, no un ledger editado.
 2. **Seguir hacia delante**: crear hitos nuevos y pulsar **Recalcular**.
 
 ## 6. Guion de demostración

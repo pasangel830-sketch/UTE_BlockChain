@@ -162,12 +162,37 @@ export function getExplorerSnapshot(): { height: number; channel: string; blocks
   };
 }
 
+function vaciar(): void {
+  blocks.length = 0;
+  txBloque.clear();
+  height = 0;
+}
+
 function indexTxs(item: ExplorerBlock): void {
   for (const t of item.txs || []) {
     if (t.txId) {
       txBloque.set(t.txId, item.number);
     }
   }
+}
+
+/** Génesis distinto = cadena nueva: no mezclar txs del ledger anterior. */
+function aplicarBloque(item: ExplorerBlock): void {
+  const genesis = blocks.find((b) => b.number === 0);
+  if (
+    item.number === 0 &&
+    genesis &&
+    genesis.dataHash &&
+    item.dataHash &&
+    genesis.dataHash !== item.dataHash
+  ) {
+    vaciar();
+  }
+  indexTxs(item);
+  if (!blocks.some((b) => b.number === item.number)) {
+    blocks.push(item);
+  }
+  height = Math.max(height, item.number + 1);
 }
 
 /** Bloque que contiene esa transacción (world state no guarda el número: se asigna al ordenar). */
@@ -190,17 +215,10 @@ export async function startBlockListener(): Promise<void> {
     for (;;) {
       try {
         const network = (await getGateway('EmpresaAMSP')).getNetwork(config.channelName);
-        const start = BigInt(Math.max(0, height > 0 ? height - 1 : 0));
-        const events = await network.getBlockEvents({ startBlock: start });
+        const events = await network.getBlockEvents({ startBlock: 0n });
         try {
           for await (const block of events) {
-            const item = parseBlock(block, new Date().toISOString());
-            const num = item.number;
-            indexTxs(item);
-            if (!blocks.some((b) => b.number === num)) {
-              blocks.push(item);
-            }
-            height = Math.max(height, num + 1);
+            aplicarBloque(parseBlock(block, new Date().toISOString()));
           }
         } finally {
           events.close();

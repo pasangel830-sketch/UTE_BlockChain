@@ -12,7 +12,7 @@ Dominio ya documentado en `docs/INFORME-PROGRESO.md`: A+C sobre de cimentación 
 
 ## Qué no hay que hacer
 
-- No hay endpoint ni botón “borrar hitos / poner avance a 0”. El ledger es append-only. Cero = `make reset-dev` + `make deploy-cc` + `make api-up` (red nueva), o crear hitos nuevos y Recalcular.
+- No hay endpoint ni botón “borrar hitos / poner avance a 0”. El ledger es append-only. Cero = `make reset-demo-dev` o `make reset-demo-full` (red nueva), o crear hitos nuevos y Recalcular.
 - No inventar “nodos validadores 0x…” ni claves tipo Ethereum. Orderers Raft ordenan; peers endosan.
 - No cambiar políticas de `configtx.yaml`, collections ni versiones de chaincode en las fases 0–1.
 - No quitar rutas, badges, polling 3 s, mock banco, ni el Explorer compacto en `/hitos`.
