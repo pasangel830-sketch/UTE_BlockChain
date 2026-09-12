@@ -49,10 +49,6 @@ body {
     @apply font-serif text-3xl font-bold tracking-tight text-ink;
   }
 
-  .page-kicker {
-    @apply mt-1 text-sm leading-relaxed text-slate-500;
-  }
-
   .gold-rule {
     @apply h-px w-full origin-left bg-gradient-to-r from-gold via-gold/50 to-transparent;
   }

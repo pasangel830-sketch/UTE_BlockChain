@@ -21,7 +21,6 @@ export type ExplorerBlock = {
   txs?: ExplorerTx[];
 };
 
-const MAX = 40;
 const blocks: ExplorerBlock[] = [];
 let height = 0;
 
@@ -158,7 +157,7 @@ export function getExplorerSnapshot(): { height: number; channel: string; blocks
   return {
     height,
     channel: config.channelName,
-    blocks: [...blocks].slice(-MAX).reverse(),
+    blocks: [...blocks].sort((a, b) => b.number - a.number),
   };
 }
 
@@ -167,17 +166,14 @@ export async function startBlockListener(): Promise<void> {
     for (;;) {
       try {
         const network = (await getGateway('EmpresaAMSP')).getNetwork(config.channelName);
-        const start = height > 0 ? BigInt(Math.max(0, height - 1)) : undefined;
-        const events = await network.getBlockEvents(start !== undefined ? { startBlock: start } : {});
+        const start = BigInt(Math.max(0, height > 0 ? height - 1 : 0));
+        const events = await network.getBlockEvents({ startBlock: start });
         try {
           for await (const block of events) {
             const item = parseBlock(block, new Date().toISOString());
             const num = item.number;
             if (!blocks.some((b) => b.number === num)) {
               blocks.push(item);
-              if (blocks.length > MAX) {
-                blocks.shift();
-              }
             }
             height = Math.max(height, num + 1);
           }

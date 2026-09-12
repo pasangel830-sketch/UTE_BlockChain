@@ -202,11 +202,13 @@ async function itemsOf(org: OrgMsp, chaincode: string, contract: string, fn: str
 async function refreshEstado(org: OrgMsp): Promise<void> {
   try {
     const hitos = (await itemsOf(org, config.chaincodeHito, 'HitoContract', 'listarHitos')) as {
+      id?: string;
       estado?: string;
     }[];
     const pagos = (await itemsOf(org, config.chaincodePago, 'PagoContract', 'listarPagos')) as {
       estado?: string;
       importeTotal?: number;
+      hitoId?: string;
     }[];
     const incidencias = (await itemsOf(
       org,
@@ -221,6 +223,30 @@ async function refreshEstado(org: OrgMsp): Promise<void> {
   } catch (err) {
     console.error('estado obra', err);
   }
+}
+
+type PagoLedger = { id?: string; empresa?: string; estado?: string };
+
+const pagoLocks = new Map<string, Promise<unknown>>();
+
+function withPagoLock<T>(id: string, task: () => Promise<T>): Promise<T> {
+  const prev = pagoLocks.get(id) ?? Promise.resolve();
+  const next = prev.catch(() => undefined).then(task);
+  pagoLocks.set(id, next);
+  return next.finally(() => {
+    if (pagoLocks.get(id) === next) pagoLocks.delete(id);
+  });
+}
+
+async function leerPagoAdmin(id: string): Promise<PagoLedger> {
+  const raw = await evaluate(
+    'AdministracionMSP',
+    config.chaincodePago,
+    'PagoContract',
+    'consultarPago',
+    [id],
+  );
+  return JSON.parse(raw) as PagoLedger;
 }
 
 router.post(
@@ -481,25 +507,24 @@ router.post(
   auth,
   asyncH(async (req, res) => {
     if (!requireAdministracion(req, res)) return;
-    const pago = JSON.parse(
-      await evaluate(
+    const id = pid(req);
+    const raw = await withPagoLock(id, async () => {
+      const pago = await leerPagoAdmin(id);
+      if (pago.estado === 'AUTORIZADO') {
+        return JSON.stringify(pago);
+      }
+      return submit(
         'AdministracionMSP',
         config.chaincodePago,
         'PagoContract',
-        'consultarPago',
-        [pid(req)],
-      ),
-    ) as { empresa?: string };
-    const raw = await submit(
-      'AdministracionMSP',
-      config.chaincodePago,
-      'PagoContract',
-      'autorizarPago',
-      [pid(req)],
-      endosantesDePago(pago.empresa),
-    );
-    res.json(JSON.parse(raw));
-    void refreshEstado('AdministracionMSP');
+        'autorizarPago',
+        [id],
+        endosantesDePago(pago.empresa),
+      );
+    });
+    const parsed = JSON.parse(raw) as PagoLedger;
+    res.json(parsed);
+    if (parsed.estado === 'AUTORIZADO') void refreshEstado('AdministracionMSP');
   }),
 );
 
@@ -508,26 +533,25 @@ router.post(
   auth,
   asyncH(async (req, res) => {
     if (!requireAdministracion(req, res)) return;
+    const id = pid(req);
     const motivo = (req.body as { motivo?: string }).motivo || 'rechazado';
-    const pago = JSON.parse(
-      await evaluate(
+    const raw = await withPagoLock(id, async () => {
+      const pago = await leerPagoAdmin(id);
+      if (pago.estado === 'RECHAZADO') {
+        return JSON.stringify(pago);
+      }
+      return submit(
         'AdministracionMSP',
         config.chaincodePago,
         'PagoContract',
-        'consultarPago',
-        [pid(req)],
-      ),
-    ) as { empresa?: string };
-    const raw = await submit(
-      'AdministracionMSP',
-      config.chaincodePago,
-      'PagoContract',
-      'rechazarPago',
-      [pid(req), motivo],
-      endosantesDePago(pago.empresa),
-    );
-    res.json(JSON.parse(raw));
-    void refreshEstado('AdministracionMSP');
+        'rechazarPago',
+        [id, motivo],
+        endosantesDePago(pago.empresa),
+      );
+    });
+    const parsed = JSON.parse(raw) as PagoLedger;
+    res.json(parsed);
+    if (parsed.estado === 'RECHAZADO') void refreshEstado('AdministracionMSP');
   }),
 );
 

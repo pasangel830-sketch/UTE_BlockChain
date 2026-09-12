@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Shell } from '@/components/Shell';
 import { Badge } from '@/components/Badge';
 import { ErrorBox } from '@/components/ErrorBox';
@@ -23,6 +23,8 @@ export default function PagosPage() {
   const [err, setErr] = useState<unknown>(null);
   const [ok, setOk] = useState<OkMsg | null>(null);
   const [esAdmin, setEsAdmin] = useState(false);
+  const [busy, setBusy] = useState<string | null>(null);
+  const busyRef = useRef(false);
 
   const load = useCallback(async () => {
     const r = await api<{ items: Pago[] }>('/pagos');
@@ -34,7 +36,20 @@ export default function PagosPage() {
     void load().catch(setErr);
   }, [load]);
 
+  function beginBusy(id: string): boolean {
+    if (busyRef.current) return false;
+    busyRef.current = true;
+    setBusy(id);
+    return true;
+  }
+
+  function endBusy() {
+    busyRef.current = false;
+    setBusy(null);
+  }
+
   async function autorizar(id: string) {
+    if (!beginBusy(`autorizar:${id}`)) return;
     setErr(null);
     setOk(null);
     try {
@@ -54,10 +69,13 @@ export default function PagosPage() {
       await load();
     } catch (e) {
       setErr(e);
+    } finally {
+      endBusy();
     }
   }
 
   async function rechazar(id: string) {
+    if (!beginBusy(`rechazar:${id}`)) return;
     setErr(null);
     setOk(null);
     try {
@@ -69,13 +87,14 @@ export default function PagosPage() {
       await load();
     } catch (e) {
       setErr(e);
+    } finally {
+      endBusy();
     }
   }
 
   return (
     <Shell>
       <h1 className="page-title">Pagos (escrow)</h1>
-      <p className="page-kicker">CUSTODIA hasta autorización de Administración.</p>
       <div className="gold-rule my-4 animate-hairline" />
       {ok && (
         <div className="mt-3 rounded-xl border border-emerald-300 bg-emerald-50 p-3 text-sm text-emerald-900" role="status">
@@ -117,16 +136,20 @@ export default function PagosPage() {
               (esAdmin ? (
                 <div className="mt-3 flex flex-wrap gap-2">
                   <button
-                    className="rounded-md bg-ink px-3 py-1.5 text-sm text-white"
+                    type="button"
+                    disabled={!!busy}
+                    className="rounded-md bg-ink px-3 py-1.5 text-sm text-white disabled:opacity-50"
                     onClick={() => void autorizar(p.id)}
                   >
-                    Autorizar
+                    {busy === `autorizar:${p.id}` ? 'Autorizando…' : 'Autorizar'}
                   </button>
                   <button
-                    className="rounded-md bg-slate-600 px-3 py-1.5 text-sm text-white"
+                    type="button"
+                    disabled={!!busy}
+                    className="rounded-md bg-slate-600 px-3 py-1.5 text-sm text-white disabled:opacity-50"
                     onClick={() => void rechazar(p.id)}
                   >
-                    Rechazar
+                    {busy === `rechazar:${p.id}` ? 'Rechazando…' : 'Rechazar'}
                   </button>
                 </div>
               ) : (

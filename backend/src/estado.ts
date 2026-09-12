@@ -1,5 +1,5 @@
-type Hito = { estado?: string };
-type Pago = { estado?: string; importeTotal?: number };
+type Hito = { id?: string; estado?: string };
+type Pago = { estado?: string; importeTotal?: number; hitoId?: string };
 type Incidencia = { estado?: string };
 
 export function agregarEstado(
@@ -7,9 +7,15 @@ export function agregarEstado(
   pagos: Pago[],
   incidencias: Incidencia[],
 ): Record<string, number | string> {
-  const hitosCompletados = hitos.filter((h) => h.estado === 'COMPLETADO').length;
-  const hitosRechazados = hitos.filter((h) => h.estado === 'RECHAZADO').length;
-  const hitosTotal = hitos.length;
+  const hitoConPagoRechazado = new Set(
+    pagos.filter((p) => p.estado === 'RECHAZADO' && p.hitoId).map((p) => p.hitoId),
+  );
+  const hitosVigentes = hitos.filter((h) => !hitoConPagoRechazado.has(h.id));
+  const hitosCompletados = hitosVigentes.filter((h) => h.estado === 'COMPLETADO').length;
+  const hitosRechazados = hitos.filter(
+    (h) => h.estado === 'RECHAZADO' || hitoConPagoRechazado.has(h.id),
+  ).length;
+  const hitosTotal = hitosVigentes.length;
   const pagosCustodia = pagos.filter((p) => p.estado === 'CUSTODIA');
   const pagosAutorizados = pagos.filter((p) => p.estado === 'AUTORIZADO');
   const incidenciasAbiertas = incidencias.filter(

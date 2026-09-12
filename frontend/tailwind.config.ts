@@ -29,8 +29,24 @@ const config: Config = {
           '0%': { opacity: '0' },
           '100%': { opacity: '1' },
         },
-        'hairline': {
+        hairline: {
           '0%': { transform: 'scaleX(0.4)', opacity: '0.5' },
+          '100%': { transform: 'scaleX(1)', opacity: '1' },
+        },
+        'brand-bar': {
+          '0%': { transform: 'scaleX(0)' },
+          '100%': { transform: 'scaleX(1)' },
+        },
+        'brand-kicker': {
+          '0%': { opacity: '0', transform: 'translateY(5px)', letterSpacing: '0.42em' },
+          '100%': { opacity: '1', transform: 'translateY(0)', letterSpacing: '0.2em' },
+        },
+        'brand-title': {
+          '0%': { opacity: '0', transform: 'translateY(8px)' },
+          '100%': { opacity: '1', transform: 'translateY(0)' },
+        },
+        'brand-rule': {
+          '0%': { transform: 'scaleX(0)', opacity: '0' },
           '100%': { transform: 'scaleX(1)', opacity: '1' },
         },
       },
@@ -38,6 +54,12 @@ const config: Config = {
         'page-in': 'page-in 0.45s ease-out both',
         'fade-in': 'fade-in 0.5s ease-out both',
         hairline: 'hairline 0.7s ease-out both',
+        'brand-bar': 'brand-bar 0.85s cubic-bezier(0.22, 1, 0.36, 1) both',
+        'brand-mark': 'fade-in 0.7s ease-out 0.12s both',
+        'brand-kicker': 'brand-kicker 0.75s cubic-bezier(0.22, 1, 0.36, 1) 0.18s both',
+        'brand-title': 'brand-title 0.7s cubic-bezier(0.22, 1, 0.36, 1) 0.34s both',
+        'brand-rule': 'brand-rule 0.8s cubic-bezier(0.22, 1, 0.36, 1) 0.52s both',
+        'brand-nav': 'fade-in 0.55s ease-out 0.58s both',
       },
     },
   },

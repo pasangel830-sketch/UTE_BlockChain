@@ -4,7 +4,7 @@ import type { ReactNode } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { clearToken, getSession, getToken, type Session } from '@/lib/api';
-import { profileLabel } from '@/lib/orgs';
+import { profileLabel, profileLines } from '@/lib/orgs';
 import { useEffect, useState } from 'react';
 import { BrandLockup } from '@/components/Brand';
 
@@ -17,10 +17,36 @@ const LINKS = [
   ['/explorer', 'Explorer'],
 ];
 
+let brandIntroPlayed = false;
+
+function OrgBadge({ org, className }: { org: string; className?: string }) {
+  const { title, subtitle } = profileLines(org);
+  return (
+    <span className={className} title={profileLabel(org)}>
+      <span className="whitespace-nowrap text-sm font-medium leading-tight text-slate-100">{title}</span>
+      {subtitle ? (
+        <span className="whitespace-nowrap text-[10px] leading-tight text-slate-400">{subtitle}</span>
+      ) : null}
+    </span>
+  );
+}
+
 export function Shell({ children }: { children: ReactNode }) {
   const path = usePathname();
   const router = useRouter();
   const [session, setSession] = useState<Session | null>(null);
+  const [intro] = useState(() => {
+    if (typeof window === 'undefined') return true;
+    return !brandIntroPlayed;
+  });
+
+  useEffect(() => {
+    if (!intro) return;
+    const t = window.setTimeout(() => {
+      brandIntroPlayed = true;
+    }, 1100);
+    return () => window.clearTimeout(t);
+  }, [intro]);
 
   useEffect(() => {
     if (!getToken()) {
@@ -32,26 +58,44 @@ export function Shell({ children }: { children: ReactNode }) {
 
   return (
     <div className="flex min-h-screen flex-col bg-cream">
-      <div className="h-1.5 bg-gradient-to-r from-gold via-amberx to-ink" />
+      <div
+        className={`h-1.5 origin-left bg-gradient-to-r from-gold via-amberx to-ink ${intro ? 'animate-brand-bar' : ''}`}
+      />
       <header className="border-b border-gold/30 bg-ink text-white">
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3">
           <div className="flex min-w-0 items-center gap-4">
-            <BrandLockup size="sm" invert />
+            <div className={intro ? 'animate-brand-mark' : undefined}>
+              <BrandLockup size="sm" invert />
+            </div>
             <div className="min-w-0">
-              <p className="font-serif text-lg font-bold tracking-tight">UTE Blockchain</p>
-              <p className="truncate text-[11px] uppercase tracking-[0.16em] text-gold/90">
-                Ayuntamiento de Madrid · registro de obra
+              <p
+                className={`truncate font-serif text-[10px] font-bold uppercase tracking-[0.2em] text-gold ${
+                  intro ? 'animate-brand-kicker' : ''
+                }`}
+              >
+                UTE Blockchain Solutions
               </p>
+              <p
+                className={`truncate font-serif text-[15px] font-bold leading-tight tracking-tight sm:text-lg ${
+                  intro ? 'animate-brand-title' : ''
+                }`}
+              >
+                Registro de obra pública
+              </p>
+              <span
+                className={`mt-1.5 block h-px w-[4.5rem] origin-left bg-gradient-to-r from-gold to-transparent ${
+                  intro ? 'animate-brand-rule' : ''
+                }`}
+                aria-hidden
+              />
             </div>
           </div>
           <div className="flex items-center gap-2">
             {session && (
-              <span
-                className="hidden max-w-xs truncate rounded-full border border-gold/40 bg-white/5 px-3 py-1 text-xs text-slate-200 md:inline"
-                title={session.org}
-              >
-                {profileLabel(session.org)}
-              </span>
+              <OrgBadge
+                org={session.org}
+                className="hidden rounded-xl border border-gold/40 bg-white/5 px-3 py-1 md:inline-flex md:flex-col"
+              />
             )}
             <button
               className="rounded-md px-3 py-1.5 text-sm text-slate-300 hover:bg-white/10 hover:text-white"
@@ -64,15 +108,13 @@ export function Shell({ children }: { children: ReactNode }) {
             </button>
           </div>
         </div>
-        <nav className="border-t border-white/10 bg-ink/80">
+        <nav className={`border-t border-white/10 bg-ink/80 ${intro ? 'animate-brand-nav' : ''}`}>
           <div className="mx-auto flex max-w-6xl flex-wrap gap-1 px-4 py-1.5 text-sm">
             {session && (
-              <span
-                className="mb-1 w-full rounded-full border border-gold/30 bg-white/5 px-3 py-1 text-xs text-slate-200 md:hidden"
-                title={session.org}
-              >
-                {profileLabel(session.org)}
-              </span>
+              <OrgBadge
+                org={session.org}
+                className="mb-1 flex w-full flex-col rounded-xl border border-gold/30 bg-white/5 px-3 py-1 md:hidden"
+              />
             )}
             {LINKS.map(([href, label]) => (
               <Link

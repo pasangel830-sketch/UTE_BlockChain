@@ -72,12 +72,30 @@ export function profileOf(org: string | undefined | null): OrgProfile | null {
   return ORG_PROFILES[org] ?? null;
 }
 
-export function profileLabel(org: string | undefined | null): string {
+export function profileLines(org: string | undefined | null): { title: string; subtitle: string } {
   const p = profileOf(org);
-  if (!p) return org || '';
-  const parts = [p.label, p.lote ? `${p.oficio} (${p.lote})` : p.oficio];
-  if (p.pct !== null) parts.push(`${p.pct} %`);
-  return parts.join(' · ');
+  if (!p) return { title: org || '', subtitle: '' };
+
+  const extra = p.oficio.match(/^(.*?)\s+(\([^)]+\))$/);
+  const oficioMain = extra ? extra[1] : p.oficio;
+  const oficioTag = extra?.[2];
+
+  if (!p.lote && p.pct === null) {
+    return { title: p.label, subtitle: p.oficio };
+  }
+
+  const bits: string[] = [];
+  if (oficioTag) bits.push(oficioTag);
+  if (p.lote) bits.push(`(${p.lote})`);
+  const subtitle =
+    p.pct !== null ? (bits.length ? `${bits.join(' ')} · ${p.pct} %` : `${p.pct} %`) : bits.join(' ');
+
+  return { title: `${p.label} · ${oficioMain}`, subtitle };
+}
+
+export function profileLabel(org: string | undefined | null): string {
+  const { title, subtitle } = profileLines(org);
+  return subtitle ? `${title} ${subtitle}` : title;
 }
 
 /** El propio nodo de esta org no está vivo. `vivos` null = aún no se ha sondeado. */

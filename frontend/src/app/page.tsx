@@ -58,11 +58,6 @@ export default function LoginPage() {
               </li>
             ))}
           </ul>
-          <p className="mt-3 rounded-lg border border-gold/20 bg-cream p-2 text-[11px] leading-snug text-slate-600">
-            Red diaria (<code>make up-dev</code>): solo hay nodo de Empresa A y de Administración. B, C y D
-            entran y consultan todo; registrar datos privados de <code>quirofanos-tech</code> requiere{' '}
-            <code>make pdc-up</code>.
-          </p>
           <label className="mt-6 block text-sm font-medium">Usuario</label>
           <input
             className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2"

@@ -1,6 +1,6 @@
 'use client';
 
-import { FormEvent, useCallback, useEffect, useState } from 'react';
+import { FormEvent, useCallback, useEffect, useRef, useState } from 'react';
 import { Shell } from '@/components/Shell';
 import { Badge } from '@/components/Badge';
 import { ErrorBox } from '@/components/ErrorBox';
@@ -46,6 +46,7 @@ export default function IncidenciasPage() {
   const [perfil, setPerfil] = useState<OrgProfile | null>(null);
   const [vivos, setVivos] = useState<string[] | null>(null);
   const [busy, setBusy] = useState('');
+  const busyRef = useRef(false);
 
   const load = useCallback(async () => {
     const lote = profileOf(getSession()?.org)?.lote;
@@ -79,10 +80,22 @@ export default function IncidenciasPage() {
       .catch(() => setVivos(ORGS_PEER_DIARIO));
   }, [load]);
 
+  function beginBusy(id: string): boolean {
+    if (busyRef.current) return false;
+    busyRef.current = true;
+    setBusy(id);
+    return true;
+  }
+
+  function endBusy() {
+    busyRef.current = false;
+    setBusy('');
+  }
+
   async function crear(e: FormEvent) {
     e.preventDefault();
+    if (!beginBusy('crear')) return;
     setErr(null);
-    setBusy('crear');
     let creada: Inc | null = null;
     try {
       const hash = altaFile ? await sha256Hex(altaFile) : '';
@@ -119,17 +132,20 @@ export default function IncidenciasPage() {
       }
       setErr(e2);
     } finally {
-      setBusy('');
+      endBusy();
     }
   }
 
   async function act(id: string, path: string) {
+    if (!beginBusy(id)) return;
     setErr(null);
     try {
       await api(`/incidencias/${id}/${path}`, { method: 'POST', body: JSON.stringify({ motivo: 'cierre' }) });
       await load();
     } catch (e) {
       setErr(e);
+    } finally {
+      endBusy();
     }
   }
 
@@ -147,8 +163,8 @@ export default function IncidenciasPage() {
   }
 
   async function adjuntar(id: string, file: File) {
+    if (!beginBusy(id)) return;
     setErr(null);
-    setBusy(id);
     try {
       const ev = await apiUpload<Ev>(`/incidencias/${id}/evidencias`, file);
       setMsg(`adjunta ${ev.nombre} · ${ev.sha256.slice(0, 12)}…`);
@@ -156,7 +172,7 @@ export default function IncidenciasPage() {
     } catch (e) {
       setErr(e);
     } finally {
-      setBusy('');
+      endBusy();
     }
   }
 
@@ -187,19 +203,6 @@ export default function IncidenciasPage() {
   return (
     <Shell>
       <h1 className="page-title">Incidencias</h1>
-      <p className="page-kicker">
-        {perfil?.lote ? (
-          <>
-            Público en el canal. Detalle en PDC <code>{perfil.lote}</code> ({sociosLabel(perfil.lote)}).
-            Las evidencias (foto o PDF) quedan fuera de la cadena; el hash SHA-256 es la prueba.
-          </>
-        ) : (
-          <>
-            Público en el canal. El detalle vive en la PDC de cada lote; Administración solo ve el hash
-            que prueba que existe y que no ha cambiado. No accede a las evidencias.
-          </>
-        )}
-      </p>
       <div className="gold-rule my-4 animate-hairline" />
       {pdcApagada && (
         <p className="mt-3 rounded-xl border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">
@@ -229,8 +232,8 @@ export default function IncidenciasPage() {
               onChange={(e) => setAltaFile(e.target.files?.[0] ?? null)}
             />
           </label>
-          <button className="rounded-lg bg-ink px-4 py-2 text-white" disabled={busy === 'crear'}>
-            Crear incidencia
+          <button className="rounded-lg bg-ink px-4 py-2 text-white disabled:opacity-50" disabled={!!busy}>
+            {busy === 'crear' ? 'Creando…' : 'Crear incidencia'}
           </button>
           <p className="md:col-span-2 text-xs text-slate-500">
             Se registrará a nombre de {perfil.empresa} en el lote <code>{perfil.lote}</code>. El
@@ -286,23 +289,33 @@ export default function IncidenciasPage() {
                 Ver PDC
               </button>
               {perfil?.empresa === i.empresa && i.estado === 'ABIERTA' && (
-                <button className="rounded-md bg-amberx px-3 py-1 text-sm text-white" onClick={() => void act(i.id, 'tratar')}>
-                  Tratar
+                <button
+                  type="button"
+                  className="rounded-md bg-amberx px-3 py-1 text-sm text-white disabled:opacity-50"
+                  disabled={!!busy}
+                  onClick={() => void act(i.id, 'tratar')}
+                >
+                  {busy === i.id ? 'Tratando…' : 'Tratar'}
                 </button>
               )}
               {perfil?.empresa === i.empresa && i.estado === 'EN_TRATAMIENTO' && (
-                <button className="rounded-md bg-ink px-3 py-1 text-sm text-white" onClick={() => void act(i.id, 'cerrar')}>
-                  Cerrar
+                <button
+                  type="button"
+                  className="rounded-md bg-ink px-3 py-1 text-sm text-white disabled:opacity-50"
+                  disabled={!!busy}
+                  onClick={() => void act(i.id, 'cerrar')}
+                >
+                  {busy === i.id ? 'Cerrando…' : 'Cerrar'}
                 </button>
               )}
               {puedeAdjuntar(i) && (
-                <label className="cursor-pointer rounded-md bg-slate-200 px-3 py-1 text-sm">
+                <label className={`rounded-md bg-slate-200 px-3 py-1 text-sm ${busy ? 'pointer-events-none opacity-50' : 'cursor-pointer'}`}>
                   {busy === i.id ? 'Subiendo…' : 'Adjuntar evidencia'}
                   <input
                     type="file"
                     accept="image/*,.pdf,application/pdf"
                     className="hidden"
-                    disabled={busy === i.id}
+                    disabled={!!busy}
                     onChange={(e) => {
                       const f = e.target.files?.[0];
                       e.target.value = '';

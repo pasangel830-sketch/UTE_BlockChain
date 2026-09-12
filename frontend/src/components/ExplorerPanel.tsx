@@ -22,6 +22,12 @@ type Block = {
 };
 type Snap = { height: number; channel: string; blocks: Block[] };
 
+const PAGE = 20;
+
+function hora(b: Block): string {
+  return (b.txs?.[0]?.timestamp ?? b.receivedAt).slice(11, 19);
+}
+
 function short(v: string, head = 10, tail = 6): string {
   return v.length <= head + tail + 1 ? v : `${v.slice(0, head)}…${v.slice(-tail)}`;
 }
@@ -80,6 +86,7 @@ export function ExplorerPanel({ compact = false }: { compact?: boolean }) {
   const [snap, setSnap] = useState<Snap | null>(null);
   const [err, setErr] = useState('');
   const [open, setOpen] = useState<number | null>(null);
+  const [page, setPage] = useState(1);
 
   useEffect(() => {
     let stop = false;
@@ -102,6 +109,11 @@ export function ExplorerPanel({ compact = false }: { compact?: boolean }) {
     };
   }, []);
 
+  const all = snap?.blocks || [];
+  const totalPages = Math.max(1, Math.ceil(all.length / PAGE));
+  const current = Math.min(page, totalPages);
+  const shown = compact ? all.slice(0, 8) : all.slice((current - 1) * PAGE, current * PAGE);
+
   return (
     <section className="card p-4">
       <div className="mb-3 flex items-baseline justify-between">
@@ -113,12 +125,12 @@ export function ExplorerPanel({ compact = false }: { compact?: boolean }) {
         altura {snap?.height ?? '…'}
       </p>
       <ul className={`space-y-2 ${compact ? 'max-h-64 overflow-y-auto' : ''}`}>
-        {(snap?.blocks || []).slice(0, compact ? 8 : 20).map((b) =>
+        {shown.map((b) =>
           compact ? (
             <li key={b.number} className="flex items-center justify-between rounded-lg bg-slate-50 px-3 py-2 text-sm">
               <span className="font-mono">#{b.number}</span>
               <span className="text-slate-500">{b.txCount} tx</span>
-              <span className="text-xs text-slate-400">{b.receivedAt.slice(11, 19)}</span>
+              <span className="text-xs text-slate-400">{hora(b)}</span>
             </li>
           ) : (
             <li key={b.number} className="overflow-hidden rounded-lg bg-slate-50">
@@ -131,13 +143,36 @@ export function ExplorerPanel({ compact = false }: { compact?: boolean }) {
                   {open === b.number ? '▾' : '▸'} #{b.number}
                 </span>
                 <span className="text-slate-500">{b.txCount} tx</span>
-                <span className="text-xs text-slate-400">{b.receivedAt.slice(11, 19)}</span>
+                <span className="text-xs text-slate-400">{hora(b)}</span>
               </button>
               {open === b.number && <BlockDetail b={b} />}
             </li>
           ),
         )}
       </ul>
+      {!compact && all.length > 0 && (
+        <div className="mt-4 flex items-center justify-between gap-3 text-sm text-slate-500">
+          <button
+            type="button"
+            className="rounded-lg px-3 py-1.5 ring-1 ring-slate-200 hover:bg-slate-50 disabled:opacity-40"
+            disabled={current <= 1}
+            onClick={() => setPage(current - 1)}
+          >
+            Anterior
+          </button>
+          <p className="text-xs">
+            {current} / {totalPages} · {all.length} bloques
+          </p>
+          <button
+            type="button"
+            className="rounded-lg px-3 py-1.5 ring-1 ring-slate-200 hover:bg-slate-50 disabled:opacity-40"
+            disabled={current >= totalPages}
+            onClick={() => setPage(current + 1)}
+          >
+            Siguiente
+          </button>
+        </div>
+      )}
     </section>
   );
 }

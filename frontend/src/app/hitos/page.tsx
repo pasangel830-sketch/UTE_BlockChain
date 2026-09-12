@@ -1,6 +1,6 @@
 'use client';
 
-import { FormEvent, useCallback, useEffect, useState } from 'react';
+import { FormEvent, useCallback, useEffect, useRef, useState } from 'react';
 import { Shell } from '@/components/Shell';
 import { Badge } from '@/components/Badge';
 import { ErrorBox } from '@/components/ErrorBox';
@@ -38,6 +38,7 @@ export default function HitosPage() {
   const [err, setErr] = useState<unknown>(null);
   const [perfil, setPerfil] = useState<OrgProfile | null>(null);
   const [busy, setBusy] = useState('');
+  const busyRef = useRef(false);
 
   const load = useCallback(async () => {
     const [h, p, ev] = await Promise.all([
@@ -59,8 +60,21 @@ export default function HitosPage() {
     void load().catch(setErr);
   }, [load]);
 
+  function beginBusy(id: string): boolean {
+    if (busyRef.current) return false;
+    busyRef.current = true;
+    setBusy(id);
+    return true;
+  }
+
+  function endBusy() {
+    busyRef.current = false;
+    setBusy('');
+  }
+
   async function crear(e: FormEvent) {
     e.preventDefault();
+    if (!beginBusy('crear')) return;
     setErr(null);
     try {
       const h = await api<Hito>('/hitos', {
@@ -76,10 +90,13 @@ export default function HitosPage() {
       await load();
     } catch (e2) {
       setErr(e2);
+    } finally {
+      endBusy();
     }
   }
 
   async function act(h: Hito, path: string) {
+    if (!beginBusy(h.id)) return;
     setErr(null);
     try {
       await api(`/hitos/${h.id}/${path}`, { method: 'POST', body: '{}' });
@@ -87,12 +104,14 @@ export default function HitosPage() {
       await load();
     } catch (e) {
       setErr(e);
+    } finally {
+      endBusy();
     }
   }
 
   async function completar(h: Hito, file: File) {
+    if (!beginBusy(h.id)) return;
     setErr(null);
-    setBusy(h.id);
     try {
       const r = await apiUpload<{ evidencia?: Ev }>(`/hitos/${h.id}/completar`, file);
       const sha = r.evidencia?.sha256?.slice(0, 12);
@@ -102,7 +121,7 @@ export default function HitosPage() {
     } catch (e) {
       setErr(e);
     } finally {
-      setBusy('');
+      endBusy();
     }
   }
 
@@ -150,7 +169,9 @@ export default function HitosPage() {
                 value={importe}
                 onChange={(e) => setImporte(e.target.value)}
               />
-              <button className="rounded-lg bg-ink px-4 py-2 text-white">Crear hito</button>
+              <button className="rounded-lg bg-ink px-4 py-2 text-white disabled:opacity-50" disabled={!!busy}>
+                {busy === 'crear' ? 'Creando…' : 'Crear hito'}
+              </button>
               <p className="w-full text-xs text-slate-500">
                 El hito se registra a nombre de {perfil.empresa} ({perfil.oficio}).
               </p>
@@ -223,10 +244,12 @@ export default function HitosPage() {
                   )}
                   {nxt && perfil?.empresa === h.empresa && (
                     <button
-                      className="mt-3 rounded-md bg-amberx px-3 py-1.5 text-sm font-medium text-white"
+                      type="button"
+                      className="mt-3 rounded-md bg-amberx px-3 py-1.5 text-sm font-medium text-white disabled:opacity-50"
+                      disabled={!!busy}
                       onClick={() => void act(h, nxt[0])}
                     >
-                      {nxt[1]}
+                      {busy === h.id ? (nxt[0] === 'iniciar' ? 'Iniciando…' : 'Validando…') : nxt[1]}
                     </button>
                   )}
                   {puedeCompletar && (
@@ -244,7 +267,7 @@ export default function HitosPage() {
                       </label>
                       <button
                         className="rounded-md bg-amberx px-3 py-1.5 text-sm font-medium text-white disabled:opacity-50"
-                        disabled={!acta || busy === h.id}
+                        disabled={!acta || !!busy}
                         onClick={() => acta && void completar(h, acta)}
                       >
                         {busy === h.id ? 'Completando…' : 'Completar'}
