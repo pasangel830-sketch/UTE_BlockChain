@@ -32,8 +32,12 @@ La separación constructora / Administración (avanzar obra, autorizar o rechaza
 
 ## 7. Hito → Pago sí usa invoke cruzado (11 sep)
 
-`completarHito` llama a `PagoContract:ponerEnCustodia` en la misma transacción para que no quede hito COMPLETADO sin custodia. `ponerEnCustodia` recibe `origen=completarHito` y **no** consulta el hito: Fabric rechaza un segundo invoke anidado con el mismo txid. Si se llama a custodia por otro camino, sí exige hito COMPLETADO. Jest 11/11. Redeploy en la red diaria (`make deploy-cc`) pendiente de captura.
+`completarHito` llama a `PagoContract:ponerEnCustodia` en la misma transacción para que no quede hito COMPLETADO sin custodia. `ponerEnCustodia` recibe `origen=completarHito` y **no** consulta el hito: Fabric rechaza un segundo invoke anidado con el mismo txid. Si se llama a custodia por otro camino, sí exige hito COMPLETADO. Código en `develop`. Jest 11/11. Si la red diaria sigue con el chaincode anterior: `make deploy-cc`. La captura de ese redeploy no está en el informe técnico.
 
-## 8. Evidencias fuera de cadena; hash en PDC
+## 8. Evidencias fuera de cadena; hash en ledger o PDC
 
-El multer del día 6 subía un archivo suelto. El 11 sep el adjunto se ancla a la incidencia: disco local + SHA-256; el hash va a `notasTecnicas` del detalle privado. El binario no entra en Fabric (RAM y tamaño de bloque). Las mismas reglas de socio de lote que el PDC. GCS queda para el día 12.
+El multer del día 6 subía un archivo suelto. El 11 sep hay dos anclajes: (1) acta al **completar hito** — disco + SHA-256 en `hashEvidencia` del hito (`POST /hitos/:id/completar` o adjunto previo en VALIDACION); (2) parte de **incidencia** — disco + SHA-256 en `notasTecnicas` del PDC. El binario no entra en Fabric. Incidencias: mismas reglas de socio de lote que el PDC. Hitos: solo la empresa del hito adjunta en VALIDACION. GCS queda para el día 12.
+
+## 9. Seed demo (día 12)
+
+`network/scripts/seed-data.sh` sigue siendo stub (`exit 0`). El mensaje del script dice que aún no hay chaincode ni API: eso es falso; solo falta el juego de datos de defensa.

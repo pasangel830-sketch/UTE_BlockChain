@@ -1,7 +1,7 @@
 # Informe técnico (factual)
 
 Pareja del informe en metáforas: [INFORME-PROGRESO.md](INFORME-PROGRESO.md).
-Checklist: [CHECKLIST.md](CHECKLIST.md). Fecha: 11 sep 2026.
+Checklist: [CHECKLIST.md](CHECKLIST.md). Fecha: 13 sep 2026.
 
 Este archivo solo admite comandos, versiones y salidas. Sin analogías.
 
@@ -18,31 +18,19 @@ Este archivo solo admite comandos, versiones y salidas. Sin analogías.
 | Repo Windows (obsoleto) | `C:\Proyectos\UTE\app` (drvfs) |
 | Repo objetivo | `~/ute/app` en ext4; Cursor `\\wsl$\Ubuntu-22.04\home\<user>\ute\app` |
 
-## Git (11 sep 2026)
+## Git (13 sep 2026)
+
+`develop` en `4781f87` (`la penultima`) al alinear estos docs. El working tree del 11 sep (evidencias + `completarHito`→pago) ya está en `develop`. Esta pasada (13 sep) actualiza `docs/` para coincidir con el código; `ficheros_evidencias_test/` sigue untracked (no se sube).
 
 ```
-git log --oneline --decorate -5
-  fca92c3 (HEAD -> develop, origin/develop) Modif Varias
-  0e24eb8 Hasta día 9 ok
-  68699bd Ajustes app
-  25bd7dc Expose B/C/D sessions, translate Fabric errors, and add the app manual.
-  231032e Mark days 7-9 complete in checklist and progress reports.
-
-git status --short
-  M backend/src/{errors,routes,storage,swagger}.ts
-  M chaincode/hito/{src/hito-contract.ts,test/hito-contract.test.ts,test/mock-ctx.ts}
-  M chaincode/pago/{src/pago-contract.ts,test/pago-contract.test.ts,test/mock-ctx.ts}
-  M frontend/src/app/{hitos,incidencias,pagos}/page.tsx
-  M frontend/src/lib/api.ts
-  M network/scripts/verify-hito-pago.sh
-  ?? ficheros_evidencias_test/
-
 git remote -v
   origin  https://github.com/pasangel830-sketch/UTE_BlockChain.git (fetch)
   origin  https://github.com/pasangel830-sketch/UTE_BlockChain.git (push)
 ```
 
 Remoto real: `pasangel830-sketch/UTE_BlockChain` (no `ute-blockchain-tfm`). `gh` CLI no está instalado en WSL; el push usa `git` + credenciales ya configuradas. Colaborador `DomingoMr`: pendiente de invitación (API collaborators 403 con el token de Cursor).
+
+Snapshot 11 sep 2026 (antes de commit del working tree): HEAD `fca92c3`; cambios locales en backend, chaincode hito/pago, frontend hitos/incidencias/pagos, `verify-hito-pago.sh`. Eso ya no es HEAD.
 
 Snapshot 30 ago 2026 (antes de alinear `main`): `42374c9 Mark` / `b02db9f Unify` / `c08b7c2 Initial commit`. Eso ya no es HEAD.
 
@@ -281,7 +269,7 @@ git show fca92c3 --stat
 - `make deploy-estado` → `OR(A/B/C/D/Admin.peer)`.
 - `submit` de hito/pago/estado entra por el peer del primer endosante (`ORG_PEER_PORT`: A 7051, B 8051, C 11051, D 12051, Admin 9051). Evaluate diario sigue por peer A.
 - `requireEmpresaHito` + `endosantesDeHito` / `endosantesDePago`. Completar pide el par empresa+Admin.
-- Completar hito: dos `submit` (HitoContract + PagoContract). Eso cambia el 11 sep (working tree).
+- Completar hito: dos `submit` (HitoContract + PagoContract). Eso cambia el 11 sep (código ahora en `develop`).
 
 `fca92c3`:
 
@@ -290,7 +278,7 @@ git show fca92c3 --stat
 
 ## 11 sep 2026 — evidencias, listas, hito→pago mismo tx
 
-Working tree (sin commit a las 20:50 CEST). Jest en Node 18:
+Working tree a las 20:50 CEST; después en `develop`. Jest en Node 18:
 
 ```
 cd chaincode/hito && npm test
@@ -306,13 +294,22 @@ Pago: 9 tests (30 ago) → 11 (añade «no custodia si el hito no está COMPLETA
 
 Código (no salida de runtime de red):
 
-- `completarHito` hace `ctx.stub.invokeChaincode('pago', ['PagoContract:ponerEnCustodia', ...], channel)` y devuelve `{ hito, pago }`. Un solo `submit` en la API. `verify-hito-pago.sh`: `completar_invoke` endosa A+Admin.
+- `completarHito` hace `ctx.stub.invokeChaincode('pago', ['PagoContract:ponerEnCustodia', ...], channel)` y devuelve `{ hito, pago }`. Un solo `submitCommit` en la API. Respuesta `{hito, pago, evidencia}`. `verify-hito-pago.sh`: `completar_invoke` endosa A+Admin.
 - `ponerEnCustodia(..., origen)`: si `origen === 'completarHito'` no llama a hito (Fabric rechaza invoke anidado con el mismo txid). Si el origen es otro, `leerHito` exige estado `COMPLETADO` e importe/empresa coincidentes.
-- Evidencias ancladas: `POST/GET /incidencias/:id/evidencias`, `GET .../evidencias/:eid`. Disco `UPLOAD_DIR` + `index.json`; SHA-256; máx. 5 MB; mime imagen/PDF. Binario **no** entra en Fabric. Al crear, el frontend pone `hashEvidencia <sha256> <nombre>` en `notasTecnicas` (PDC).
-- Guardas: `requireAdjuntoIncidencia` (creadora + ABIERTA|EN_TRATAMIENTO); `requireSocioEvidencia` (socios del lote; Admin 403 `PDC_SIN_ACCESO`). Multer `LIMIT_FILE_SIZE` → 400.
+- Evidencias de incidencia: `POST/GET /incidencias/:id/evidencias`, `GET .../evidencias/:eid`. Disco `UPLOAD_DIR` + `index.json`; SHA-256; máx. 5 MB; mime imagen/PDF. Binario **no** entra en Fabric. Al crear, el frontend pone `hashEvidencia <sha256> <nombre>` en `notasTecnicas` (PDC).
+- Evidencias de hito: `POST/GET /hitos/:id/evidencias` (solo empresa del hito, estado `VALIDACION`). Completar exige acta: multipart `file` o evidencia ya subida; el SHA-256 va a `hashEvidencia`. `GET /evidencias` índice por padre (omite incidencias de lote ajeno).
+- Guardas: `requireAdjuntoHito`; `requireAdjuntoIncidencia` (creadora + ABIERTA|EN_TRATAMIENTO); `requireSocioEvidencia` (socios del lote; Admin 403 `PDC_SIN_ACCESO`). Multer `LIMIT_FILE_SIZE` → 400.
 - Listas `GET /hitos|/pagos|/incidencias` `pageSize` default 100, orden `createdAt` desc. UI: `formatFecha` + `porFechaDesc`. Pagos: detalle técnico al autorizar.
 - Fixtures locales (untracked): `ficheros_evidencias_test/` (PDF/PNG/JPG de fisura, quirófano, forjado, actas).
 
 Hace falta `make deploy-cc` para que el ledger ejecute el invoke cruzado; el Jest no instala chaincode.
+
+## 13 sep 2026 — Explorer y bloque al completar
+
+Commit `4781f87` (`la penultima`). Código; sin captura de `docker stats` ni de `make deploy-cc`.
+
+- `explorer.ts`: si llega bloque 0 con `dataHash` distinto al génesis en RAM, vacía snapshot e índice `txBloque` (cadena nueva tras `reset-demo-*`).
+- `recordarBloqueTx` + `submitCommit`: al completar, la API asigna el número de bloque al hito en la respuesta (el world state no lo guarda).
+- `GET /hitos` rellena `bloque` desde el índice si falta.
 
 

@@ -79,9 +79,7 @@ PENDIENTE → EN_EJECUCION → VALIDACION → COMPLETADO
                               └────────→ RECHAZADO
 ```
 
-Completar un hito (solo en `VALIDACION`) exige un acta PDF o foto. El archivo queda en disco; el
-SHA-256 se escribe en `hashEvidencia` del hito **en la misma transacción** que marca `COMPLETADO` y
-crea el pago en `CUSTODIA`. En el Explorer se ve `completarHito` con el hash en los argumentos.
+Completar un hito (solo en `VALIDACION`) exige un acta PDF o foto. El archivo queda en disco (`POST /hitos/:id/completar` multipart, o adjunto previo `POST /hitos/:id/evidencias`); el SHA-256 se escribe en `hashEvidencia` del hito **en la misma transacción** que marca `COMPLETADO` y crea el pago en `CUSTODIA`. En el Explorer se ve `completarHito` (un tx) con el hash en los argumentos. La ficha puede mostrar el número de bloque.
 
 ### Pagos (escrow)
 
@@ -124,7 +122,8 @@ Las **evidencias** (foto o PDF, máx. 5 MB) se pueden adjuntar al crear o despu�
 incidencia esté `ABIERTA` o `EN_TRATAMIENTO`, y **solo quien la abrió**. El archivo queda en disco
 local (`uploads/`); **no entra en Fabric**. El hash SHA-256 se muestra en la ficha y, al crear, se
 escribe en `notasTecnicas` del PDC (`hashEvidencia …`). Listar y descargar: solo socios del lote.
-Administración no ve las fotos. Fixtures de demo (no se suben al repo): `ficheros_evidencias_test/`.
+Administración no ve las fotos. El acta del hito (VALIDACION / completar) usa las mismas reglas de
+archivo, anclada a `/hitos/:id/evidencias`. Fixtures de demo (no se suben al repo): `ficheros_evidencias_test/`.
 
 Las listas de hitos, pagos, incidencias y evidencias salen de **más reciente a más antiguo**, con
 fecha y hora.
@@ -145,6 +144,8 @@ Con 0 hitos el avance es 0. Los hitos rechazados cuentan en el total pero no com
 Muestra los bloques según llegan (polling cada 3 s). De cada bloque: número, hora, `previousHash` y
 `dataHash`; de cada transacción: `txId`, chaincode y función, MSP creador y MSP endosantes. Los
 orderers Raft ordenan los bloques y no aparecen por bloque; quienes firman son los peers endosantes.
+Si se abre una red nueva (`make reset-demo-dev` / `reset-demo-full`), el Explorer se vacía solo: no
+mezcla bloques del ledger anterior.
 
 ## 4. Cuando algo se rechaza
 

@@ -1,6 +1,6 @@
 # Informe de mejoras UI/API — UTE Blockchain
 
-**Estado:** fases 0–4 **HECHO** (31 ago 2026, `25bd7dc`). Refuerzo de roles **HECHO** (6 sep 2026, `68699bd`). Políticas/gateway/sonda **HECHO** (9 sep, `0e24eb8` + `fca92c3`). Evidencias y hito→pago mismo tx **HECHO** (11 sep, working tree). Este archivo era el plan; abajo queda el registro de lo aplicado.
+**Estado:** fases 0–4 **HECHO** (31 ago 2026, `25bd7dc`). Refuerzo de roles **HECHO** (6 sep 2026, `68699bd`). Políticas/gateway/sonda **HECHO** (9 sep, `0e24eb8` + `fca92c3`). Evidencias y hito→pago mismo tx **HECHO** (11 sep, en `develop`). Explorer génesis y bloque al completar **HECHO** (13 sep, `4781f87`). Este archivo era el plan; abajo queda el registro de lo aplicado.
 
 **Alcance:** identidad en pantalla, separación de roles en pagos e incidencias, Explorer con detalle Fabric, usuarios B/C/D, docs.
 **Restricción:** no borrar ledger desde la app, no reescribir chaincode salvo que una fase lo pida, no romper el flujo hito → custodia → evento → Explorer.
@@ -46,7 +46,7 @@ En `frontend/src/lib/api.ts`:
 
 - `decodeToken()`: payload JWT (split `.` + `atob` + `JSON.parse`). Sin nueva dependencia.
 - `getSession(): { username: string; org: string } | null` usando `sub` y `org`.
-- Opcional backend: `GET /auth/me` con `auth` → `{ username: req.user.sub, org: req.user.org }`. Si se añade, documentar en `backend/src/swagger.ts`. No sustituye el mapa de oficios.
+- No se añadió `GET /auth/me`: la UI lee el JWT. El mapa de oficios sigue en `orgs.ts`.
 
 ### 0.3 Chip en `Shell`
 
@@ -146,7 +146,7 @@ ExplorerBlock = { number, txCount, receivedAt, previousHash?, dataHash?, txs?: E
 
 Textos: “endosos (peers)”, “orderers Raft (no se listan por bloque)”. No “validador”.
 
-**Verificar:** Completar hito (2 submits) → bloque 1 o 2 tx con `completarHito` / `ponerEnCustodia`; altura y polling intactos; API `GET /explorer` sigue 200 si el parseo parcial falla.
+**Verificar:** Completar hito (1 tx: `completarHito` con invoke a pago) → un bloque con esa función; altura y polling intactos; API `GET /explorer` sigue 200 si el parseo parcial falla.
 
 ---
 
@@ -240,9 +240,15 @@ Swagger documenta esos 403.
 
 Políticas de commit: hito `OR(A,B,C,D)`; pago `OR(AND(org,Admin)…)`; estado `OR(5 MSP)`. `submit` de hito/pago/estado al peer del primer endosante. `requireEmpresaHito`. `GET /red` sonda TCP; UI PDC usa peers vivos.
 
-## Fase 7 — Evidencias y hito→pago mismo tx (11 sep 2026) · HECHO (working tree)
+## Fase 7 — Evidencias y hito→pago mismo tx (11 sep 2026) · HECHO (en `develop`)
 
-`POST/GET /incidencias/:id/evidencias`: disco + SHA-256; hash en `notasTecnicas` al crear; creadora adjunta; socios listan/descargan. Listas más reciente primero. `completarHito` → `invokeChaincode` pago. Jest hito 12, pago 11.
+`POST/GET /incidencias/:id/evidencias`: disco + SHA-256; hash en `notasTecnicas` al crear; creadora adjunta; socios listan/descargan.
+`POST/GET /hitos/:id/evidencias`: solo la empresa del hito, estado `VALIDACION`. Completar exige acta (multipart o ya subida); SHA-256 en `hashEvidencia`. `GET /evidencias` índice por padre.
+Listas más reciente primero. `completarHito` → `invokeChaincode` pago. Un `submitCommit`. Jest hito 12, pago 11.
+
+## Fase 8 — Explorer y bloque (13 sep 2026) · HECHO (`4781f87`)
+
+Si el génesis cambia (`dataHash` distinto), el snapshot del Explorer se vacía. Al completar, `recordarBloqueTx` pone el número de bloque en la respuesta del hito.
 
 ---
 
@@ -256,7 +262,8 @@ Políticas de commit: hito `OR(A,B,C,D)`; pago `OR(AND(org,Admin)…)`; estado `
 6. Fase 4 (manual)
 7. Fase 5 (refuerzo roles: creadora, rechazar pago, Admin no avanza hitos) — 6 sep
 8. Fase 6 (políticas / gateway / `GET /red`) — 9 sep
-9. Fase 7 (evidencias + completarHito→pago) — 11 sep
+9. Fase 7 (evidencias hito/incidencia + completarHito→pago) — 11 sep
+10. Fase 8 (Explorer génesis + bloque al completar) — 13 sep
 
 Tras cada fase: `make api-up` (el API corre `dist/`; hay que `npm run build`). Frontend con `make ui-up` recarga solo.
 
@@ -271,13 +278,15 @@ Tras cada fase: `make api-up` (el API corre `dist/`; hay que `npm run build`). F
 | `frontend/src/components/Shell.tsx` | 0 |
 | `frontend/src/app/page.tsx` | 0, 3 |
 | `frontend/src/app/pagos/page.tsx` | 1, 5 |
-| `frontend/src/app/hitos/page.tsx` | 3, 5 |
-| `frontend/src/app/incidencias/page.tsx` | 3, 5 |
+| `frontend/src/app/hitos/page.tsx` | 3, 5, 7 |
+| `frontend/src/app/incidencias/page.tsx` | 3, 5, 7 |
 | `frontend/src/components/ExplorerPanel.tsx` | 2 |
-| `backend/src/routes.ts` | 1, 1b, 0 opcional `/auth/me`, 5 |
-| `backend/src/errors.ts` | 5 (`rechazoSoloCreadoraIncidencia`) |
-| `backend/src/explorer.ts` | 2 |
-| `backend/src/swagger.ts` | 0, 2, 5 |
+| `backend/src/routes.ts` | 1, 1b, 5, 7, 8 |
+| `chaincode/hito` `chaincode/pago` | 7 |
+| `backend/src/errors.ts` | 5, 7 |
+| `backend/src/explorer.ts` | 2, 8 |
+| `backend/src/swagger.ts` | 2, 5, 7 |
+| `backend/src/storage.ts` | 7 |
 | `backend/src/config.ts` | 3 |
 | `backend/src/fabric.ts` | 3 |
 | `backend/.env.example` | 3 |

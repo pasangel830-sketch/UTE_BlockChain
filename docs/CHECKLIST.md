@@ -2,7 +2,7 @@
 
 **Fuente de verdad.** El resto de `docs/` apunta aquí.
 Leyenda: **HECHO** · **EN CURSO** · **PENDIENTE**
-Actualizado: 11 sep 2026.
+Actualizado: 13 sep 2026.
 
 | | |
 | --- | --- |
@@ -32,7 +32,7 @@ Una fila pasa a HECHO solo si: (1) el comando o entrega existe en el repo o en l
 | 20 contenedores chaincode OOM | día 11 | Instalar cada CC solo en peers que endosan; medir `docker stats` antes del freeze |
 | `gh` sin login / sin remoto | hoy | Cerrado: remoto `UTE_BlockChain`, `main` alineado con `develop`. Falta invitar `DomingoMr` |
 | Cross-cc Hito→EstadoObra | días 4–8 | EstadoObra se escribe desde el backend; el CC no llama a otros CC |
-| Cross-cc Hito→Pago (mismo tx) | 11 sep | `completarHito` → `invokeChaincode` pago; `origen=completarHito` evita invoke anidado hito←pago. Redeploy (`make deploy-cc`) pendiente de runtime |
+| Cross-cc Hito→Pago (mismo tx) | 11 sep | Código en `develop`: `completarHito` → `invokeChaincode` pago; `origen=completarHito` evita invoke anidado hito←pago. Red ya desplegada: `make deploy-cc`. Captura de runtime aún no está en el informe técnico |
 | Render Free se duerme | defensa | API en la misma VM que Fabric (ya decidido) |
 | `chmod 600` en drvfs | keys peer | Repo en ext4 `~/ute/app`, no en `/mnt/c` |
 | Día 12 falla y no hay demo | defensa | Rebanada vertical (hito→pago→API→pantalla→Explorer) **antes del día 8** |
@@ -109,7 +109,7 @@ Invertido respecto al plan original: punta a punta **antes del día 8**. Inciden
 | HECHO | Escrow: fondos CUSTODIA hasta `PagoAutorizado` (PDF §4.2) | tests + invoke `H-d5` |
 | HECHO | Endorsement `OR(AND(org, Admin)…)` por empresa del hito | commit `OR(AND(A,Admin),AND(B,Admin),AND(C,Admin),AND(D,Admin))`; API pide el par de esa empresa |
 | HECHO | Init participaciones 35/25/20/20 | `InitLedger` → `{"EmpresaA":35,...}` |
-| HECHO | `completarHito` dispara custodia en el mismo tx (`invokeChaincode` pago); EstadoObra sigue en backend | API `POST /hitos/:id/completar` → `{hito, pago}` CUSTODIA (código 11 sep; redeploy pendiente) |
+| HECHO | `completarHito` dispara custodia en el mismo tx (`invokeChaincode` pago); EstadoObra sigue en backend | API `POST /hitos/:id/completar` (multipart acta) → `{hito, pago, evidencia}` CUSTODIA. Código en `develop`. Red vieja: `make deploy-cc` |
 
 ### Día 6 — API (trozo de hitos/pagos) · HECHO (30 ago 2026)
 
@@ -175,14 +175,24 @@ Commits `0e24eb8`, `fca92c3`. Políticas de commit alineadas con B/C/D.
 
 ### Post día 9c — evidencias, listas, hito→pago · HECHO (11 sep 2026)
 
-Working tree (sin commit). Jest: hito 12/12, pago 11/11. Redeploy de CC no demostrado en runtime.
+Código en `develop` (ya no es working tree). Jest: hito 12/12, pago 11/11. `make deploy-cc` en red ya desplegada; la captura de runtime del invoke cruzado no está en el informe técnico.
 
 | Estado | Tarea | Hecho si |
 | --- | --- | --- |
-| HECHO | Evidencias ancladas a incidencia: disco + SHA-256; hash en `notasTecnicas` PDC al crear | `storage.ts` + `POST /incidencias/:id/evidencias` |
-| HECHO | Solo la creadora adjunta (ABIERTA/EN_TRATAMIENTO); solo socios listan/descargan | 403 `ROL_NO_AUTORIZADO` / `PDC_SIN_ACCESO` |
-| HECHO | Listas hitos/pagos/incidencias/evidencias más reciente primero; fecha en UI | `listaOrdenada` + `porFechaDesc` |
-| HECHO | `completarHito` → `PagoContract:ponerEnCustodia` en el mismo tx | tests Jest; `verify-hito-pago.sh` endosa A+Admin |
+| HECHO | Evidencias de incidencia: disco + SHA-256; hash en `notasTecnicas` PDC al crear | `storage.ts` + `POST /incidencias/:id/evidencias` |
+| HECHO | Evidencias de hito: adjunto en VALIDACION; completar exige acta (multipart o ya subida) | `POST /hitos/:id/evidencias` + `POST /hitos/:id/completar` → `hashEvidencia` |
+| HECHO | Solo la creadora adjunta incidencias (ABIERTA/EN_TRATAMIENTO); solo socios listan/descargan | 403 `ROL_NO_AUTORIZADO` / `PDC_SIN_ACCESO` |
+| HECHO | Listas hitos/pagos/incidencias/evidencias más reciente primero; fecha en UI | `listaOrdenada` + `porFechaDesc`; `GET /evidencias` índice por padre |
+| HECHO | `completarHito` → `PagoContract:ponerEnCustodia` en el mismo tx | tests Jest; API un `submitCommit`; `verify-hito-pago.sh` endosa A+Admin |
+
+### Post día 9d — Explorer y cadena nueva · HECHO (13 sep 2026)
+
+Commit `4781f87`.
+
+| Estado | Tarea | Hecho si |
+| --- | --- | --- |
+| HECHO | Explorer vacía el snapshot si llega un génesis con `dataHash` distinto | `explorer.ts` `aplicarBloque` |
+| HECHO | Número de bloque de `completarHito` se recuerda al commit (`recordarBloqueTx`) | API `{hito, pago, evidencia}` + `bloque` |
 
 ---
 
@@ -190,7 +200,7 @@ Working tree (sin commit). Jest: hito 12/12, pago 11/11. Redeploy de CC no demos
 
 | Estado | Tarea | Hecho si |
 | --- | --- | --- |
-| HECHO | Mañana: huecos UI | [MEJORAS-UI.md](MEJORAS-UI.md); ver Post día 9 / 9b / 9c |
+| HECHO | Mañana: huecos UI | [MEJORAS-UI.md](MEJORAS-UI.md); ver Post día 9 / 9b / 9c / 9d |
 | PENDIENTE | VM e2-standard-4, IP estática, certs con **SAN de esa IP** | `openssl x509 -in ... -text` muestra la IP |
 | PENDIENTE | API en la misma VM; Gateway → peer por red Docker | curl HTTPS o :4000 interno |
 | PENDIENTE | Apagar VM | consola GCP |
