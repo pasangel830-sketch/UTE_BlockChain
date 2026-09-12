@@ -113,6 +113,42 @@ function contract(gw: Gateway, chaincode: string, name: string): Contract {
   return gw.getNetwork(config.channelName).getContract(chaincode, name);
 }
 
+type SubmitOpts = {
+  arguments: string[];
+  endorsingOrganizations?: string[];
+  transientData?: Record<string, string | Uint8Array>;
+};
+
+function submitOptions(
+  args: string[],
+  endorsing?: string[],
+  transientData?: Record<string, string | Uint8Array>,
+): SubmitOpts {
+  const opts: SubmitOpts = { arguments: args };
+  if (endorsing) {
+    opts.endorsingOrganizations = endorsing;
+  }
+  if (transientData) {
+    opts.transientData = transientData;
+  }
+  return opts;
+}
+
+async function contractForSubmit(
+  org: OrgMsp,
+  chaincode: string,
+  name: string,
+  endorsing?: string[],
+): Promise<Contract> {
+  const via =
+    chaincode === config.chaincodePago ||
+    chaincode === config.chaincodeHito ||
+    chaincode === config.chaincodeEstado
+      ? gatewayPeerDe(endorsing)
+      : 'EmpresaAMSP';
+  return contract(await getGateway(org, via), chaincode, name);
+}
+
 export async function submit(
   org: OrgMsp,
   chaincode: string,
@@ -122,22 +158,35 @@ export async function submit(
   endorsing?: string[],
   transientData?: Record<string, string | Uint8Array>,
 ): Promise<string> {
-  const via =
-    chaincode === config.chaincodePago ||
-    chaincode === config.chaincodeHito ||
-    chaincode === config.chaincodeEstado
-      ? gatewayPeerDe(endorsing)
-      : 'EmpresaAMSP';
-  const c = contract(await getGateway(org, via), chaincode, name);
+  const c = await contractForSubmit(org, chaincode, name, endorsing);
   const bytes =
     endorsing || transientData
-      ? await c.submit(fn, {
-          arguments: args,
-          endorsingOrganizations: endorsing,
-          transientData,
-        })
+      ? await c.submit(fn, submitOptions(args, endorsing, transientData))
       : await c.submitTransaction(fn, ...args);
   return Buffer.from(bytes).toString('utf8');
+}
+
+/** Submit y espera el commit: txId y número de bloque (Fabric lo asigna al ordenar). */
+export async function submitCommit(
+  org: OrgMsp,
+  chaincode: string,
+  name: string,
+  fn: string,
+  args: string[],
+  endorsing?: string[],
+  transientData?: Record<string, string | Uint8Array>,
+): Promise<{ payload: string; txId: string; blockNumber: number }> {
+  const c = await contractForSubmit(org, chaincode, name, endorsing);
+  const commit = await c.submitAsync(fn, submitOptions(args, endorsing, transientData));
+  const status = await commit.getStatus();
+  if (!status.successful) {
+    throw new Error(`transacción ${status.transactionId} no válida en el ledger`);
+  }
+  return {
+    payload: Buffer.from(commit.getResult()).toString('utf8'),
+    txId: status.transactionId,
+    blockNumber: Number(status.blockNumber),
+  };
 }
 
 export async function evaluate(

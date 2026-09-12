@@ -88,7 +88,7 @@ export const openapi = {
     '/hitos/{id}/completar': {
       post: {
         description:
-          'Guarda el acta (foto o PDF) fuera de cadena, calcula SHA-256 del buffer y llama completarHito(id, hash). COMPLETADO + CUSTODIA en la misma transacción. Solo en VALIDACION. Multipart campo file, o evidencia ya subida con POST /hitos/{id}/evidencias.',
+          'Guarda el acta (foto o PDF) fuera de cadena, calcula SHA-256 del buffer y llama completarHito(id, hash). COMPLETADO + CUSTODIA + txId Fabric en la misma transacción; el número de bloque se añade al commit. Solo en VALIDACION. Multipart campo file, o evidencia ya subida con POST /hitos/{id}/evidencias.',
         requestBody: {
           content: {
             'multipart/form-data': {

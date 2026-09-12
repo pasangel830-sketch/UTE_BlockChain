@@ -93,6 +93,7 @@ export function createMockCtx(mspId = 'EmpresaAMSP'): Context {
       seconds: { low: 1756580000, high: 0 },
       nanos: 0,
     })),
+    getTxID: jest.fn(() => 'c'.repeat(64)),
   };
 
   const clientIdentity = {

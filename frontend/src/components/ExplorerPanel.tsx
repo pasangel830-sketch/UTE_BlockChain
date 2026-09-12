@@ -28,19 +28,15 @@ function hora(b: Block): string {
   return (b.txs?.[0]?.timestamp ?? b.receivedAt).slice(11, 19);
 }
 
-function short(v: string, head = 10, tail = 6): string {
-  return v.length <= head + tail + 1 ? v : `${v.slice(0, head)}…${v.slice(-tail)}`;
-}
-
 function Copiable({ value }: { value: string }) {
   return (
     <button
       type="button"
       title={value}
-      className="font-mono text-xs text-slate-600 underline-offset-2 hover:underline"
+      className="break-all font-mono text-xs text-slate-600 underline-offset-2 hover:underline"
       onClick={() => void navigator.clipboard?.writeText(value)}
     >
-      {short(value)}
+      {value}
     </button>
   );
 }

@@ -15,6 +15,8 @@ type Hito = {
   importe: number;
   estado: string;
   hashEvidencia?: string;
+  txId?: string;
+  bloque?: number;
   createdAt?: string;
 };
 type Pago = { id: string; hitoId: string; importeTotal: number; estado: string; createdAt?: string };
@@ -212,9 +214,26 @@ export default function HitosPage() {
                       </>
                     )}
                   </p>
+                  {h.txId && (
+                    <p className="mt-2 text-xs text-slate-600">
+                      txId{' '}
+                      <code className="rounded bg-slate-100 px-1 py-0.5 font-mono" title={h.txId}>
+                        {h.txId.slice(0, 16)}…
+                      </code>
+                      <button className="ml-2 underline" type="button" onClick={() => copiar(h.txId!)}>
+                        copiar
+                      </button>
+                      {h.bloque != null && (
+                        <>
+                          {' '}
+                          · bloque <span className="font-mono">#{h.bloque}</span>
+                        </>
+                      )}
+                    </p>
+                  )}
                   {h.hashEvidencia && (
                     <p className="mt-2 text-xs text-slate-600">
-                      hash ledger{' '}
+                      hash acta{' '}
                       <code className="rounded bg-slate-100 px-1 py-0.5 font-mono" title={h.hashEvidencia}>
                         {h.hashEvidencia.slice(0, 16)}…
                       </code>

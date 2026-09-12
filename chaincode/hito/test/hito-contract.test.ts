@@ -56,6 +56,8 @@ describe('HitoContract', () => {
     );
     expect(r.hito.estado).toBe('COMPLETADO');
     expect(r.hito.hashEvidencia).toBe(HASH);
+    expect(r.hito.txId).toBe('c'.repeat(64));
+    expect(parse<Hito>(await cc.consultarHito(ctx, 'H1')).txId).toBe('c'.repeat(64));
     expect(r.pago.estado).toBe('CUSTODIA');
     expect(r.pago.hitoId).toBe('H1');
     expect(r.pago.id).toBe('pago-H1');

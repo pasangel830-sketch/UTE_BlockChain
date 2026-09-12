@@ -2,8 +2,8 @@ import { Router, Request, Response, NextFunction } from 'express';
 import multer from 'multer';
 import { config, OrgMsp } from './config';
 import { auth, login } from './auth';
-import { submit, evaluate } from './fabric';
-import { getExplorerSnapshot } from './explorer';
+import { submit, submitCommit, evaluate } from './fabric';
+import { bloqueDeTx, getExplorerSnapshot, recordarBloqueTx } from './explorer';
 import { agregarEstado } from './estado';
 import {
   rechazoAdjuntoHitoEstado,
@@ -46,6 +46,27 @@ function listaOrdenada(raw: string): unknown {
   const parsed = JSON.parse(raw) as { items?: ConFecha[] };
   if (Array.isArray(parsed.items)) {
     parsed.items = ordenarPorFechaDesc(parsed.items);
+  }
+  return parsed;
+}
+
+type ConTx = { txId?: string; bloque?: number };
+
+function conBloque<T extends ConTx>(hito: T): T {
+  if (hito.bloque != null) {
+    return hito;
+  }
+  const n = bloqueDeTx(hito.txId);
+  if (n == null) {
+    return hito;
+  }
+  return { ...hito, bloque: n };
+}
+
+function listaHitosConBloque(raw: string): unknown {
+  const parsed = listaOrdenada(raw) as { items?: ConTx[] };
+  if (Array.isArray(parsed.items)) {
+    parsed.items = parsed.items.map(conBloque);
   }
   return parsed;
 }
@@ -276,7 +297,7 @@ router.get(
       page,
       bookmark,
     ]);
-    res.json(listaOrdenada(raw));
+    res.json(listaHitosConBloque(raw));
   }),
 );
 
@@ -309,7 +330,7 @@ router.get(
     const raw = await evaluate(orgOf(req), config.chaincodeHito, 'HitoContract', 'consultarHito', [
       pid(req),
     ]);
-    res.json(JSON.parse(raw));
+    res.json(conBloque(JSON.parse(raw) as ConTx));
   }),
 );
 
@@ -440,7 +461,7 @@ router.post(
       return;
     }
     const org = orgOf(req);
-    const raw = await submit(
+    const committed = await submitCommit(
       org,
       config.chaincodeHito,
       'HitoContract',
@@ -448,11 +469,16 @@ router.post(
       [pid(req), meta.sha256],
       endosantesDePago(dueño.empresa),
     );
-    const parsed = JSON.parse(raw) as { hito?: unknown; pago?: unknown };
+    const parsed = JSON.parse(committed.payload) as { hito?: ConTx; pago?: unknown };
     if (!parsed.hito || !parsed.pago) {
       throw new Error('completarHito no devolvió hito y pago en la misma transacción');
     }
-    res.json({ hito: parsed.hito, pago: parsed.pago, evidencia: meta });
+    recordarBloqueTx(parsed.hito.txId || committed.txId, committed.blockNumber);
+    res.json({
+      hito: conBloque({ ...parsed.hito, bloque: committed.blockNumber }),
+      pago: parsed.pago,
+      evidencia: meta,
+    });
     void refreshEstado(org);
   }),
 );

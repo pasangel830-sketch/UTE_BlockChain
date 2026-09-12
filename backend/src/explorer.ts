@@ -22,6 +22,7 @@ export type ExplorerBlock = {
 };
 
 const blocks: ExplorerBlock[] = [];
+const txBloque = new Map<string, number>();
 let height = 0;
 
 const HEADER_TYPES: Record<number, string> = {
@@ -161,6 +162,29 @@ export function getExplorerSnapshot(): { height: number; channel: string; blocks
   };
 }
 
+function indexTxs(item: ExplorerBlock): void {
+  for (const t of item.txs || []) {
+    if (t.txId) {
+      txBloque.set(t.txId, item.number);
+    }
+  }
+}
+
+/** Bloque que contiene esa transacción (world state no guarda el número: se asigna al ordenar). */
+export function bloqueDeTx(txId: string | undefined): number | undefined {
+  if (!txId) {
+    return undefined;
+  }
+  return txBloque.get(txId);
+}
+
+export function recordarBloqueTx(txId: string, number: number): void {
+  if (!txId || !Number.isFinite(number)) {
+    return;
+  }
+  txBloque.set(txId, number);
+}
+
 export async function startBlockListener(): Promise<void> {
   const loop = async (): Promise<void> => {
     for (;;) {
@@ -172,6 +196,7 @@ export async function startBlockListener(): Promise<void> {
           for await (const block of events) {
             const item = parseBlock(block, new Date().toISOString());
             const num = item.number;
+            indexTxs(item);
             if (!blocks.some((b) => b.number === num)) {
               blocks.push(item);
             }

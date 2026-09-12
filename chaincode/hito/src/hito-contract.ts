@@ -66,6 +66,7 @@ export class HitoContract extends Contract {
     const previo = hito.estado;
     hito.estado = 'COMPLETADO';
     hito.hashEvidencia = hash;
+    hito.txId = ctx.stub.getTxID();
     hito.updatedAt = this.now(ctx);
     await this.save(ctx, hito, previo);
     const pago = await this.invokeJson(ctx, 'pago', [
