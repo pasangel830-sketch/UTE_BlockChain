@@ -33,6 +33,12 @@ PC: Windows 11, 16 GB. Docker Engine en WSL2 (Ubuntu 22.04, ext4 `~/ute/app`). S
 - Makefile: `up-dev` baja full; reset borra `*.block`; `seed` tiene stub.
 - Docs: un checklist; informe técnico aparte del informe en metáforas.
 
+## Post día 9 (31 ago – 13 sep 2026)
+
+5 sesiones, Explorer con txs, errores en castellano, guardas de rol en API (31 ago – 6 sep). Políticas de commit y gateway al peer que endosa (9 sep). Evidencias de hito e incidencia + `completarHito` → pago en el mismo tx (11 sep, en `develop`). Explorer vacía snapshot si cambia el génesis (13 sep, `4781f87`). Detalle UI: [MEJORAS-UI.md](MEJORAS-UI.md). Desviación invoke Hito→Pago: [MEMORIA-NOTAS.md](MEMORIA-NOTAS.md).
+
+Estado a 13 sep: días 1–9 y huecos locales **cerrados**. Siguiente fila del calendario: día 10 (VM + SAN).
+
 ## Calendario
 
 | Día | Foco | Criterio de hecho (resumen) |

@@ -56,8 +56,28 @@ export class HitoContract extends Contract {
   }
 
   @Transaction()
-  async completarHito(ctx: Context, id: string): Promise<string> {
-    return this.transicionar(ctx, id, 'COMPLETADO');
+  async completarHito(ctx: Context, id: string, hashEvidencia: string): Promise<string> {
+    const hito = await this.mustGet(ctx, id);
+    const permitidos = TRANSICIONES[hito.estado] || [];
+    if (!permitidos.includes('COMPLETADO')) {
+      throw new Error(`transición inválida ${hito.estado} → COMPLETADO`);
+    }
+    const hash = this.assertHashEvidencia(hashEvidencia);
+    const previo = hito.estado;
+    hito.estado = 'COMPLETADO';
+    hito.hashEvidencia = hash;
+    hito.txId = ctx.stub.getTxID();
+    hito.updatedAt = this.now(ctx);
+    await this.save(ctx, hito, previo);
+    const pago = await this.invokeJson(ctx, 'pago', [
+      'PagoContract:ponerEnCustodia',
+      `pago-${id}`,
+      hito.id,
+      hito.empresa,
+      String(hito.importe),
+      'completarHito',
+    ]);
+    return JSON.stringify({ hito, pago });
   }
 
   @Transaction()
@@ -88,8 +108,8 @@ export class HitoContract extends Contract {
     const items = await this.drain(iterator);
     return JSON.stringify({
       items,
-      bookmark: metadata.bookmark || '',
-      fetched: metadata.fetchedRecordsCount,
+      bookmark: metadata?.bookmark || '',
+      fetched: metadata?.fetchedRecordsCount ?? items.length,
     });
   }
 
@@ -126,8 +146,8 @@ export class HitoContract extends Contract {
     }
     return JSON.stringify({
       items,
-      bookmark: metadata.bookmark || '',
-      fetched: metadata.fetchedRecordsCount,
+      bookmark: metadata?.bookmark || '',
+      fetched: metadata?.fetchedRecordsCount ?? items.length,
     });
   }
 
@@ -231,6 +251,26 @@ export class HitoContract extends Contract {
     if (!v || !v.trim()) {
       throw new Error(`${name} obligatorio`);
     }
+  }
+
+  private assertHashEvidencia(hash: string): string {
+    const h = (hash || '').trim().toLowerCase();
+    if (!/^[a-f0-9]{64}$/.test(h)) {
+      throw new Error('hashEvidencia obligatorio');
+    }
+    return h;
+  }
+
+  private async invokeJson(ctx: Context, chaincode: string, args: string[]): Promise<unknown> {
+    const resp = await ctx.stub.invokeChaincode(chaincode, args, ctx.stub.getChannelID());
+    if (resp.status !== 200) {
+      throw new Error(resp.message || `${chaincode} ${args[0]} status ${resp.status}`);
+    }
+    const payload = Buffer.from(resp.payload ?? []).toString('utf8');
+    if (!payload) {
+      throw new Error(`${chaincode} ${args[0]} sin payload`);
+    }
+    return JSON.parse(payload);
   }
 
   private now(ctx: Context): string {

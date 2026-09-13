@@ -10,7 +10,7 @@ export const config = {
   jwtExpires: env('JWT_EXPIRES', '8h'),
   authUsers: env(
     'AUTH_USERS',
-    'empresaA:empresaA:EmpresaAMSP,administracion:administracion:AdministracionMSP',
+    'empresaA:empresaA:EmpresaAMSP,empresaB:empresaB:EmpresaBMSP,empresaC:empresaC:EmpresaCMSP,empresaD:empresaD:EmpresaDMSP,administracion:administracion:AdministracionMSP',
   ),
   peerEndpoint: env('PEER_ENDPOINT', 'localhost:7051'),
   peerHostAlias: env('PEER_HOST_ALIAS', 'peer0.empresaa.ute.local'),
@@ -21,6 +21,8 @@ export const config = {
   channelName: env('CHANNEL_NAME', 'channel-obra'),
   chaincodeHito: env('CHAINCODE_HITO', 'hito'),
   chaincodePago: env('CHAINCODE_PAGO', 'pago'),
+  chaincodeIncidencia: env('CHAINCODE_INCIDENCIA', 'incidencia'),
+  chaincodeEstado: env('CHAINCODE_ESTADO', 'estado-obra'),
   storageDriver: env('STORAGE_DRIVER', 'local'),
   uploadDir: env('UPLOAD_DIR', path.resolve(__dirname, '../uploads')),
   mockBancoUrl: env('MOCK_BANCO_URL', 'http://127.0.0.1:4000/mock/banco/pagos'),
@@ -28,4 +30,9 @@ export const config = {
   keepaliveTimeout: parseInt(env('GRPC_KEEPALIVE_TIMEOUT_MS', '20000'), 10),
 };
 
-export type OrgMsp = 'EmpresaAMSP' | 'AdministracionMSP';
+export type OrgMsp =
+  | 'EmpresaAMSP'
+  | 'EmpresaBMSP'
+  | 'EmpresaCMSP'
+  | 'EmpresaDMSP'
+  | 'AdministracionMSP';

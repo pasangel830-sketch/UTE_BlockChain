@@ -1,0 +1,174 @@
+'use client';
+
+import { useEffect, useState } from 'react';
+import { api } from '@/lib/api';
+
+type Tx = {
+  txId: string;
+  type?: string;
+  fn?: string;
+  chaincode?: string;
+  creatorMsp?: string;
+  endorsers?: string[];
+  timestamp?: string;
+};
+type Block = {
+  number: number;
+  txCount: number;
+  receivedAt: string;
+  previousHash?: string;
+  dataHash?: string;
+  txs?: Tx[];
+};
+type Snap = { height: number; channel: string; blocks: Block[] };
+
+const PAGE = 20;
+
+function hora(b: Block): string {
+  return (b.txs?.[0]?.timestamp ?? b.receivedAt).slice(11, 19);
+}
+
+function Copiable({ value }: { value: string }) {
+  return (
+    <button
+      type="button"
+      title={value}
+      className="break-all font-mono text-xs text-slate-600 underline-offset-2 hover:underline"
+      onClick={() => void navigator.clipboard?.writeText(value)}
+    >
+      {value}
+    </button>
+  );
+}
+
+function BlockDetail({ b }: { b: Block }) {
+  return (
+    <div className="border-t border-slate-200 px-3 py-2 text-xs">
+      <dl className="grid grid-cols-[7rem_1fr] gap-x-2 gap-y-1 text-slate-500">
+        <dt>dataHash</dt>
+        <dd>{b.dataHash ? <Copiable value={b.dataHash} /> : '—'}</dd>
+        <dt>previousHash</dt>
+        <dd>{b.previousHash ? <Copiable value={b.previousHash} /> : '—'}</dd>
+      </dl>
+      <ul className="mt-2 space-y-2">
+        {(b.txs || []).map((t) => (
+          <li key={t.txId} className="rounded-md bg-white px-2 py-2 ring-1 ring-slate-200">
+            <div className="flex flex-wrap items-baseline gap-x-2">
+              <Copiable value={t.txId} />
+              {(t.chaincode || t.fn) && (
+                <span className="font-medium text-ink">
+                  {t.chaincode || '?'}.{t.fn || '?'}
+                </span>
+              )}
+              {t.timestamp && <span className="text-slate-400">{t.timestamp.slice(11, 19)}</span>}
+            </div>
+            <p className="mt-1 text-slate-500">
+              creador {t.creatorMsp || '—'}
+              {t.type && t.type !== 'ENDORSER_TRANSACTION' ? ` · ${t.type}` : ''}
+            </p>
+            <p className="text-slate-500">
+              endosos (peers): {t.endorsers?.length ? t.endorsers.join(', ') : '—'}
+            </p>
+          </li>
+        ))}
+        {!b.txs?.length && <li className="text-slate-400">sin detalle de transacciones</li>}
+      </ul>
+      <p className="mt-2 text-slate-400">orderers Raft (no se listan por bloque)</p>
+    </div>
+  );
+}
+
+export function ExplorerPanel({ compact = false }: { compact?: boolean }) {
+  const [snap, setSnap] = useState<Snap | null>(null);
+  const [err, setErr] = useState('');
+  const [open, setOpen] = useState<number | null>(null);
+  const [page, setPage] = useState(1);
+
+  useEffect(() => {
+    let stop = false;
+    const tick = async () => {
+      try {
+        const s = await api<Snap>('/explorer');
+        if (!stop) {
+          setSnap(s);
+          setErr('');
+        }
+      } catch (e) {
+        if (!stop) setErr((e as Error).message);
+      }
+    };
+    void tick();
+    const id = setInterval(tick, 3000);
+    return () => {
+      stop = true;
+      clearInterval(id);
+    };
+  }, []);
+
+  const all = snap?.blocks || [];
+  const totalPages = Math.max(1, Math.ceil(all.length / PAGE));
+  const current = Math.min(page, totalPages);
+  const shown = compact ? all.slice(0, 8) : all.slice((current - 1) * PAGE, current * PAGE);
+
+  return (
+    <section className="card p-4">
+      <div className="mb-3 flex items-baseline justify-between">
+        <h2 className="text-sm font-semibold uppercase tracking-[0.14em] text-slate-500">Explorer</h2>
+        <p className="text-xs text-slate-400">polling 3 s · {snap?.channel || '—'}</p>
+      </div>
+      {err && <p className="text-sm text-rose-600">{err}</p>}
+      <p className="mb-3 font-serif text-2xl font-bold text-ink">
+        altura {snap?.height ?? '…'}
+      </p>
+      <ul className={`space-y-2 ${compact ? 'max-h-64 overflow-y-auto' : ''}`}>
+        {shown.map((b) =>
+          compact ? (
+            <li key={b.number} className="flex items-center justify-between rounded-lg bg-slate-50 px-3 py-2 text-sm">
+              <span className="font-mono">#{b.number}</span>
+              <span className="text-slate-500">{b.txCount} tx</span>
+              <span className="text-xs text-slate-400">{hora(b)}</span>
+            </li>
+          ) : (
+            <li key={b.number} className="overflow-hidden rounded-lg bg-slate-50">
+              <button
+                type="button"
+                className="flex w-full items-center justify-between px-3 py-2 text-left text-sm hover:bg-slate-100"
+                onClick={() => setOpen(open === b.number ? null : b.number)}
+              >
+                <span className="font-mono">
+                  {open === b.number ? '▾' : '▸'} #{b.number}
+                </span>
+                <span className="text-slate-500">{b.txCount} tx</span>
+                <span className="text-xs text-slate-400">{hora(b)}</span>
+              </button>
+              {open === b.number && <BlockDetail b={b} />}
+            </li>
+          ),
+        )}
+      </ul>
+      {!compact && all.length > 0 && (
+        <div className="mt-4 flex items-center justify-between gap-3 text-sm text-slate-500">
+          <button
+            type="button"
+            className="rounded-lg px-3 py-1.5 ring-1 ring-slate-200 hover:bg-slate-50 disabled:opacity-40"
+            disabled={current <= 1}
+            onClick={() => setPage(current - 1)}
+          >
+            Anterior
+          </button>
+          <p className="text-xs">
+            {current} / {totalPages} · {all.length} bloques
+          </p>
+          <button
+            type="button"
+            className="rounded-lg px-3 py-1.5 ring-1 ring-slate-200 hover:bg-slate-50 disabled:opacity-40"
+            disabled={current >= totalPages}
+            onClick={() => setPage(current + 1)}
+          >
+            Siguiente
+          </button>
+        </div>
+      )}
+    </section>
+  );
+}

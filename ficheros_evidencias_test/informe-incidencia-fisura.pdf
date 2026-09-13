@@ -1,0 +1,58 @@
+%PDF-1.4
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Kids [3 0 R] /Count 1 >>
+endobj
+3 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Contents 4 0 R /Resources << /Font << /F1 5 0 R >> >> >>
+endobj
+4 0 obj
+<< /Length 647 >>
+stream
+BT
+/F1 16 Tf
+50 780 Td
+(UTE Hospital - Informe de incidencia (DEMO)) Tj
+/F1 11 Tf
+0 -28 Td
+(Codigo: INC-DEMO-001    Lote: obra-gruesa-solar) Tj
+0 -16 Td
+(Empresa: Empresa A    Fecha: 11/09/2026) Tj
+0 -16 Td
+() Tj
+0 -16 Td
+(Titulo: Fisura en forjado de planta baja) Tj
+0 -16 Td
+(Descripcion: Grieta de 1,8 m en forjado. Ancho max. 3 mm.) Tj
+0 -16 Td
+(Coste estimado: 1.200 EUR \(partida confidencial\).) Tj
+0 -16 Td
+() Tj
+0 -16 Td
+(Este PDF es ficticio. Sirve para la defensa: el archivo) Tj
+0 -16 Td
+(queda fuera de Fabric; en el canal solo se ancla el hash SHA-256.) Tj
+0 -16 Td
+() Tj
+0 -16 Td
+(Hash se calcula al adjuntar en /incidencias.) Tj
+ET
+endstream
+endobj
+5 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>
+endobj
+xref
+0 6
+0000000000 65535 f 
+0000000009 00000 n 
+0000000058 00000 n 
+0000000115 00000 n 
+0000000241 00000 n 
+0000000939 00000 n 
+trailer << /Size 6 /Root 1 0 R >>
+startxref
+1009
+%%EOF

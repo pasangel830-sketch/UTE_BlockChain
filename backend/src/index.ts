@@ -2,7 +2,8 @@ import 'dotenv/config';
 import { config } from './config';
 import { createApp } from './app';
 import { startPagoListener } from './events';
-import { closeAll } from './fabric';
+import { startBlockListener } from './explorer';
+import { closeAll, peersLevantados } from './fabric';
 
 async function main() {
   if (config.storageDriver !== 'local') {
@@ -11,8 +12,10 @@ async function main() {
   const app = createApp();
   const server = app.listen(config.port, '0.0.0.0', () => {
     console.log(`UTE API :${config.port}`);
+    void peersLevantados();
   });
   await startPagoListener();
+  await startBlockListener();
   const stop = async () => {
     server.close();
     await closeAll();

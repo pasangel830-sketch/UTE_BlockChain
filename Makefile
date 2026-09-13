@@ -4,7 +4,7 @@ COMPOSE_MON := docker compose -f monitoring/docker-compose.yaml
 COMPOSE_PROD := docker compose -f network/docker-compose.production.yaml
 ART_BLOCKS := network/channel-artifacts/*.block network/channel-artifacts/*.tx channel-obra.block
 
-.PHONY: crypto channel-dev channel-full up-dev down-dev logs-dev up-full down-full logs-full verify-full reset-dev reset-full seed monitoring-up monitoring-down ps clean-artifacts test-cc deploy-hito deploy-pago deploy-cc init-pago verify-cc verify-api api-up api-down
+.PHONY: crypto channel-dev channel-full up-dev down-dev logs-dev up-full down-full logs-full verify-full reset-dev reset-full reset-demo-dev reset-demo-full clean-offchain seed monitoring-up monitoring-down ps clean-artifacts test-cc deploy-hito deploy-pago deploy-incidencia deploy-estado deploy-cc init-pago init-estado verify-cc verify-api verify-pdc verify-ui api-up api-down ui-up pdc-up pdc-down
 
 crypto:
 	./network/scripts/generate-crypto.sh
@@ -48,6 +48,7 @@ clean-artifacts:
 reset-dev:
 	$(COMPOSE_FULL) down -v --remove-orphans || true
 	$(COMPOSE_DEV) down -v --remove-orphans || true
+	-docker ps -aq --filter 'name=dev-peer' | xargs -r docker rm -f
 	rm -f $(ART_BLOCKS)
 	./network/scripts/generate-crypto.sh
 	$(COMPOSE_DEV) up -d
@@ -56,10 +57,34 @@ reset-dev:
 reset-full:
 	$(COMPOSE_DEV) down -v --remove-orphans || true
 	$(COMPOSE_FULL) down -v --remove-orphans || true
+	-docker ps -aq --filter 'name=dev-peer' | xargs -r docker rm -f
 	rm -f $(ART_BLOCKS)
 	./network/scripts/generate-crypto.sh
 	$(COMPOSE_FULL) up -d
 	./network/scripts/create-channel.sh full
+
+clean-offchain:
+	mkdir -p backend/uploads
+	docker run --rm -v "$(CURDIR)/backend/uploads:/uploads" node:24.20.0-bookworm bash -c 'find /uploads -mindepth 1 -delete'
+
+# Red nueva para demo: baja API primero (Explorer en RAM), borra ledger y evidencias, redespliega CC.
+reset-demo-dev:
+	$(MAKE) api-down
+	$(MAKE) pdc-down
+	$(MAKE) monitoring-down
+	$(MAKE) clean-offchain
+	$(MAKE) reset-dev
+	$(MAKE) deploy-cc
+	$(MAKE) api-up
+
+reset-demo-full:
+	$(MAKE) api-down
+	$(MAKE) pdc-down
+	$(MAKE) monitoring-down
+	$(MAKE) clean-offchain
+	$(MAKE) reset-full
+	$(MAKE) deploy-cc
+	$(MAKE) api-up
 
 seed:
 	./network/scripts/seed-data.sh
@@ -77,18 +102,30 @@ ps:
 test-cc:
 	. $(HOME)/.nvm/nvm.sh && nvm use 18 && cd chaincode/hito && npm test
 	. $(HOME)/.nvm/nvm.sh && nvm use 18 && cd chaincode/pago && npm test
+	. $(HOME)/.nvm/nvm.sh && nvm use 18 && cd chaincode/incidencia && npm test
+	. $(HOME)/.nvm/nvm.sh && nvm use 18 && cd chaincode/estado-obra && npm test
 
 deploy-hito:
-	./network/scripts/deploy-chaincode.sh hito "OR('EmpresaAMSP.peer','AdministracionMSP.peer')"
+	./network/scripts/deploy-chaincode.sh hito "OR('EmpresaAMSP.peer','EmpresaBMSP.peer','EmpresaCMSP.peer','EmpresaDMSP.peer')"
 
 deploy-pago:
-	./network/scripts/deploy-chaincode.sh pago "AND('EmpresaAMSP.peer','AdministracionMSP.peer')"
+	./network/scripts/deploy-chaincode.sh pago "OR(AND('EmpresaAMSP.peer','AdministracionMSP.peer'),AND('EmpresaBMSP.peer','AdministracionMSP.peer'),AND('EmpresaCMSP.peer','AdministracionMSP.peer'),AND('EmpresaDMSP.peer','AdministracionMSP.peer'))"
 
-deploy-cc: deploy-hito deploy-pago
+deploy-incidencia:
+	./network/scripts/deploy-chaincode.sh incidencia
+
+deploy-estado:
+	./network/scripts/deploy-chaincode.sh estado-obra "OR('EmpresaAMSP.peer','EmpresaBMSP.peer','EmpresaCMSP.peer','EmpresaDMSP.peer','AdministracionMSP.peer')"
+
+deploy-cc: deploy-hito deploy-pago deploy-incidencia deploy-estado
 	./network/scripts/init-pago.sh
+	./network/scripts/init-estado.sh
 
 init-pago:
 	./network/scripts/init-pago.sh
+
+init-estado:
+	./network/scripts/init-estado.sh
 
 verify-cc:
 	./network/scripts/verify-hito-pago.sh
@@ -96,9 +133,25 @@ verify-cc:
 verify-api:
 	./network/scripts/verify-api.sh
 
+verify-pdc:
+	./network/scripts/verify-pdc.sh
+
+verify-ui:
+	./network/scripts/verify-ui.sh
+
 api-up:
 	. $(HOME)/.nvm/nvm.sh && nvm use 24 && cd backend && (test -f package-lock.json && npm ci || npm install) && npm run build
 	docker compose -f network/docker-compose.api.yaml up -d --force-recreate
 
 api-down:
 	docker compose -f network/docker-compose.api.yaml down --remove-orphans
+
+ui-up:
+	. $(HOME)/.nvm/nvm.sh && nvm use 24 && cd frontend && (test -f package-lock.json && npm ci || npm install) && npm run dev
+
+pdc-up:
+	docker compose -f network/docker-compose.pdc.yaml up -d
+	./network/scripts/join-pdc-peers.sh
+
+pdc-down:
+	docker compose -f network/docker-compose.pdc.yaml down --remove-orphans

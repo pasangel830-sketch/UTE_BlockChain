@@ -1,7 +1,7 @@
 # Informe técnico (factual)
 
 Pareja del informe en metáforas: [INFORME-PROGRESO.md](INFORME-PROGRESO.md).
-Checklist: [CHECKLIST.md](CHECKLIST.md). Fecha: 30 ago 2026.
+Checklist: [CHECKLIST.md](CHECKLIST.md). Fecha: 13 sep 2026.
 
 Este archivo solo admite comandos, versiones y salidas. Sin analogías.
 
@@ -18,17 +18,11 @@ Este archivo solo admite comandos, versiones y salidas. Sin analogías.
 | Repo Windows (obsoleto) | `C:\Proyectos\UTE\app` (drvfs) |
 | Repo objetivo | `~/ute/app` en ext4; Cursor `\\wsl$\Ubuntu-22.04\home\<user>\ute\app` |
 
-## Git (30 ago 2026)
+## Git (13 sep 2026)
+
+`develop` en `4781f87` (`la penultima`) al alinear estos docs. El working tree del 11 sep (evidencias + `completarHito`→pago) ya está en `develop`. Esta pasada (13 sep) actualiza `docs/` para coincidir con el código; `ficheros_evidencias_test/` sigue untracked (no se sube).
 
 ```
-df -T ~/ute/app
-  /dev/sdd  ext4  ...  / 
-
-git log --oneline --decorate -3
-  42374c9 (HEAD -> develop, origin/develop) Mark
-  b02db9f Unify
-  c08b7c2 (origin/main) Initial commit   # main desfasado; se alinea en el mismo día
-
 git remote -v
   origin  https://github.com/pasangel830-sketch/UTE_BlockChain.git (fetch)
   origin  https://github.com/pasangel830-sketch/UTE_BlockChain.git (push)
@@ -36,7 +30,11 @@ git remote -v
 
 Remoto real: `pasangel830-sketch/UTE_BlockChain` (no `ute-blockchain-tfm`). `gh` CLI no está instalado en WSL; el push usa `git` + credenciales ya configuradas. Colaborador `DomingoMr`: pendiente de invitación (API collaborators 403 con el token de Cursor).
 
-Antes del primer commit (misma mañana): `git log` vacío, `git remote -v` vacío. Eso ya no aplica.
+Snapshot 11 sep 2026 (antes de commit del working tree): HEAD `fca92c3`; cambios locales en backend, chaincode hito/pago, frontend hitos/incidencias/pagos, `verify-hito-pago.sh`. Eso ya no es HEAD.
+
+Snapshot 30 ago 2026 (antes de alinear `main`): `42374c9 Mark` / `b02db9f Unify` / `c08b7c2 Initial commit`. Eso ya no es HEAD.
+
+Antes del primer commit (30 ago, misma mañana): `git log` vacío, `git remote -v` vacío. Eso ya no aplica.
 
 ## Día 1 (29 ago 2026)
 
@@ -163,4 +161,155 @@ STORAGE_DRIVER=local  GRPC_KEEPALIVE_TIME_MS=120000
   GET /mock/banco/pagos → evento PagoAutorizado
   docker logs ute-api: webhook mock banco 200
 ```
+
+## Días 7–9 (30 ago 2026) — UI, Incidencia PDC, EstadoObra
+
+```
+cd chaincode/incidencia && npm test
+  Test Suites: 1 passed
+  Tests:       13 passed
+
+cd chaincode/estado-obra && npm test
+  Test Suites: 1 passed
+  Tests:       6 passed
+
+make deploy-incidencia
+  Package ID: incidencia_1.0:363daeeb5f2e15d439afeb4b4579b53d9c39c201239d105f21685b45955fbd8d
+  commit policy=OutOf(2, EmpresaA/B/C/D + Administracion peers)
+  Approvals al commit: A+Admin; tras pdc-up: 5/5
+  collections: obra-gruesa-solar, quirofanos-tech (querycommitted JSON)
+
+make deploy-estado && ./network/scripts/init-estado.sh
+  Package ID: estado-obra_1.0:a89c7505727cfc084e621acb7ff8ed10776e7b886de8826862a85dd645ef8ff5
+  InitLedger → avancePct 0
+
+./network/scripts/verify-api.sh
+  H-api-1788122714 PENDIENTE → … → COMPLETADO + CUSTODIA → AUTORIZADO
+  GET /mock/banco/pagos → PagoAutorizado
+
+./network/scripts/verify-pdc.sh
+  EmpresaA GET /incidencias/:id/privado → detalle + coste 1200
+  Administracion GET privado → HTTP 500 sin acceso a datos privados
+  peer B invoke quirofanos-tech → I-q-1788123556 ABIERTA VALID
+
+GET /explorer (JWT)
+  height: 48  channel: channel-obra  polling 3 s en UI
+  bloques con number + txCount
+
+POST /estado/recalcular
+  hitosCompletados/hitosTotal, pagosCustodia/Autorizados, incidenciasAbiertas, avancePct
+
+frontend Next 15.5.24  GET :3000 → 200
+  rutas: / /dashboard /hitos /pagos /incidencias /estado /explorer  (7)
+  NEXT_PUBLIC_API_URL=http://localhost:4000
+
+./network/scripts/verify-ui.sh  OK E2E H-d7-1788123573  UI :3000 OK
+
+make pdc-up  peers B/C/D en ute-net, join channel-obra, install+approve incidencia
+```
+
+## Post día 9 (31 ago – 6 sep 2026) — sesiones, roles, errores
+
+Sin redeploy de chaincode. Commits `25bd7dc` (31 ago) y `68699bd` (6 sep).
+
+```
+git show 25bd7dc --stat
+  backend: auth, config, errors.ts (nuevo), explorer, fabric, orgs.ts (nuevo), routes, swagger
+  frontend: Shell, login 5 cuentas, hitos/pagos/incidencias/estado, ExplorerPanel, ErrorBox, lib/orgs.ts
+  network: AUTH_USERS 5 MSP; create-channel.sh / join-pdc-peers.sh: join ya activo = OK
+  docs: MANUAL.md, MEJORAS-UI.md
+  27 files, +1679 −133
+
+git show 68699bd --stat
+  backend/src/{errors,routes,swagger}.ts
+  frontend/src/app/{hitos,incidencias,pagos}/page.tsx
+  6 files, +170 −40
+```
+
+`25bd7dc` (código, no salida de runtime):
+
+- `AUTH_USERS` = A/B/C/D + Administración. Gateway de B/C/D firma con su MSP; evaluate/submit diario sigue a `PEER_ENDPOINT` (peer A).
+- `empresa` y `lote` salen de `perfilDe(org)`, no de `'EmpresaA'` / `'obra-gruesa-solar'` fijos.
+- `POST /pagos/:id/autorizar` 403 si `org !== AdministracionMSP`. `verify-api.sh` autoriza como `administracion`.
+- Explorer: `previousHash`, `dataHash`, `txId`, `chaincode.fn`, `creatorMsp`, `endorsers`.
+- `backend/src/errors.ts`: `traducirError` → JSON `{ error, detalle, codigo, nota }`. UI: `ErrorBox`.
+- `create-channel.sh` / `join-pdc-peers.sh`: canal ya unido no falla `make up-dev`.
+
+`68699bd` (código, no salida de runtime):
+
+- Guardas API: `perfilConstructora` en alta/avance/rechazo de hito; `requireAdministracion` en autorizar y rechazar pago (`submit` siempre `AdministracionMSP`); `requireCreadoraIncidencia` (evaluate + `empresa` del perfil) en tratar/cerrar/rechazar incidencia.
+- `POST /incidencias`: `empresa` = `perfil.empresa` (el body no la elige).
+- Swagger: 403 en avance de hito, pago y trámite de incidencia.
+- UI: Admin sin botones de avance de hito; pagos CUSTODIA → Autorizar + Rechazar; incidencias muestran `empresa`; Tratar/Cerrar solo si `perfil.empresa === i.empresa`.
+
+## 9 sep 2026 — políticas, gateway, sonda de peers
+
+Commits `0e24eb8` (22:17 CEST) y `fca92c3` (22:47 CEST). Código; el redeploy de políticas en la red diaria no está capturado aquí.
+
+```
+git show 0e24eb8 --stat
+  Makefile (políticas commit hito/pago/estado)
+  backend: errors, fabric, orgs, routes, swagger
+  chaincode: hito/incidencia/pago (textos)
+  frontend: hitos/page.tsx
+  network/scripts/deploy-chaincode.sh
+  docs/*
+  22 files, +404 −138
+
+git show fca92c3 --stat
+  backend: app.ts GET /red; fabric peersLevantados; errors, index, orgs, swagger
+  frontend: incidencias/page.tsx, lib/orgs.ts
+  8 files, +99 −16
+```
+
+`0e24eb8`:
+
+- `make deploy-hito` → `OR(EmpresaA/B/C/D.peer)`.
+- `make deploy-pago` → `OR(AND(A,Admin), AND(B,Admin), AND(C,Admin), AND(D,Admin))`.
+- `make deploy-estado` → `OR(A/B/C/D/Admin.peer)`.
+- `submit` de hito/pago/estado entra por el peer del primer endosante (`ORG_PEER_PORT`: A 7051, B 8051, C 11051, D 12051, Admin 9051). Evaluate diario sigue por peer A.
+- `requireEmpresaHito` + `endosantesDeHito` / `endosantesDePago`. Completar pide el par empresa+Admin.
+- Completar hito: dos `submit` (HitoContract + PagoContract). Eso cambia el 11 sep (código ahora en `develop`).
+
+`fca92c3`:
+
+- `GET /red` → `{ peers: Record<OrgMsp, boolean> }`. Sonda TCP 800 ms, caché 10 s. Arranque API llama `peersLevantados()`.
+- `loteSinPeerDiario(lote, vivos)` / UI `lotePdcApagada(lote, vivos)`: aviso `make pdc-up` según peers vivos, no solo A+Admin fijos.
+
+## 11 sep 2026 — evidencias, listas, hito→pago mismo tx
+
+Working tree a las 20:50 CEST; después en `develop`. Jest en Node 18:
+
+```
+cd chaincode/hito && npm test
+  Test Suites: 1 passed, 1 total
+  Tests:       12 passed, 12 total
+
+cd chaincode/pago && npm test
+  Test Suites: 1 passed, 1 total
+  Tests:       11 passed, 11 total
+```
+
+Pago: 9 tests (30 ago) → 11 (añade «no custodia si el hito no está COMPLETADO» y «origen completarHito no consulta el hito»).
+
+Código (no salida de runtime de red):
+
+- `completarHito` hace `ctx.stub.invokeChaincode('pago', ['PagoContract:ponerEnCustodia', ...], channel)` y devuelve `{ hito, pago }`. Un solo `submitCommit` en la API. Respuesta `{hito, pago, evidencia}`. `verify-hito-pago.sh`: `completar_invoke` endosa A+Admin.
+- `ponerEnCustodia(..., origen)`: si `origen === 'completarHito'` no llama a hito (Fabric rechaza invoke anidado con el mismo txid). Si el origen es otro, `leerHito` exige estado `COMPLETADO` e importe/empresa coincidentes.
+- Evidencias de incidencia: `POST/GET /incidencias/:id/evidencias`, `GET .../evidencias/:eid`. Disco `UPLOAD_DIR` + `index.json`; SHA-256; máx. 5 MB; mime imagen/PDF. Binario **no** entra en Fabric. Al crear, el frontend pone `hashEvidencia <sha256> <nombre>` en `notasTecnicas` (PDC).
+- Evidencias de hito: `POST/GET /hitos/:id/evidencias` (solo empresa del hito, estado `VALIDACION`). Completar exige acta: multipart `file` o evidencia ya subida; el SHA-256 va a `hashEvidencia`. `GET /evidencias` índice por padre (omite incidencias de lote ajeno).
+- Guardas: `requireAdjuntoHito`; `requireAdjuntoIncidencia` (creadora + ABIERTA|EN_TRATAMIENTO); `requireSocioEvidencia` (socios del lote; Admin 403 `PDC_SIN_ACCESO`). Multer `LIMIT_FILE_SIZE` → 400.
+- Listas `GET /hitos|/pagos|/incidencias` `pageSize` default 100, orden `createdAt` desc. UI: `formatFecha` + `porFechaDesc`. Pagos: detalle técnico al autorizar.
+- Fixtures locales (untracked): `ficheros_evidencias_test/` (PDF/PNG/JPG de fisura, quirófano, forjado, actas).
+
+Hace falta `make deploy-cc` para que el ledger ejecute el invoke cruzado; el Jest no instala chaincode.
+
+## 13 sep 2026 — Explorer y bloque al completar
+
+Commit `4781f87` (`la penultima`). Código; sin captura de `docker stats` ni de `make deploy-cc`.
+
+- `explorer.ts`: si llega bloque 0 con `dataHash` distinto al génesis en RAM, vacía snapshot e índice `txBloque` (cadena nueva tras `reset-demo-*`).
+- `recordarBloqueTx` + `submitCommit`: al completar, la API asigna el número de bloque al hito en la respuesta (el world state no lo guarda).
+- `GET /hitos` rellena `bloque` desde el índice si falta.
+
 

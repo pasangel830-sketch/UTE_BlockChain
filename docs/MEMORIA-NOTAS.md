@@ -16,7 +16,7 @@ La rúbrica pide 4 chaincodes en TypeScript con tests unitarios. Implementación
 
 ## 3. EstadoObra sin llamadas cruzadas entre chaincodes
 
-El PDF describe un estado de obra consolidado. Fabric 2.5 permite invoke entre contratos, pero es frágil en el camino crítico (timeouts, identidad, PDC). EstadoObraContract guarda el agregado; el backend lo calcula a partir de Hito/Pago/Incidencia y hace un `submit` único. Los cuatro contratos TypeScript existen; no hay `ctx.stub.invokeChaincode` en el path de demo.
+El PDF describe un estado de obra consolidado. Fabric 2.5 permite invoke entre contratos, pero es frágil (timeouts, identidad, PDC, invoke anidado con el mismo txid). EstadoObraContract guarda el agregado; el backend lo calcula a partir de Hito/Pago/Incidencia y hace un `submit` único. **No** hay `invokeChaincode` hacia EstadoObra.
 
 ## 4. cryptogen en lugar de Fabric CA
 
@@ -25,3 +25,19 @@ Alineado con el alcance local y el plazo de 14 días. Identidades de prueba, no 
 ## 5. LevelDB en lugar de CouchDB
 
 Listados con composite keys y `GetStateByRangeWithPagination`. Sin rich queries. Menos RAM en el portátil de 16 GB.
+
+## 6. Roles en la API, no en el chaincode
+
+La separación constructora / Administración (avanzar obra, autorizar o rechazar pagos, tramitar solo la incidencia propia, adjuntar evidencias) se aplica en Express (`perfilConstructora`, `requireAdministracion`, `requireCreadoraIncidencia`, `requireAdjuntoIncidencia`, `requireSocioEvidencia`). El chaincode de pago sigue exigiendo endoso org+Admin. Anotar: la UI y el JWT son la demostración de quién pulsa; un cliente que ignore la API no es el camino de defensa.
+
+## 7. Hito → Pago sí usa invoke cruzado (11 sep)
+
+`completarHito` llama a `PagoContract:ponerEnCustodia` en la misma transacción para que no quede hito COMPLETADO sin custodia. `ponerEnCustodia` recibe `origen=completarHito` y **no** consulta el hito: Fabric rechaza un segundo invoke anidado con el mismo txid. Si se llama a custodia por otro camino, sí exige hito COMPLETADO. Código en `develop`. Jest 11/11. Si la red diaria sigue con el chaincode anterior: `make deploy-cc`. La captura de ese redeploy no está en el informe técnico.
+
+## 8. Evidencias fuera de cadena; hash en ledger o PDC
+
+El multer del día 6 subía un archivo suelto. El 11 sep hay dos anclajes: (1) acta al **completar hito** — disco + SHA-256 en `hashEvidencia` del hito (`POST /hitos/:id/completar` o adjunto previo en VALIDACION); (2) parte de **incidencia** — disco + SHA-256 en `notasTecnicas` del PDC. El binario no entra en Fabric. Incidencias: mismas reglas de socio de lote que el PDC. Hitos: solo la empresa del hito adjunta en VALIDACION. GCS queda para el día 12.
+
+## 9. Seed demo (día 12)
+
+`network/scripts/seed-data.sh` sigue siendo stub (`exit 0`). El mensaje del script dice que aún no hay chaincode ni API: eso es falso; solo falta el juego de datos de defensa.

@@ -5,6 +5,8 @@ import rateLimit from 'express-rate-limit';
 import client from 'prom-client';
 import { swaggerMiddleware, swaggerSetup } from './swagger';
 import { router } from './routes';
+import { traducirError } from './errors';
+import { peersLevantados } from './fabric';
 
 const register = new client.Registry();
 client.collectDefaultMetrics({ register });
@@ -17,13 +19,22 @@ export function createApp() {
   app.use(
     rateLimit({
       windowMs: 60_000,
-      limit: 120,
-      skip: (req) => req.path === '/metrics' || req.path === '/health',
+      limit: 600,
+      skip: (req) =>
+        req.path === '/metrics' ||
+        req.path === '/health' ||
+        req.path === '/red' ||
+        req.path === '/auth/login' ||
+        req.path === '/explorer',
     }),
   );
 
   app.get('/health', (_req, res) => {
     res.json({ ok: true });
+  });
+
+  app.get('/red', async (_req, res) => {
+    res.json({ peers: await peersLevantados() });
   });
 
   app.get('/metrics', async (_req, res) => {
@@ -35,9 +46,14 @@ export function createApp() {
   app.use(router);
 
   app.use(
-    (err: Error, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
+    (err: Error, req: express.Request, res: express.Response, _next: express.NextFunction) => {
       console.error(err);
-      res.status(500).json({ error: err.message });
+      const { status, body } = traducirError(err, {
+        org: req.user?.org,
+        ruta: req.path,
+        lote: req.loteContexto ?? (req.body as { lote?: unknown } | undefined)?.lote,
+      });
+      res.status(status).json(body);
     },
   );
   return app;

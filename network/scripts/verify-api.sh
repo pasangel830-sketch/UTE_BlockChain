@@ -19,11 +19,23 @@ echo
 curl -sf "${BASE}/api-docs/" >/dev/null
 echo "swagger OK"
 
-TOKEN="$(curl -sf -X POST "${BASE}/auth/login" -H 'content-type: application/json' \
-  -d '{"username":"empresaA","password":"empresaA"}' | python3 -c 'import json,sys; print(json.load(sys.stdin)["token"])')"
+token_for() {
+  curl -sf -X POST "${BASE}/auth/login" -H 'content-type: application/json' \
+    -d "{\"username\":\"$1\",\"password\":\"$1\"}" \
+    | python3 -c 'import json,sys; print(json.load(sys.stdin)["token"])'
+}
+
+TOKEN="$(token_for empresaA)"
+TOKEN_ADMIN="$(token_for administracion)"
+ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
+EV="${ROOT}/ficheros_evidencias_test/tarea_completada_forjado_planta_baja.pdf"
 
 auth() {
   curl -sf -H "authorization: Bearer ${TOKEN}" -H 'content-type: application/json' "$@"
+}
+
+auth_admin() {
+  curl -sf -H "authorization: Bearer ${TOKEN_ADMIN}" -H 'content-type: application/json' "$@"
 }
 
 curl -sf -X POST "${BASE}/hitos" -H "authorization: Bearer ${TOKEN}" -H 'content-type: application/json' \
@@ -33,9 +45,20 @@ auth -X POST "${BASE}/hitos/${ID}/iniciar"
 echo
 auth -X POST "${BASE}/hitos/${ID}/validar"
 echo
-auth -X POST "${BASE}/hitos/${ID}/completar"
+curl -sf -X POST "${BASE}/hitos/${ID}/completar" \
+  -H "authorization: Bearer ${TOKEN}" \
+  -F "file=@${EV}"
 echo
-auth -X POST "${BASE}/pagos/pago-${ID}/autorizar"
+auth "${BASE}/hitos/${ID}" | python3 -c 'import json,sys; h=json.load(sys.stdin); assert h.get("estado")=="COMPLETADO" and len(h.get("hashEvidencia") or "")==64, h'
+echo
+code="$(curl -s -o /dev/null -w '%{http_code}' -X POST "${BASE}/pagos/pago-${ID}/autorizar" \
+  -H "authorization: Bearer ${TOKEN}" -H 'content-type: application/json')"
+if [[ "${code}" != "403" ]]; then
+  echo "empresaA debería recibir 403 al autorizar, recibió ${code}"
+  exit 1
+fi
+echo "403 empresaA autorizar OK"
+auth_admin -X POST "${BASE}/pagos/pago-${ID}/autorizar"
 echo
 
 echo "esperando webhook mock"

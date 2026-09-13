@@ -90,7 +90,7 @@ join_peer() {
     -e CORE_PEER_TLS_ROOTCERT_FILE="/organizations/peerOrganizations/${domain}/peers/peer0.${domain}/tls/ca.crt" \
     -e CORE_PEER_MSPCONFIGPATH="/organizations/peerOrganizations/${domain}/users/Admin@${domain}/msp" \
     "${CLI}" peer channel join -b "/workspace/channel-artifacts/${CHANNEL}.block" 2>&1)" || rc=$?
-  if echo "${out}" | grep -qiE "Successfully submitted|already joined"; then
+  if echo "${out}" | grep -qiE "Successfully submitted|already joined|already exists with state"; then
     echo "join OK ${addr}"
     return 0
   fi

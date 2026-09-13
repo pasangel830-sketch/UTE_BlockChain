@@ -2,7 +2,7 @@
 
 **Fuente de verdad.** El resto de `docs/` apunta aquí.
 Leyenda: **HECHO** · **EN CURSO** · **PENDIENTE**
-Actualizado: 30 ago 2026.
+Actualizado: 13 sep 2026.
 
 | | |
 | --- | --- |
@@ -32,6 +32,7 @@ Una fila pasa a HECHO solo si: (1) el comando o entrega existe en el repo o en l
 | 20 contenedores chaincode OOM | día 11 | Instalar cada CC solo en peers que endosan; medir `docker stats` antes del freeze |
 | `gh` sin login / sin remoto | hoy | Cerrado: remoto `UTE_BlockChain`, `main` alineado con `develop`. Falta invitar `DomingoMr` |
 | Cross-cc Hito→EstadoObra | días 4–8 | EstadoObra se escribe desde el backend; el CC no llama a otros CC |
+| Cross-cc Hito→Pago (mismo tx) | 11 sep | Código en `develop`: `completarHito` → `invokeChaincode` pago; `origen=completarHito` evita invoke anidado hito←pago. Red ya desplegada: `make deploy-cc`. Captura de runtime aún no está en el informe técnico |
 | Render Free se duerme | defensa | API en la misma VM que Fabric (ya decidido) |
 | `chmod 600` en drvfs | keys peer | Repo en ext4 `~/ute/app`, no en `/mnt/c` |
 | Día 12 falla y no hay demo | defensa | Rebanada vertical (hito→pago→API→pantalla→Explorer) **antes del día 8** |
@@ -87,7 +88,7 @@ Tras reset: diario = 3 orderers + peer A + peer Admin + CLI. Mismo génesis que 
 
 ---
 
-## Días 4–7 — Rebanada vertical (Hito + Pago → API → 1 pantalla → Explorer) · EN CURSO (4–6 HECHO)
+## Días 4–7 — Rebanada vertical (Hito + Pago → API → 1 pantalla → Explorer) · HECHO
 
 Invertido respecto al plan original: punta a punta **antes del día 8**. Incidencia, PDC y EstadoObra después.
 
@@ -98,17 +99,17 @@ Invertido respecto al plan original: punta a punta **antes del día 8**. Inciden
 | HECHO | `nvm use 18`. HitoContract TypeScript + Jest | `npm test` en `chaincode/hito` (12 tests) |
 | HECHO | Estados PENDIENTE → EN_EJECUCION → VALIDACION → COMPLETADO\|RECHAZADO | tests de transición |
 | HECHO | Composite keys + `GetStateByRangeWithPagination` | listados LevelDB |
-| HECHO | Instalar **solo** en peer A y Admin | 4 `dev-peer0.{empresaa,administracion}-*` ; sin B/C/D |
+| HECHO | Endorsement `OR(A,B,C,D)`; completar pide empresa+Admin en API | commit + `endosantesDeHito` / `endosantesDePago` |
 
 ### Día 5 — PagoContract TS + escrow · HECHO (30 ago 2026)
 
 | Estado | Tarea | Hecho si |
 | --- | --- | --- |
-| HECHO | PagoContract TS + Jest | `npm test` en `chaincode/pago` (9 tests) |
+| HECHO | PagoContract TS + Jest | `npm test` en `chaincode/pago` (11 tests, 11 sep) |
 | HECHO | Escrow: fondos CUSTODIA hasta `PagoAutorizado` (PDF §4.2) | tests + invoke `H-d5` |
-| HECHO | Endorsement `AND(org, Administracion)` | commit `AND('EmpresaAMSP.peer','AdministracionMSP.peer')` |
+| HECHO | Endorsement `OR(AND(org, Admin)…)` por empresa del hito | commit `OR(AND(A,Admin),AND(B,Admin),AND(C,Admin),AND(D,Admin))`; API pide el par de esa empresa |
 | HECHO | Init participaciones 35/25/20/20 | `InitLedger` → `{"EmpresaA":35,...}` |
-| HECHO | `completarHito` dispara lógica de pago (sin cross-cc a EstadoObra) | API `POST /hitos/:id/completar` → CUSTODIA |
+| HECHO | `completarHito` dispara custodia en el mismo tx (`invokeChaincode` pago); EstadoObra sigue en backend | API `POST /hitos/:id/completar` (multipart acta) → `{hito, pago, evidencia}` CUSTODIA. Código en `develop`. Red vieja: `make deploy-cc` |
 
 ### Día 6 — API (trozo de hitos/pagos) · HECHO (30 ago 2026)
 
@@ -119,35 +120,79 @@ Invertido respecto al plan original: punta a punta **antes del día 8**. Inciden
 | HECHO | Listener `PagoAutorizado` → webhook mock `POST /mock/banco/pagos` | log + 200 |
 | HECHO | `STORAGE_DRIVER=local`. gRPC keepalive | env compose API |
 
-### Día 7 — Una pantalla + Explorer
+### Día 7 — Una pantalla + Explorer · HECHO (30 ago 2026)
 
 | Estado | Tarea | Hecho si |
 | --- | --- | --- |
-| PENDIENTE | Next 15.5: pantalla de hitos/pagos + Explorer (polling 3 s) | flujo crear hito → completar → pago visible |
-| PENDIENTE | `NEXT_PUBLIC_API_URL=http://localhost:4000` | E2E local |
-| PENDIENTE | README con diagrama de esta rebanada | [README.md](../README.md) |
+| HECHO | Next 15.5: pantalla de hitos/pagos + Explorer (polling 3 s) | flujo crear hito → completar → pago visible |
+| HECHO | `NEXT_PUBLIC_API_URL=http://localhost:4000` | E2E local |
+| HECHO | README con diagrama de esta rebanada | [README.md](../README.md) |
 
 **Criterio del bloque 4–7:** un usuario crea un hito, lo completa, el pago queda en custodia, el evento llega al mock bancario y el Explorer muestra el bloque. Sin Incidencia ni PDC todavía.
 
 ---
 
-## Día 8 — Incidencia + PDC · PENDIENTE
+## Día 8 — Incidencia + PDC · HECHO (30 ago 2026)
 
 | Estado | Tarea | Hecho si |
 | --- | --- | --- |
-| PENDIENTE | IncidenciaContract TS, endorsement OutOf(2,5) | tests + commit |
-| PENDIENTE | PDC en full (peers B/C/D un rato) | collections commit |
-| PENDIENTE | Resto de API (si quedó algo el día 6) | Swagger completo |
+| HECHO | IncidenciaContract TS, endorsement OutOf(2,5) | tests + commit |
+| HECHO | PDC en full (peers B/C/D un rato) | collections commit |
+| HECHO | Resto de API (si quedó algo el día 6) | Swagger completo |
 
 ---
 
-## Día 9 — Resto UI + EstadoObra · PENDIENTE
+## Día 9 — Resto UI + EstadoObra · HECHO (30 ago 2026)
 
 | Estado | Tarea | Hecho si |
 | --- | --- | --- |
-| PENDIENTE | Siete pantallas en total | recuento rutas Next |
-| PENDIENTE | EstadoObraContract TS: el backend escribe el agregado; **sin** invoke cruzado | tests + API |
-| PENDIENTE | README detallado + diagramas (entregable Fase 2) | [README.md](../README.md) |
+| HECHO | Siete pantallas en total | recuento rutas Next |
+| HECHO | EstadoObraContract TS: el backend escribe el agregado; **sin** invoke cruzado | tests + API |
+| HECHO | README detallado + diagramas (entregable Fase 2) | [README.md](../README.md) |
+
+### Post día 9 — huecos UI y roles · HECHO (31 ago – 6 sep 2026)
+
+Plan original: [MEJORAS-UI.md](MEJORAS-UI.md). Commits `25bd7dc`, `68699bd`. Sin cambio de chaincode.
+
+| Estado | Tarea | Hecho si |
+| --- | --- | --- |
+| HECHO | Chip de sesión + 5 logins (A/B/C/D/Admin); lote/empresa según MSP | UI + `AUTH_USERS` |
+| HECHO | Solo Administración autoriza o rechaza pagos; constructora no avanza si es Admin | 403 API + botones |
+| HECHO | Incidencia: empresa de sesión; tramitar solo la creadora | 403 `ROL_NO_AUTORIZADO` |
+| HECHO | Explorer con txs Fabric; errores traducidos (`ErrorBox`) | `GET /explorer`, `errors.ts` |
+| HECHO | Manual de uso | [MANUAL.md](MANUAL.md) |
+
+### Post día 9b — políticas, gateway, sonda · HECHO (9 sep 2026)
+
+Commits `0e24eb8`, `fca92c3`. Políticas de commit alineadas con B/C/D.
+
+| Estado | Tarea | Hecho si |
+| --- | --- | --- |
+| HECHO | Políticas: hito `OR(A,B,C,D)`; pago `OR(AND(org,Admin)…)`; estado `OR(5 MSP)` | Makefile + `deploy-chaincode.sh` |
+| HECHO | Gateway submit hito/pago/estado al peer del primer endosante | `fabric.ts` `ORG_PEER_PORT` |
+| HECHO | Solo la empresa del hito lo avanza | `requireEmpresaHito` 403 |
+| HECHO | `GET /red` sonda TCP; UI PDC usa peers vivos | `/red` + `lotePdcApagada(vivos)` |
+
+### Post día 9c — evidencias, listas, hito→pago · HECHO (11 sep 2026)
+
+Código en `develop` (ya no es working tree). Jest: hito 12/12, pago 11/11. `make deploy-cc` en red ya desplegada; la captura de runtime del invoke cruzado no está en el informe técnico.
+
+| Estado | Tarea | Hecho si |
+| --- | --- | --- |
+| HECHO | Evidencias de incidencia: disco + SHA-256; hash en `notasTecnicas` PDC al crear | `storage.ts` + `POST /incidencias/:id/evidencias` |
+| HECHO | Evidencias de hito: adjunto en VALIDACION; completar exige acta (multipart o ya subida) | `POST /hitos/:id/evidencias` + `POST /hitos/:id/completar` → `hashEvidencia` |
+| HECHO | Solo la creadora adjunta incidencias (ABIERTA/EN_TRATAMIENTO); solo socios listan/descargan | 403 `ROL_NO_AUTORIZADO` / `PDC_SIN_ACCESO` |
+| HECHO | Listas hitos/pagos/incidencias/evidencias más reciente primero; fecha en UI | `listaOrdenada` + `porFechaDesc`; `GET /evidencias` índice por padre |
+| HECHO | `completarHito` → `PagoContract:ponerEnCustodia` en el mismo tx | tests Jest; API un `submitCommit`; `verify-hito-pago.sh` endosa A+Admin |
+
+### Post día 9d — Explorer y cadena nueva · HECHO (13 sep 2026)
+
+Commit `4781f87`.
+
+| Estado | Tarea | Hecho si |
+| --- | --- | --- |
+| HECHO | Explorer vacía el snapshot si llega un génesis con `dataHash` distinto | `explorer.ts` `aplicarBloque` |
+| HECHO | Número de bloque de `completarHito` se recuerda al commit (`recordarBloqueTx`) | API `{hito, pago, evidencia}` + `bloque` |
 
 ---
 
@@ -155,7 +200,7 @@ Invertido respecto al plan original: punta a punta **antes del día 8**. Inciden
 
 | Estado | Tarea | Hecho si |
 | --- | --- | --- |
-| PENDIENTE | Mañana: huecos UI | |
+| HECHO | Mañana: huecos UI | [MEJORAS-UI.md](MEJORAS-UI.md); ver Post día 9 / 9b / 9c / 9d |
 | PENDIENTE | VM e2-standard-4, IP estática, certs con **SAN de esa IP** | `openssl x509 -in ... -text` muestra la IP |
 | PENDIENTE | API en la misma VM; Gateway → peer por red Docker | curl HTTPS o :4000 interno |
 | PENDIENTE | Apagar VM | consola GCP |
@@ -208,4 +253,4 @@ Compose local ya tiene: red `ute-net`, puertos operations, `alerts.yml` (3 alert
 
 ## Fuera de GitHub (nunca commitear)
 
-`.env`, claves, certs, `network/organizations/`, wallets, JSON de service account, JWT, volúmenes Fabric, evidencias, datos Grafana.
+`.env`, claves, certs, `network/organizations/`, wallets, JSON de service account, JWT, volúmenes Fabric, evidencias (`uploads/`, `ficheros_evidencias_test/`), datos Grafana.

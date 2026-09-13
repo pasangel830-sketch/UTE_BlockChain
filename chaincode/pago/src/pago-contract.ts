@@ -37,11 +37,12 @@ export class PagoContract extends Contract {
     hitoId: string,
     empresa: string,
     importeStr: string,
+    origen: string,
   ): Promise<string> {
     this.require(pagoId, 'pagoId');
     this.require(hitoId, 'hitoId');
     this.require(empresa, 'empresa');
-    const importe = this.parseImporte(importeStr);
+    const importeArg = this.parseImporte(importeStr);
     const existing = await ctx.stub.getState(this.key(pagoId));
     if (existing && existing.length > 0) {
       throw new Error(`pago ya existe: ${pagoId}`);
@@ -50,12 +51,28 @@ export class PagoContract extends Contract {
     if (porHito && porHito.length > 0) {
       throw new Error(`ya hay pago en custodia para hito ${hitoId}`);
     }
+    const hito = origen === 'completarHito' ? undefined : await this.leerHito(ctx, hitoId);
+    let empresaPago = empresa;
+    let importe = importeArg;
+    if (hito) {
+      if (hito.estado !== 'COMPLETADO') {
+        throw new Error(`hito ${hitoId} no está COMPLETADO (${hito.estado})`);
+      }
+      if (hito.empresa !== empresa) {
+        throw new Error(`empresa del pago (${empresa}) no coincide con hito (${hito.empresa})`);
+      }
+      importe = this.parseImporte(String(hito.importe));
+      if (importe !== importeArg) {
+        throw new Error(`importe del pago (${importeArg}) no coincide con hito (${importe})`);
+      }
+      empresaPago = hito.empresa;
+    }
     const parts = JSON.parse(await this.getParticipaciones(ctx)) as Record<string, number>;
     const now = this.now(ctx);
     const pago: Pago = {
       id: pagoId,
       hitoId,
-      empresa,
+      empresa: empresaPago,
       importeTotal: importe,
       participaciones: parts,
       desglose: repartir(importe, parts),
@@ -137,8 +154,8 @@ export class PagoContract extends Contract {
     await iterator.close();
     return JSON.stringify({
       items,
-      bookmark: metadata.bookmark || '',
-      fetched: metadata.fetchedRecordsCount,
+      bookmark: metadata?.bookmark || '',
+      fetched: metadata?.fetchedRecordsCount ?? items.length,
     });
   }
 
@@ -174,6 +191,30 @@ export class PagoContract extends Contract {
     if (!v || !v.trim()) {
       throw new Error(`${name} obligatorio`);
     }
+  }
+
+  private async leerHito(
+    ctx: Context,
+    hitoId: string,
+  ): Promise<{ id: string; estado: string; empresa: string; importe: number } | undefined> {
+    const resp = await ctx.stub.invokeChaincode(
+      'hito',
+      ['HitoContract:consultarHito', hitoId],
+      ctx.stub.getChannelID(),
+    );
+    if (resp.status === 200) {
+      const payload = Buffer.from(resp.payload ?? []).toString('utf8');
+      if (!payload) {
+        throw new Error(`hito ${hitoId} sin payload`);
+      }
+      return JSON.parse(payload) as { id: string; estado: string; empresa: string; importe: number };
+    }
+    const msg = resp.message || '';
+    // Fabric no permite invoke anidado hito→pago→hito en el mismo txid.
+    if (/exists/i.test(msg) && /txid|transaction id/i.test(msg)) {
+      return undefined;
+    }
+    throw new Error(msg || `hito ${hitoId} no consultable`);
   }
 
   private now(ctx: Context): string {

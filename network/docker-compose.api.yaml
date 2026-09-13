@@ -19,13 +19,15 @@ services:
       PORT: "4000"
       JWT_SECRET: dev-secret-change-me
       JWT_EXPIRES: 8h
-      AUTH_USERS: empresaA:empresaA:EmpresaAMSP,administracion:administracion:AdministracionMSP
+      AUTH_USERS: empresaA:empresaA:EmpresaAMSP,empresaB:empresaB:EmpresaBMSP,empresaC:empresaC:EmpresaCMSP,empresaD:empresaD:EmpresaDMSP,administracion:administracion:AdministracionMSP
       PEER_ENDPOINT: peer0.empresaa.ute.local:7051
       PEER_HOST_ALIAS: peer0.empresaa.ute.local
       CRYPTO_PATH: /crypto
       CHANNEL_NAME: channel-obra
       CHAINCODE_HITO: hito
       CHAINCODE_PAGO: pago
+      CHAINCODE_INCIDENCIA: incidencia
+      CHAINCODE_ESTADO: estado-obra
       STORAGE_DRIVER: local
       UPLOAD_DIR: /app/uploads
       MOCK_BANCO_URL: http://127.0.0.1:4000/mock/banco/pagos

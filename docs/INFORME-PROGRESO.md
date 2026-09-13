@@ -1,9 +1,9 @@
 # Informe de progreso — plan de 14 días
 
 Informe para no técnicos. Proyecto **UTE / obras**.  
-Fuente de tareas: [CHECKLIST.md](CHECKLIST.md) · hechos y comandos: [INFORME-TECNICO.md](INFORME-TECNICO.md) · 30 de agosto de 2026.
+Fuente de tareas: [CHECKLIST.md](CHECKLIST.md) · hechos y comandos: [INFORME-TECNICO.md](INFORME-TECNICO.md) · 13 de septiembre de 2026.
 
-> El taller del portátil está montado, las oficinas de la UTE existen (modo diario) y ya hay pliego de hitos/pagos con secretaría en el puerto 4000. Falta el tablón (pantallas). Las cuentas de internet las tiene que abrir el usuario.
+> El taller del portátil está montado, las oficinas de la UTE existen (modo diario), hay pliego de hitos/pagos, secretaría en el puerto 4000, tablón de 7 pantallas, incidencias con cajones con llave y estado de obra. Las cinco cuentas entran; cada una solo hace lo suyo. Las fotos del parte y el acta al completar un hito se guardan en la caseta; el sello (hash) va al sobre o al hito. Al marcar un hito acabado, el dinero entra en custodia en el mismo acto. Eso ya está en el archivador de versiones. Faltan el local en internet y los cuadros de mando. Las cuentas de internet las tiene que abrir el usuario.
 
 Vista visual en Cursor (al lado del chat): canvas `informe-progreso-plan-14-dias`. El canvas de planificación no se ha modificado.
 
@@ -19,6 +19,11 @@ Vista visual en Cursor (al lado del chat): canvas `informe-progreso-plan-14-dias
 - [Días 2 y 3 — Oficinas y notarios](#días-2-y-3--oficinas-y-notarios)
 - [Días 4 y 5 — Pliego de hitos y pagos](#días-4-y-5--pliego-de-hitos-y-pagos)
 - [Día 6 — La secretaría](#día-6--la-secretaría)
+- [Día 7 — El tablón](#día-7--el-tablón)
+- [Día 8 — Incidencias y cajones](#día-8--incidencias-y-cajones)
+- [Día 9 — Estado de obra y siete pantallas](#día-9--estado-de-obra-y-siete-pantallas)
+- [Después del día 9 — Quién hace qué](#después-del-día-9--quién-hace-qué)
+- [9–13 de septiembre — Firmas, fotos y un solo acto](#913-de-septiembre--firmas-fotos-y-un-solo-acto)
 - [Qué no está hecho todavía](#qué-no-está-hecho-todavía)
 
 ---
@@ -27,7 +32,7 @@ Vista visual en Cursor (al lado del chat): canvas `informe-progreso-plan-14-dias
 
 Imagina una Unión Temporal de Empresas que construye una obra. Hay que dejar constancia de hitos y pagos de forma que nadie pueda negar lo firmado. Eso es este trabajo.
 
-Hoy hay **caseta, llaves, pliego y secretaría**. El tablón (pantallas) es el siguiente paso.
+Hoy hay **caseta, llaves, pliego, secretaría, tablón, papeles de quién firma qué y fotos del parte y del acta con sello**. El local en internet es el siguiente paso.
 
 ---
 
@@ -35,14 +40,14 @@ Hoy hay **caseta, llaves, pliego y secretaría**. El tablón (pantallas) es el s
 
 | | |
 | --- | --- |
-| Días de calendario cerrados | **6 de 14** (días 1 a 6) |
-| Puntos marcados hecho | **36** |
-| Días por delante | **8** |
-| Máquina ahora | **Modo diario + API :4000** (Empresa A + Administración + 1 notario + secretaría) |
+| Días de calendario cerrados | **9 de 14** (días 1 a 9; huecos de UI del día 10 ya hechos en local) |
+| Puntos marcados hecho | **52** (huecos locales 11–13 sep incluidos) |
+| Días por delante | **5** (cloud; la mañana de huecos UI está cerrada) |
+| Máquina ahora | **Modo diario + API :4000 + Next :3000** (5 sesiones; evidencias locales; B/C/D escritura PDC con `pdc-up`) |
 
 El día 1 está cerrado en el ordenador; faltan solo las cuentas de internet (GitHub colaborador, Google Cloud, Vercel). Esas cuentas **no bloquean** seguir trabajando en casa; sí bloquean publicar más adelante.
 
-**Siguiente paso del plan:** una pantalla Next + Explorer (día 7).
+**Siguiente paso del plan:** VM de prueba con SAN de la IP (día 10).
 
 ---
 
@@ -60,9 +65,21 @@ Identidades de A, B, C, D, Administración y tres notarios. Carpeta común de la
 
 Reglas de hitos y pagos (con dinero en custodia hasta que el ayuntamiento autoriza). Mostrador en el puerto 4000 que avisa al banco de juguete.
 
-### 4. Lo que aún no existe — pendiente
+### 4. El tablón y las incidencias — hecho (días 7–9)
 
-Las pantallas, incidencias, estado de obra, el local en internet y los cuadros de mando. Días 7 a 14.
+Siete pantallas. Incidencias con dos cajones con llave. El estado de la obra lo calcula la secretaría.
+
+### 5. Quién hace qué en el tablón — hecho (31 ago – 6 sep)
+
+Las cinco cuentas entran. El ayuntamiento autoriza o rechaza pagos y no avanza obra. Cada constructora solo tramita las incidencias que abrió. Si la red dice que no, el tablón lo explica en castellano.
+
+### 6. Firmas, fotos y un solo acto — hecho (9–13 sep)
+
+La secretaría pregunta a la oficina que tiene que firmar. El tablón mira qué casetas tienen luz. La foto del parte y el acta del hito se guardan en la caseta; el sello (hash) va al sobre o al hito. Completar un hito y meter el dinero en custodia es el mismo acto notarial. Si se abre una cadena nueva, el tablón de bloques se vacía solo.
+
+### 7. Lo que aún no existe — pendiente
+
+El local en internet y los cuadros de mando. Días 10 (VM) a 14.
 
 ---
 
@@ -314,31 +331,132 @@ Objetivo: mostrador HTTP en :4000, con carnet (JWT), documentación, termómetro
 
 **Qué es.** La secretaría oye `PagoAutorizado` y hace `POST /mock/banco/pagos`. El mock responde 200 y guarda el papel.
 
-> La ventanilla oye el sello del notario y llama al banco de prácticas. Aún no hay tablón en la calle (eso es el día 7).
+> La ventanilla oye el sello del notario y llama al banco de prácticas.
+
+---
+
+## Día 7 — El tablón
+
+Objetivo: una pantalla Next en :3000 y un Explorer que se actualiza cada 3 segundos.
+
+**Qué es.** Login, hitos (crear → completar) y lista de pagos en custodia. Al lado, la altura del libro y los últimos bloques.
+
+**Para qué sirve en esta UTE.** Cierra la rebanada visual: lo que se firma en el registro se ve en el tablón sin esperar al día 12.
+
+---
+
+## Día 8 — Incidencias y cajones
+
+Objetivo: incidencias con voto 2 de 5 y dos cajones con llave (PDC).
+
+**Qué es.** El parte público (título, estado) lo ve todo el consorcio. El detalle de precio vive en `obra-gruesa-solar` (A o C) o `quirofanos-tech` (B o D). La Administración no abre el sobre.
+
+**Para qué sirve en esta UTE.** Los secretos de partida no salen al tablón común. Se encendieron B, C y D un rato para el cajón de quirófanos.
+
+---
+
+## Día 9 — Estado de obra y siete pantallas
+
+Objetivo: siete rutas Next y un agregado de obra escrito por la secretaría.
+
+**Qué es.** La secretaría cuenta hitos, pagos e incidencias y escribe un único papel `estado:obra`. Las reglas no se llaman entre sí.
+
+Pantallas: login, inicio, hitos, pagos, incidencias, estado de obra, Explorer.
+
+---
+
+## Después del día 9 — Quién hace qué
+
+Objetivo: que el tablón muestre con quién estás, que cada sello solo haga lo suyo, y que un «no» de la red se lea en castellano. Plan: [MEJORAS-UI.md](MEJORAS-UI.md).
+
+### 1. Las cinco cuentas (31 ago, `25bd7dc`)
+
+**Qué es.** Entran A, B, C, D y Administración. El chip de la cabecera dice oficio, lote y porcentaje. El alta de hitos e incidencias usa la empresa de la sesión, no un nombre fijo de A.
+
+**Para qué sirve en esta UTE.** Una UTE no es solo Empresa A. B y D pueden firmar; para el cajón de quirófanos hace falta encender su oficina (`make pdc-up`).
+
+### 2. El ayuntamiento suelta o anula el dinero (31 ago + 6 sep, `68699bd`)
+
+**Qué es.** Completar un hito deja el pago en custodia. Solo Administración ve Autorizar y Rechazar. La constructora lee «pendiente de Administración». El mostrador responde 403 si otra cuenta lo intenta. Administración tampoco da de alta ni avanza hitos.
+
+**Para qué sirve en esta UTE.** Separación de funciones: quien ejecuta no se paga a sí mismo.
+
+### 3. La incidencia la cierra quien la abrió (6 sep)
+
+**Qué es.** El parte lleva el nombre de la empresa. Tratar, cerrar o rechazar solo lo hace esa empresa. Otra constructora o el ayuntamiento reciben 403.
+
+**Para qué sirve en esta UTE.** El parte de un lote no lo tramita el socio del lote rival.
+
+### 4. El «no» se lee en castellano (31 ago)
+
+**Qué es.** Si Fabric rechaza (cajón ajeno, nodo apagado, identificador repetido), el tablón explica y deja el detalle técnico plegado.
+
+---
+
+## 9–13 de septiembre — Firmas, fotos y un solo acto
+
+Huecos locales después del día 9. El alquiler del local (día 10 tarde) sigue pendiente.
+
+### 1. Firmar en la oficina que toca (9 sep)
+
+**Qué es.** Las reglas de quién debe sellar un hito, un pago o el estado de obra ya no asumen solo Empresa A. La secretaría envía el papel a la oficina de quien endosa. Cada constructora avanza solo sus hitos.
+
+**Para qué sirve en esta UTE.** Si Empresa B completa un lote, no basta el sello de A. El ayuntamiento sigue haciendo falta para soltar el dinero.
+
+> No llevas el acta a la caseta de al lado: vas a la de quien tiene que firmar.
+
+### 2. Mirar qué casetas tienen luz (9 sep)
+
+**Qué es.** Un botón de la secretaría (`/red`) comprueba qué oficinas responden. El tablón de incidencias avisa de `make pdc-up` según esa luz, no según una lista fija de diario.
+
+**Para qué sirve en esta UTE.** Si B y D ya están arriba, no hay que fingir que el cajón de quirófanos está cerrado.
+
+> Antes de pedir el sobre de instalaciones, miras si la caseta de B o D tiene la persiana subida.
+
+### 3. La foto del parte y el acta del hito (11 sep)
+
+**Qué es.** Al abrir una incidencia se puede adjuntar foto o PDF (máximo 5 MB). Al completar un hito hace falta un acta (mismo tipo). El archivo se guarda en el disco de la secretaría. En el hito el sello es `hashEvidencia`; en el parte, el hash va al sobre lacrado (PDC). Solo quien abrió el parte adjunta; solo los socios del lote ven o descargan esas fotos. El acta del hito la adjunta la empresa dueña, en validación. El ayuntamiento no abre esas fotos.
+
+**Para qué sirve en esta UTE.** El tribunal ve el parte y el acta con prueba; la cadena no se hincha con megas. Si alguien cambia el archivo, el sello ya no coincide.
+
+> La foto vive en el archivador de la caseta. En el libro notarial solo está la huella. El socio rival no abre ese cajón.
+
+### 4. Acabar el hito y dejar el dinero retenido en el mismo acto (11 sep)
+
+**Qué es.** Completar un hito ya no son dos gestiones sueltas: el pliego marca COMPLETADO y el pago entra en CUSTODIA en la misma transacción. Eso está en el archivador de versiones. El ayuntamiento autoriza después, igual que antes.
+
+**Para qué sirve en esta UTE.** No puede quedar un hito “acabado” sin el sobre de dinero. El libro no admite un entreacto.
+
+> El notario no cierra el acta de fin de lote y luego, a otra hora, mete el cheque en custodia: es la misma firma.
+
+### 5. El tablón de bloques no mezcla cadenas (13 sep)
+
+**Qué es.** Si se abre una carpeta de obra nueva (`make reset-demo-dev` o `reset-demo-full`), el tablón de bloques se vacía solo. Al completar un hito, la secretaría anota el número de bloque en la ficha (el libro de actas no guarda ese número).
+
+**Para qué sirve en esta UTE.** No aparecen actas de una obra anterior en el tablón de la obra de hoy.
+
+> Si cambias de libro notarial, no dejas pegados los folios del libro viejo.
 
 ---
 
 ## Qué no está hecho todavía
 
-El cajón de pantallas está vacío. No hay incidencias ni estado de obra. No hay local alquilado en internet.
+No hay local alquilado en internet. No hay cuadros de mando demostrados con tráfico.
 
 ### Lo que tienes que hacer tú
 
 Estas cuentas no bloquean el trabajo en casa; sí bloquean publicar más adelante.
 
-- Entrar en GitHub, crear el repo privado e invitar a `DomingoMr`.
+- Entrar en GitHub e invitar a `DomingoMr`.
 - Cuenta Google Cloud, crédito 300 USD y alertas de gasto.
 - Cuenta Vercel Hobby (pantallas en internet). Sin publicar aún.
 
 ### Lo que falta del plan
 
-- **Día 7** — una pantalla Next + Explorer (cierra la rebanada visual).
-- **Día 8** — incidencias y cajones con llave.
-- **Día 9** — resto de pantallas y estado de obra (lo calcula el mostrador).
-- **Día 10** — alquiler de prueba del local en internet.
+- **Día 10** — alquiler de prueba del local en internet (los huecos de UI de esa mañana ya están en local).
 - **Día 11** — congelar cambios y dejar el local creado (apagado).
 - **Día 12** — oficinas + mostrador en el local; pantallas publicadas.
 - **Día 13** — termómetros (cuadros de mando) y ensayo de calidad.
 - **Día 14** — defensa (encender, sembrar datos, tres pases, vídeo).
 
-Siguiente paso: una pantalla de hitos/pagos + Explorer. Las incidencias vienen el día 8.
+Siguiente paso: VM e2-standard-4 con SAN de la IP pública.
