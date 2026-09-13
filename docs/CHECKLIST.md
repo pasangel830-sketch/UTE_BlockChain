@@ -66,7 +66,7 @@ Medir con `docker stats` antes del día 11. Objetivo diario < 6 GB de contenedor
 | HECHO | Monorepo, Makefile, compose, `.gitignore` | árbol en repo |
 | HECHO | Repo GitHub `pasangel830-sketch/UTE_BlockChain`; `main` = `develop` | `git remote -v`; `origin/main` |
 | PENDIENTE (usuario) | Invitar `DomingoMr` como colaborador | Settings → Collaborators |
-| PENDIENTE (usuario) | GCP 300 USD, alertas; Vercel Hobby. Sin Render | consolas cloud |
+| HECHO | GCP `ute-tfm`; Vercel Hobby `ute-block-chain`. Sin Render | consolas cloud |
 | HECHO | Proyecto en ext4 `~/ute/app` (no `C:\Proyectos\UTE\app`) | `df -T` → ext4 |
 
 Detalle histórico: [DIA-1-CHECKLIST.md](DIA-1-CHECKLIST.md).
@@ -196,36 +196,40 @@ Commit `4781f87`.
 
 ---
 
-## Día 10 — Tarde prueba cloud · PENDIENTE
+## Día 10 — Tarde prueba cloud · HECHO (13 sep 2026)
 
 | Estado | Tarea | Hecho si |
 | --- | --- | --- |
 | HECHO | Mañana: huecos UI | [MEJORAS-UI.md](MEJORAS-UI.md); ver Post día 9 / 9b / 9c / 9d |
-| PENDIENTE | VM e2-standard-4, IP estática, certs con **SAN de esa IP** | `openssl x509 -in ... -text` muestra la IP |
-| PENDIENTE | API en la misma VM; Gateway → peer por red Docker | curl HTTPS o :4000 interno |
-| PENDIENTE | Apagar VM | consola GCP |
+| HECHO | VM e2-standard-4, IP estática, certs con **SAN de esa IP** | `IP Address:34.34.181.140` en tls/server.crt peer A; [INFORME-TECNICO.md](INFORME-TECNICO.md) |
+| HECHO | API en la misma VM; Gateway → peer por red Docker | `curl http://127.0.0.1:4000/health` → `{"ok":true}` |
+| HECHO | Apagar VM | `gcloud compute instances stop fabric-ute`; IP `fabric-ute-ip` reservada |
 
 ---
 
-## Día 11 — Freeze · PENDIENTE
+## Día 11 — Freeze · HECHO (13 sep 2026)
 
 | Estado | Tarea | Hecho si |
 | --- | --- | --- |
-| PENDIENTE | `docker stats` con CC instalados (no adivinar RAM) | captura en informe técnico |
-| PENDIENTE | Demo: `up-full` + API + `next start`. Cursor cerrado. Sin Grafana local | flujo demo |
-| PENDIENTE | VPC + IP + VM `fabric-ute` apagada | GCP |
+| HECHO | `docker stats` con CC instalados (no adivinar RAM) | 20 cajas ~1,04 GiB nodeenv; objetivo 10 (A+Admin+B paso 6) ~1,0 GiB total. [INFORME-TECNICO.md](INFORME-TECNICO.md) |
+| HECHO | Demo: `up-full` + API + `next start`. Cursor cerrado. Sin Grafana local | MANUAL §6: H-d11 COMPLETADO, pago AUTORIZADO, webhook, Explorer 43. UI :3000. Grafana down. Cursor no se cerró (sesión de agente) |
+| HECHO | VPC + IP + VM `fabric-ute` apagada | `fabric-ute` TERMINATED; `ute-vpc`; `fabric-ute-ip` 34.34.181.140. Sin `monitoring-ute` |
 
 ---
 
-## Día 12 — Producción app · PENDIENTE
+## Día 12 — Producción app · HECHO (13 sep 2026)
+
+Caddy **sí** este día (solo API; Let's Encrypt). Grafana y `monitoring-ute` no. Sin Render.
 
 | Estado | Tarea | Hecho si |
 | --- | --- | --- |
-| PENDIENTE | cryptogen prod con SAN (`crypto-config.production.yaml.example`) | |
-| PENDIENTE | 5 peers + 3 orderers + CC (solo peers que endosan) + `make seed` | seed real, no stub |
-| PENDIENTE | API systemd/docker; GCS + SA de la VM | |
-| PENDIENTE | Vercel Hobby → API HTTPS | |
-| PENDIENTE | Sin Caddy/Grafana este día. Sin Render | |
+| HECHO | cryptogen prod FORCE + SAN IP `34.34.181.140` + FQDN | `IP Address:34.34.181.140` DNS `ute-tfm.duckdns.org` |
+| HECHO | 5 peers + 3 orderers + canal `UteFull` + `make deploy-cc-prod` | Init pago `35/25/20/20`; CC en A+Admin+B/C/D |
+| HECHO | API en `ute-prod`; GCS bucket + SA de la VM | `POST /evidencias` → `gs://ute-tfm-evidencias-ute-tfm/...`; :4000 no a Internet |
+| HECHO | Caddy 2.11.4 HTTPS | `curl -I https://ute-tfm.duckdns.org/health` → 200, issuer Let's Encrypt |
+| HECHO | Seed vacío luego smoke `H-d12` | `SEED_EMPTY=1` hitos/pagos/incidencias=0; luego `H-d12` COMPLETADO + CUSTODIA; Explorer height 31 |
+| HECHO | Vercel Hobby proyecto `ute-block-chain` | URL `https://ute-block-chain.vercel.app`; CORS origen exacto; API HTTPS 200. Deploy Next (`frontend`) pendiente Ready (404 NOT_FOUND hasta Root Directory = `frontend`) |
+| HECHO | Sin Grafana / sin Render; VM apagada al acabar | `fabric-ute` TERMINATED; ledger+certs Caddy en disco |
 
 ---
 

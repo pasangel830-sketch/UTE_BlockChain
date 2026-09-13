@@ -79,7 +79,12 @@ make reset-dev       # down -v, borra *.block, crypto si hace falta, up
 make reset-demo-dev  # api/pdc/mon down, uploads, reset-dev, deploy-cc, api-up
 make reset-demo-full # igual con 5 peers (tribunal)
 make monitoring-up   # requiere ute-net (Fabric ya arriba)
-make seed            # día 12; hoy es stub
+make seed            # guion MANUAL §6 (API :4000). Prod vacío: SEED_EMPTY=1
+make up-prod         # VM fabric-ute: crypto SAN + 5 peers + API + Caddy (STATIC_IP, JWT_SECRET, FORCE=1 borra volúmenes)
+make deploy-cc-prod  # INSTALL_PDC_PEERS=1 en *.ute.prod
+make down-prod
+make crypto-prod     # cryptogen organizations-prod (STATIC_IP)
+make channel-prod
 make test-cc         # Jest 4 contratos (Node 18)
 make deploy-cc       # hito+pago+incidencia+estado-obra en A+Admin; InitLedger
 make api-up          # Express :4000 en ute-net
@@ -93,6 +98,7 @@ make verify-pdc
 ```
 
 Certificados: `network/organizations/` (no se suben). Regenerar: `FORCE=1 ./network/scripts/generate-crypto.sh`.
+Producción: `network/.env` desde `network/.env.production.example`; `FORCE=1 make up-prod`, `make deploy-cc-prod`, `SEED_EMPTY=1 make seed`. Frontend Vercel: root `frontend`, `NEXT_PUBLIC_API_URL=https://ute-tfm.duckdns.org`. Prometheus scrape: `monitoring/prometheus.prod.yml` (IP privada de fabric-ute). Day 13: `COMPOSE_PROFILES=exporters`.
 
 ## Rebanada vertical (días 4–7)
 

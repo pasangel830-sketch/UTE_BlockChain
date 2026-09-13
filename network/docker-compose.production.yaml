@@ -1,5 +1,6 @@
-# Producción en fabric-ute (e2-standard-4, 16 GB). Certs con SAN de la IP/dominio público.
-# No publicar orderers, peers 7051 ni /metrics a Internet. La API Express corre en esta misma VM.
+# Producción en fabric-ute (e2-standard-4). Certs SAN en organizations-prod (*.ute.prod).
+# No publicar gRPC 7051 ni orderers a Internet. Ops 9444–9448 / 8443–8445: solo VPC (firewall GCP).
+# Admin orderer 7053/8053/9053: 127.0.0.1 (osnadmin en la VM). API :4000 VPC; 80/443 Caddy a Internet.
 
 name: ute-prod
 
@@ -13,10 +14,30 @@ x-orderer: &orderer-resources
   mem_reservation: 128m
   cpus: "0.25"
 
+x-tools: &tools-resources
+  mem_limit: 256m
+  mem_reservation: 128m
+  cpus: "0.25"
+
+x-api: &api-resources
+  mem_limit: 384m
+  mem_reservation: 128m
+  cpus: "0.50"
+
 x-exporter: &exporter-resources
   mem_limit: 192m
   mem_reservation: 64m
   cpus: "0.15"
+
+x-peer-env: &peer-common
+  FABRIC_LOGGING_SPEC: INFO
+  CORE_VM_ENDPOINT: unix:///host/var/run/docker.sock
+  CORE_VM_DOCKER_HOSTCONFIG_NETWORKMODE: ute-prod
+  CORE_PEER_TLS_ENABLED: "true"
+  CORE_LEDGER_STATE_STATEDATABASE: goleveldb
+  CORE_METRICS_PROVIDER: prometheus
+  CORE_CHAINCODE_EXECUTETIMEOUT: 300s
+  CORE_CHAINCODE_INSTALLTIMEOUT: 300s
 
 networks:
   ute:
@@ -31,104 +52,364 @@ volumes:
   orderer1:
   orderer2:
   orderer3:
+  api-uploads:
+  caddy-data:
+  caddy-config:
 
 services:
   orderer1.ute.prod:
     <<: *orderer-resources
     image: hyperledger/fabric-orderer:2.5.16
     container_name: orderer1.ute.prod
-    restart: unless-stopped
+    hostname: orderer1.ute.prod
     environment:
       FABRIC_LOGGING_SPEC: INFO
       ORDERER_GENERAL_LISTENADDRESS: 0.0.0.0
       ORDERER_GENERAL_LISTENPORT: 7050
       ORDERER_GENERAL_LOCALMSPID: OrdererMSP
+      ORDERER_GENERAL_LOCALMSPDIR: /var/hyperledger/orderer/msp
       ORDERER_GENERAL_TLS_ENABLED: "true"
+      ORDERER_GENERAL_TLS_PRIVATEKEY: /var/hyperledger/orderer/tls/server.key
+      ORDERER_GENERAL_TLS_CERTIFICATE: /var/hyperledger/orderer/tls/server.crt
+      ORDERER_GENERAL_TLS_ROOTCAS: "[/var/hyperledger/orderer/tls/ca.crt]"
       ORDERER_GENERAL_BOOTSTRAPMETHOD: none
       ORDERER_CHANNELPARTICIPATION_ENABLED: "true"
+      ORDERER_ADMIN_LISTENADDRESS: 0.0.0.0:7053
+      ORDERER_ADMIN_TLS_ENABLED: "true"
+      ORDERER_ADMIN_TLS_CERTIFICATE: /var/hyperledger/orderer/tls/server.crt
+      ORDERER_ADMIN_TLS_PRIVATEKEY: /var/hyperledger/orderer/tls/server.key
+      ORDERER_ADMIN_TLS_ROOTCAS: "[/var/hyperledger/orderer/tls/ca.crt]"
+      ORDERER_ADMIN_TLS_CLIENTROOTCAS: "[/var/hyperledger/orderer/tls/ca.crt]"
+      ORDERER_ADMIN_TLS_CLIENTAUTHREQUIRED: "true"
+      ORDERER_GENERAL_CLUSTER_CLIENTCERTIFICATE: /var/hyperledger/orderer/tls/server.crt
+      ORDERER_GENERAL_CLUSTER_CLIENTPRIVATEKEY: /var/hyperledger/orderer/tls/server.key
+      ORDERER_GENERAL_CLUSTER_ROOTCAS: "[/var/hyperledger/orderer/tls/ca.crt]"
       ORDERER_METRICS_PROVIDER: prometheus
       ORDERER_OPERATIONS_LISTENADDRESS: 0.0.0.0:8443
     volumes:
       - ./organizations-prod/ordererOrganizations/ute.prod/orderers/orderer1.ute.prod/msp:/var/hyperledger/orderer/msp
       - ./organizations-prod/ordererOrganizations/ute.prod/orderers/orderer1.ute.prod/tls:/var/hyperledger/orderer/tls
       - orderer1:/var/hyperledger/production/orderer
+    ports:
+      - "${OPS_BIND:-0.0.0.0}:8443:8443"
+      - "127.0.0.1:7053:7053"
     networks: [ute]
-    ports: []
+    restart: unless-stopped
 
   orderer2.ute.prod:
     <<: *orderer-resources
     image: hyperledger/fabric-orderer:2.5.16
     container_name: orderer2.ute.prod
-    restart: unless-stopped
+    hostname: orderer2.ute.prod
     environment:
       FABRIC_LOGGING_SPEC: INFO
       ORDERER_GENERAL_LISTENADDRESS: 0.0.0.0
       ORDERER_GENERAL_LISTENPORT: 8050
       ORDERER_GENERAL_LOCALMSPID: OrdererMSP
+      ORDERER_GENERAL_LOCALMSPDIR: /var/hyperledger/orderer/msp
       ORDERER_GENERAL_TLS_ENABLED: "true"
+      ORDERER_GENERAL_TLS_PRIVATEKEY: /var/hyperledger/orderer/tls/server.key
+      ORDERER_GENERAL_TLS_CERTIFICATE: /var/hyperledger/orderer/tls/server.crt
+      ORDERER_GENERAL_TLS_ROOTCAS: "[/var/hyperledger/orderer/tls/ca.crt]"
       ORDERER_GENERAL_BOOTSTRAPMETHOD: none
       ORDERER_CHANNELPARTICIPATION_ENABLED: "true"
+      ORDERER_ADMIN_LISTENADDRESS: 0.0.0.0:8053
+      ORDERER_ADMIN_TLS_ENABLED: "true"
+      ORDERER_ADMIN_TLS_CERTIFICATE: /var/hyperledger/orderer/tls/server.crt
+      ORDERER_ADMIN_TLS_PRIVATEKEY: /var/hyperledger/orderer/tls/server.key
+      ORDERER_ADMIN_TLS_ROOTCAS: "[/var/hyperledger/orderer/tls/ca.crt]"
+      ORDERER_ADMIN_TLS_CLIENTROOTCAS: "[/var/hyperledger/orderer/tls/ca.crt]"
+      ORDERER_ADMIN_TLS_CLIENTAUTHREQUIRED: "true"
+      ORDERER_GENERAL_CLUSTER_CLIENTCERTIFICATE: /var/hyperledger/orderer/tls/server.crt
+      ORDERER_GENERAL_CLUSTER_CLIENTPRIVATEKEY: /var/hyperledger/orderer/tls/server.key
+      ORDERER_GENERAL_CLUSTER_ROOTCAS: "[/var/hyperledger/orderer/tls/ca.crt]"
       ORDERER_METRICS_PROVIDER: prometheus
       ORDERER_OPERATIONS_LISTENADDRESS: 0.0.0.0:8444
     volumes:
       - ./organizations-prod/ordererOrganizations/ute.prod/orderers/orderer2.ute.prod/msp:/var/hyperledger/orderer/msp
       - ./organizations-prod/ordererOrganizations/ute.prod/orderers/orderer2.ute.prod/tls:/var/hyperledger/orderer/tls
       - orderer2:/var/hyperledger/production/orderer
+    ports:
+      - "${OPS_BIND:-0.0.0.0}:8444:8444"
+      - "127.0.0.1:8053:8053"
     networks: [ute]
-    ports: []
+    restart: unless-stopped
 
   orderer3.ute.prod:
     <<: *orderer-resources
     image: hyperledger/fabric-orderer:2.5.16
     container_name: orderer3.ute.prod
-    restart: unless-stopped
+    hostname: orderer3.ute.prod
     environment:
       FABRIC_LOGGING_SPEC: INFO
       ORDERER_GENERAL_LISTENADDRESS: 0.0.0.0
       ORDERER_GENERAL_LISTENPORT: 9050
       ORDERER_GENERAL_LOCALMSPID: OrdererMSP
+      ORDERER_GENERAL_LOCALMSPDIR: /var/hyperledger/orderer/msp
       ORDERER_GENERAL_TLS_ENABLED: "true"
+      ORDERER_GENERAL_TLS_PRIVATEKEY: /var/hyperledger/orderer/tls/server.key
+      ORDERER_GENERAL_TLS_CERTIFICATE: /var/hyperledger/orderer/tls/server.crt
+      ORDERER_GENERAL_TLS_ROOTCAS: "[/var/hyperledger/orderer/tls/ca.crt]"
       ORDERER_GENERAL_BOOTSTRAPMETHOD: none
       ORDERER_CHANNELPARTICIPATION_ENABLED: "true"
+      ORDERER_ADMIN_LISTENADDRESS: 0.0.0.0:9053
+      ORDERER_ADMIN_TLS_ENABLED: "true"
+      ORDERER_ADMIN_TLS_CERTIFICATE: /var/hyperledger/orderer/tls/server.crt
+      ORDERER_ADMIN_TLS_PRIVATEKEY: /var/hyperledger/orderer/tls/server.key
+      ORDERER_ADMIN_TLS_ROOTCAS: "[/var/hyperledger/orderer/tls/ca.crt]"
+      ORDERER_ADMIN_TLS_CLIENTROOTCAS: "[/var/hyperledger/orderer/tls/ca.crt]"
+      ORDERER_ADMIN_TLS_CLIENTAUTHREQUIRED: "true"
+      ORDERER_GENERAL_CLUSTER_CLIENTCERTIFICATE: /var/hyperledger/orderer/tls/server.crt
+      ORDERER_GENERAL_CLUSTER_CLIENTPRIVATEKEY: /var/hyperledger/orderer/tls/server.key
+      ORDERER_GENERAL_CLUSTER_ROOTCAS: "[/var/hyperledger/orderer/tls/ca.crt]"
       ORDERER_METRICS_PROVIDER: prometheus
       ORDERER_OPERATIONS_LISTENADDRESS: 0.0.0.0:8445
     volumes:
       - ./organizations-prod/ordererOrganizations/ute.prod/orderers/orderer3.ute.prod/msp:/var/hyperledger/orderer/msp
       - ./organizations-prod/ordererOrganizations/ute.prod/orderers/orderer3.ute.prod/tls:/var/hyperledger/orderer/tls
       - orderer3:/var/hyperledger/production/orderer
+    ports:
+      - "${OPS_BIND:-0.0.0.0}:8445:8445"
+      - "127.0.0.1:9053:9053"
     networks: [ute]
-    ports: []
+    restart: unless-stopped
 
   peer0.empresaa.ute.prod:
     <<: *peer-resources
     image: hyperledger/fabric-peer:2.5.16
     container_name: peer0.empresaa.ute.prod
-    restart: unless-stopped
+    hostname: peer0.empresaa.ute.prod
     environment:
-      FABRIC_LOGGING_SPEC: INFO
-      CORE_VM_ENDPOINT: unix:///host/var/run/docker.sock
-      CORE_VM_DOCKER_HOSTCONFIG_NETWORKMODE: ute-prod
+      <<: *peer-common
       CORE_PEER_ID: peer0.empresaa.ute.prod
       CORE_PEER_ADDRESS: peer0.empresaa.ute.prod:7051
       CORE_PEER_LISTENADDRESS: 0.0.0.0:7051
+      CORE_PEER_CHAINCODEADDRESS: peer0.empresaa.ute.prod:7052
+      CORE_PEER_CHAINCODELISTENADDRESS: 0.0.0.0:7052
+      CORE_PEER_GOSSIP_BOOTSTRAP: peer0.empresaa.ute.prod:7051
+      CORE_PEER_GOSSIP_EXTERNALENDPOINT: peer0.empresaa.ute.prod:7051
       CORE_PEER_LOCALMSPID: EmpresaAMSP
-      CORE_PEER_TLS_ENABLED: "true"
-      CORE_LEDGER_STATE_STATEDATABASE: goleveldb
-      CORE_CHAINCODE_EXECUTETIMEOUT: 300s
-      CORE_CHAINCODE_INSTALLTIMEOUT: 300s
-      CORE_METRICS_PROVIDER: prometheus
+      CORE_PEER_MSPCONFIGPATH: /etc/hyperledger/peer/msp
+      CORE_PEER_TLS_CERT_FILE: /etc/hyperledger/peer/tls/server.crt
+      CORE_PEER_TLS_KEY_FILE: /etc/hyperledger/peer/tls/server.key
+      CORE_PEER_TLS_ROOTCERT_FILE: /etc/hyperledger/peer/tls/ca.crt
       CORE_OPERATIONS_LISTENADDRESS: 0.0.0.0:9444
     volumes:
       - /var/run/docker.sock:/host/var/run/docker.sock
       - ./organizations-prod/peerOrganizations/empresaa.ute.prod/peers/peer0.empresaa.ute.prod/msp:/etc/hyperledger/peer/msp
       - ./organizations-prod/peerOrganizations/empresaa.ute.prod/peers/peer0.empresaa.ute.prod/tls:/etc/hyperledger/peer/tls
       - peer0-empresaa:/var/hyperledger/production
-    networks: [ute]
     ports:
-      - "7051:7051"
+      - "${OPS_BIND:-0.0.0.0}:9444:9444"
+    networks: [ute]
+    restart: unless-stopped
+
+  peer0.empresab.ute.prod:
+    <<: *peer-resources
+    image: hyperledger/fabric-peer:2.5.16
+    container_name: peer0.empresab.ute.prod
+    hostname: peer0.empresab.ute.prod
+    environment:
+      <<: *peer-common
+      CORE_PEER_ID: peer0.empresab.ute.prod
+      CORE_PEER_ADDRESS: peer0.empresab.ute.prod:8051
+      CORE_PEER_LISTENADDRESS: 0.0.0.0:8051
+      CORE_PEER_CHAINCODEADDRESS: peer0.empresab.ute.prod:8052
+      CORE_PEER_CHAINCODELISTENADDRESS: 0.0.0.0:8052
+      CORE_PEER_GOSSIP_BOOTSTRAP: peer0.empresab.ute.prod:8051
+      CORE_PEER_GOSSIP_EXTERNALENDPOINT: peer0.empresab.ute.prod:8051
+      CORE_PEER_LOCALMSPID: EmpresaBMSP
+      CORE_PEER_MSPCONFIGPATH: /etc/hyperledger/peer/msp
+      CORE_PEER_TLS_CERT_FILE: /etc/hyperledger/peer/tls/server.crt
+      CORE_PEER_TLS_KEY_FILE: /etc/hyperledger/peer/tls/server.key
+      CORE_PEER_TLS_ROOTCERT_FILE: /etc/hyperledger/peer/tls/ca.crt
+      CORE_OPERATIONS_LISTENADDRESS: 0.0.0.0:9446
+    volumes:
+      - /var/run/docker.sock:/host/var/run/docker.sock
+      - ./organizations-prod/peerOrganizations/empresab.ute.prod/peers/peer0.empresab.ute.prod/msp:/etc/hyperledger/peer/msp
+      - ./organizations-prod/peerOrganizations/empresab.ute.prod/peers/peer0.empresab.ute.prod/tls:/etc/hyperledger/peer/tls
+      - peer0-empresab:/var/hyperledger/production
+    ports:
+      - "${OPS_BIND:-0.0.0.0}:9446:9446"
+    networks: [ute]
+    restart: unless-stopped
+
+  peer0.empresac.ute.prod:
+    <<: *peer-resources
+    image: hyperledger/fabric-peer:2.5.16
+    container_name: peer0.empresac.ute.prod
+    hostname: peer0.empresac.ute.prod
+    environment:
+      <<: *peer-common
+      CORE_PEER_ID: peer0.empresac.ute.prod
+      CORE_PEER_ADDRESS: peer0.empresac.ute.prod:11051
+      CORE_PEER_LISTENADDRESS: 0.0.0.0:11051
+      CORE_PEER_CHAINCODEADDRESS: peer0.empresac.ute.prod:11052
+      CORE_PEER_CHAINCODELISTENADDRESS: 0.0.0.0:11052
+      CORE_PEER_GOSSIP_BOOTSTRAP: peer0.empresac.ute.prod:11051
+      CORE_PEER_GOSSIP_EXTERNALENDPOINT: peer0.empresac.ute.prod:11051
+      CORE_PEER_LOCALMSPID: EmpresaCMSP
+      CORE_PEER_MSPCONFIGPATH: /etc/hyperledger/peer/msp
+      CORE_PEER_TLS_CERT_FILE: /etc/hyperledger/peer/tls/server.crt
+      CORE_PEER_TLS_KEY_FILE: /etc/hyperledger/peer/tls/server.key
+      CORE_PEER_TLS_ROOTCERT_FILE: /etc/hyperledger/peer/tls/ca.crt
+      CORE_OPERATIONS_LISTENADDRESS: 0.0.0.0:9447
+    volumes:
+      - /var/run/docker.sock:/host/var/run/docker.sock
+      - ./organizations-prod/peerOrganizations/empresac.ute.prod/peers/peer0.empresac.ute.prod/msp:/etc/hyperledger/peer/msp
+      - ./organizations-prod/peerOrganizations/empresac.ute.prod/peers/peer0.empresac.ute.prod/tls:/etc/hyperledger/peer/tls
+      - peer0-empresac:/var/hyperledger/production
+    ports:
+      - "${OPS_BIND:-0.0.0.0}:9447:9447"
+    networks: [ute]
+    restart: unless-stopped
+
+  peer0.empresad.ute.prod:
+    <<: *peer-resources
+    image: hyperledger/fabric-peer:2.5.16
+    container_name: peer0.empresad.ute.prod
+    hostname: peer0.empresad.ute.prod
+    environment:
+      <<: *peer-common
+      CORE_PEER_ID: peer0.empresad.ute.prod
+      CORE_PEER_ADDRESS: peer0.empresad.ute.prod:12051
+      CORE_PEER_LISTENADDRESS: 0.0.0.0:12051
+      CORE_PEER_CHAINCODEADDRESS: peer0.empresad.ute.prod:12052
+      CORE_PEER_CHAINCODELISTENADDRESS: 0.0.0.0:12052
+      CORE_PEER_GOSSIP_BOOTSTRAP: peer0.empresad.ute.prod:12051
+      CORE_PEER_GOSSIP_EXTERNALENDPOINT: peer0.empresad.ute.prod:12051
+      CORE_PEER_LOCALMSPID: EmpresaDMSP
+      CORE_PEER_MSPCONFIGPATH: /etc/hyperledger/peer/msp
+      CORE_PEER_TLS_CERT_FILE: /etc/hyperledger/peer/tls/server.crt
+      CORE_PEER_TLS_KEY_FILE: /etc/hyperledger/peer/tls/server.key
+      CORE_PEER_TLS_ROOTCERT_FILE: /etc/hyperledger/peer/tls/ca.crt
+      CORE_OPERATIONS_LISTENADDRESS: 0.0.0.0:9448
+    volumes:
+      - /var/run/docker.sock:/host/var/run/docker.sock
+      - ./organizations-prod/peerOrganizations/empresad.ute.prod/peers/peer0.empresad.ute.prod/msp:/etc/hyperledger/peer/msp
+      - ./organizations-prod/peerOrganizations/empresad.ute.prod/peers/peer0.empresad.ute.prod/tls:/etc/hyperledger/peer/tls
+      - peer0-empresad:/var/hyperledger/production
+    ports:
+      - "${OPS_BIND:-0.0.0.0}:9448:9448"
+    networks: [ute]
+    restart: unless-stopped
+
+  peer0.administracion.ute.prod:
+    <<: *peer-resources
+    image: hyperledger/fabric-peer:2.5.16
+    container_name: peer0.administracion.ute.prod
+    hostname: peer0.administracion.ute.prod
+    environment:
+      <<: *peer-common
+      CORE_PEER_ID: peer0.administracion.ute.prod
+      CORE_PEER_ADDRESS: peer0.administracion.ute.prod:9051
+      CORE_PEER_LISTENADDRESS: 0.0.0.0:9051
+      CORE_PEER_CHAINCODEADDRESS: peer0.administracion.ute.prod:9052
+      CORE_PEER_CHAINCODELISTENADDRESS: 0.0.0.0:9052
+      CORE_PEER_GOSSIP_BOOTSTRAP: peer0.administracion.ute.prod:9051
+      CORE_PEER_GOSSIP_EXTERNALENDPOINT: peer0.administracion.ute.prod:9051
+      CORE_PEER_LOCALMSPID: AdministracionMSP
+      CORE_PEER_MSPCONFIGPATH: /etc/hyperledger/peer/msp
+      CORE_PEER_TLS_CERT_FILE: /etc/hyperledger/peer/tls/server.crt
+      CORE_PEER_TLS_KEY_FILE: /etc/hyperledger/peer/tls/server.key
+      CORE_PEER_TLS_ROOTCERT_FILE: /etc/hyperledger/peer/tls/ca.crt
+      CORE_OPERATIONS_LISTENADDRESS: 0.0.0.0:9445
+    volumes:
+      - /var/run/docker.sock:/host/var/run/docker.sock
+      - ./organizations-prod/peerOrganizations/administracion.ute.prod/peers/peer0.administracion.ute.prod/msp:/etc/hyperledger/peer/msp
+      - ./organizations-prod/peerOrganizations/administracion.ute.prod/peers/peer0.administracion.ute.prod/tls:/etc/hyperledger/peer/tls
+      - peer0-admin:/var/hyperledger/production
+    ports:
+      - "${OPS_BIND:-0.0.0.0}:9445:9445"
+    networks: [ute]
+    restart: unless-stopped
+
+  cli:
+    <<: *tools-resources
+    image: hyperledger/fabric-tools:2.5.16
+    container_name: ute-cli-prod
+    tty: true
+    stdin_open: true
+    environment:
+      FABRIC_LOGGING_SPEC: INFO
+      CORE_PEER_TLS_ENABLED: "true"
+    volumes:
+      - ./:/workspace
+      - ./organizations-prod:/organizations
+      - ../chaincode:/chaincode
+    working_dir: /workspace
+    networks: [ute]
+    command: /bin/bash
+    restart: unless-stopped
+
+  api:
+    <<: *api-resources
+    build:
+      context: ../backend
+      dockerfile: Dockerfile
+    image: ute-api:prod
+    container_name: ute-api
+    working_dir: /app
+    environment:
+      NODE_ENV: production
+      PORT: "4000"
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET obligatorio en prod}
+      JWT_EXPIRES: 8h
+      CORS_ORIGIN: ${CORS_ORIGIN:-}
+      AUTH_USERS: empresaA:empresaA:EmpresaAMSP,empresaB:empresaB:EmpresaBMSP,empresaC:empresaC:EmpresaCMSP,empresaD:empresaD:EmpresaDMSP,administracion:administracion:AdministracionMSP
+      PEER_ENDPOINT: peer0.empresaa.ute.prod:7051
+      PEER_HOST_ALIAS: peer0.empresaa.ute.prod
+      FABRIC_DOMAIN: ute.prod
+      CRYPTO_PATH: /crypto
+      CHANNEL_NAME: channel-obra
+      CHAINCODE_HITO: hito
+      CHAINCODE_PAGO: pago
+      CHAINCODE_INCIDENCIA: incidencia
+      CHAINCODE_ESTADO: estado-obra
+      STORAGE_DRIVER: ${STORAGE_DRIVER:-gcs}
+      GCS_BUCKET: ${GCS_BUCKET:-}
+      GOOGLE_CLOUD_PROJECT: ${GOOGLE_CLOUD_PROJECT:-ute-tfm}
+      UPLOAD_DIR: /app/uploads
+      MOCK_BANCO_URL: http://ute-api:4000/mock/banco/pagos
+      GRPC_KEEPALIVE_TIME_MS: "120000"
+      GRPC_KEEPALIVE_TIMEOUT_MS: "20000"
+    volumes:
+      - ./organizations-prod:/crypto:ro
+      - api-uploads:/app/uploads
+    extra_hosts:
+      - "metadata.google.internal:169.254.169.254"
+    ports:
+      - "127.0.0.1:4000:4000"
+    networks: [ute]
+    depends_on:
+      - peer0.empresaa.ute.prod
+      - peer0.administracion.ute.prod
+    restart: unless-stopped
+
+  caddy:
+    <<: *exporter-resources
+    image: caddy:2.11.4
+    container_name: ute-caddy
+    environment:
+      API_FQDN: ${API_FQDN:-localhost}
+      GRAFANA_FQDN: ${GRAFANA_FQDN:-}
+      GRAFANA_UPSTREAM: ${GRAFANA_UPSTREAM:-grafana:3000}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    networks: [ute]
+    depends_on:
+      - api
+    restart: unless-stopped
 
   cadvisor:
     <<: *exporter-resources
+    profiles: ["exporters"]
     image: gcr.io/cadvisor/cadvisor:v0.56.1
     container_name: cadvisor
     restart: unless-stopped
@@ -145,6 +426,7 @@ services:
 
   node-exporter:
     <<: *exporter-resources
+    profiles: ["exporters"]
     image: prom/node-exporter:v1.9.1
     container_name: node-exporter
     restart: unless-stopped

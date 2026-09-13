@@ -4,16 +4,23 @@ COMPOSE_MON := docker compose -f monitoring/docker-compose.yaml
 COMPOSE_PROD := docker compose -f network/docker-compose.production.yaml
 ART_BLOCKS := network/channel-artifacts/*.block network/channel-artifacts/*.tx channel-obra.block
 
-.PHONY: crypto channel-dev channel-full up-dev down-dev logs-dev up-full down-full logs-full verify-full reset-dev reset-full reset-demo-dev reset-demo-full clean-offchain seed monitoring-up monitoring-down ps clean-artifacts test-cc deploy-hito deploy-pago deploy-incidencia deploy-estado deploy-cc init-pago init-estado verify-cc verify-api verify-pdc verify-ui api-up api-down ui-up pdc-up pdc-down
+.PHONY: crypto crypto-prod channel-dev channel-full channel-prod up-dev down-dev logs-dev up-full down-full logs-full up-prod down-prod logs-prod verify-full reset-dev reset-full reset-demo-dev reset-demo-full clean-offchain seed monitoring-up monitoring-down ps clean-artifacts test-cc deploy-hito deploy-pago deploy-incidencia deploy-estado deploy-cc deploy-cc-prod init-pago init-estado verify-cc verify-api verify-pdc verify-ui api-up api-down ui-up pdc-up pdc-down
 
 crypto:
 	./network/scripts/generate-crypto.sh
+
+crypto-prod:
+	@if [ -f network/.env ]; then set -a && . ./network/.env && set +a; fi; \
+	./network/scripts/generate-crypto-prod.sh
 
 channel-dev:
 	./network/scripts/create-channel.sh dev
 
 channel-full:
 	./network/scripts/create-channel.sh full
+
+channel-prod:
+	./network/scripts/create-channel.sh prod
 
 up-dev:
 	$(COMPOSE_FULL) down --remove-orphans || true
@@ -38,6 +45,36 @@ down-full:
 
 logs-full:
 	$(COMPOSE_FULL) logs -f --tail=100
+
+up-prod:
+	set -e; \
+	if [ -f network/.env ]; then set -a && . ./network/.env && set +a; fi; \
+	test -n "$$STATIC_IP" || { echo "STATIC_IP obligatorio (export o network/.env)"; exit 1; }; \
+	test -n "$$JWT_SECRET" || { echo "JWT_SECRET obligatorio"; exit 1; }; \
+	if [ "$${STORAGE_DRIVER:-gcs}" = gcs ]; then test -n "$$GCS_BUCKET" || { echo "GCS_BUCKET obligatorio con STORAGE_DRIVER=gcs"; exit 1; }; fi; \
+	$(COMPOSE_DEV) down --remove-orphans || true; \
+	$(COMPOSE_FULL) down --remove-orphans || true; \
+	docker compose -f network/docker-compose.api.yaml down --remove-orphans || true; \
+	if [ "$${FORCE:-0}" = "1" ]; then \
+	  $(COMPOSE_PROD) down -v --remove-orphans || true; \
+	  rm -f network/channel-artifacts/channel-obra.prod.block; \
+	else \
+	  $(COMPOSE_PROD) down --remove-orphans || true; \
+	fi; \
+	./network/scripts/generate-crypto-prod.sh; \
+	if [ -s "$(HOME)/.nvm/nvm.sh" ]; then \
+	  (. $(HOME)/.nvm/nvm.sh && nvm use 24 && cd backend && (test -f package-lock.json && npm ci || npm install) && npm run build); \
+	else \
+	  docker run --rm -v "$(CURDIR)/backend:/app" -w /app node:24.20.0-bookworm bash -c 'npm ci && npm run build'; \
+	fi; \
+	$(COMPOSE_PROD) up -d --build; \
+	./network/scripts/create-channel.sh prod
+
+down-prod:
+	$(COMPOSE_PROD) down --remove-orphans
+
+logs-prod:
+	$(COMPOSE_PROD) logs -f --tail=100
 
 verify-full:
 	./network/scripts/verify-full.sh
@@ -120,6 +157,9 @@ deploy-estado:
 deploy-cc: deploy-hito deploy-pago deploy-incidencia deploy-estado
 	./network/scripts/init-pago.sh
 	./network/scripts/init-estado.sh
+
+deploy-cc-prod:
+	INSTALL_PDC_PEERS=1 FABRIC_MODE=prod $(MAKE) deploy-cc
 
 init-pago:
 	./network/scripts/init-pago.sh

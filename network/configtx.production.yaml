@@ -1,0 +1,247 @@
+---
+# Canal channel-obra en producción (*.ute.prod, MSP en organizations-prod/).
+# Generar génesis con FABRIC_CFG_PATH=network/.prod-cfg (create-channel.sh prod).
+# Mismas políticas UteFull que local.
+
+Organizations:
+  - &OrdererOrg
+    Name: OrdererOrg
+    ID: OrdererMSP
+    MSPDir: organizations-prod/ordererOrganizations/ute.prod/msp
+    Policies:
+      Readers:
+        Type: Signature
+        Rule: "OR('OrdererMSP.member')"
+      Writers:
+        Type: Signature
+        Rule: "OR('OrdererMSP.member')"
+      Admins:
+        Type: Signature
+        Rule: "OR('OrdererMSP.admin')"
+    OrdererEndpoints:
+      - orderer1.ute.prod:7050
+      - orderer2.ute.prod:8050
+      - orderer3.ute.prod:9050
+
+  - &EmpresaA
+    Name: EmpresaAMSP
+    ID: EmpresaAMSP
+    MSPDir: organizations-prod/peerOrganizations/empresaa.ute.prod/msp
+    Policies:
+      Readers:
+        Type: Signature
+        Rule: "OR('EmpresaAMSP.admin', 'EmpresaAMSP.peer', 'EmpresaAMSP.client')"
+      Writers:
+        Type: Signature
+        Rule: "OR('EmpresaAMSP.admin', 'EmpresaAMSP.client')"
+      Admins:
+        Type: Signature
+        Rule: "OR('EmpresaAMSP.admin')"
+      Endorsement:
+        Type: Signature
+        Rule: "OR('EmpresaAMSP.peer')"
+    AnchorPeers:
+      - Host: peer0.empresaa.ute.prod
+        Port: 7051
+
+  - &EmpresaB
+    Name: EmpresaBMSP
+    ID: EmpresaBMSP
+    MSPDir: organizations-prod/peerOrganizations/empresab.ute.prod/msp
+    Policies:
+      Readers:
+        Type: Signature
+        Rule: "OR('EmpresaBMSP.admin', 'EmpresaBMSP.peer', 'EmpresaBMSP.client')"
+      Writers:
+        Type: Signature
+        Rule: "OR('EmpresaBMSP.admin', 'EmpresaBMSP.client')"
+      Admins:
+        Type: Signature
+        Rule: "OR('EmpresaBMSP.admin')"
+      Endorsement:
+        Type: Signature
+        Rule: "OR('EmpresaBMSP.peer')"
+    AnchorPeers:
+      - Host: peer0.empresab.ute.prod
+        Port: 8051
+
+  - &EmpresaC
+    Name: EmpresaCMSP
+    ID: EmpresaCMSP
+    MSPDir: organizations-prod/peerOrganizations/empresac.ute.prod/msp
+    Policies:
+      Readers:
+        Type: Signature
+        Rule: "OR('EmpresaCMSP.admin', 'EmpresaCMSP.peer', 'EmpresaCMSP.client')"
+      Writers:
+        Type: Signature
+        Rule: "OR('EmpresaCMSP.admin', 'EmpresaCMSP.client')"
+      Admins:
+        Type: Signature
+        Rule: "OR('EmpresaCMSP.admin')"
+      Endorsement:
+        Type: Signature
+        Rule: "OR('EmpresaCMSP.peer')"
+    AnchorPeers:
+      - Host: peer0.empresac.ute.prod
+        Port: 11051
+
+  - &EmpresaD
+    Name: EmpresaDMSP
+    ID: EmpresaDMSP
+    MSPDir: organizations-prod/peerOrganizations/empresad.ute.prod/msp
+    Policies:
+      Readers:
+        Type: Signature
+        Rule: "OR('EmpresaDMSP.admin', 'EmpresaDMSP.peer', 'EmpresaDMSP.client')"
+      Writers:
+        Type: Signature
+        Rule: "OR('EmpresaDMSP.admin', 'EmpresaDMSP.client')"
+      Admins:
+        Type: Signature
+        Rule: "OR('EmpresaDMSP.admin')"
+      Endorsement:
+        Type: Signature
+        Rule: "OR('EmpresaDMSP.peer')"
+    AnchorPeers:
+      - Host: peer0.empresad.ute.prod
+        Port: 12051
+
+  - &Administracion
+    Name: AdministracionMSP
+    ID: AdministracionMSP
+    MSPDir: organizations-prod/peerOrganizations/administracion.ute.prod/msp
+    Policies:
+      Readers:
+        Type: Signature
+        Rule: "OR('AdministracionMSP.admin', 'AdministracionMSP.peer', 'AdministracionMSP.client')"
+      Writers:
+        Type: Signature
+        Rule: "OR('AdministracionMSP.admin', 'AdministracionMSP.client')"
+      Admins:
+        Type: Signature
+        Rule: "OR('AdministracionMSP.admin')"
+      Endorsement:
+        Type: Signature
+        Rule: "OR('AdministracionMSP.peer')"
+    AnchorPeers:
+      - Host: peer0.administracion.ute.prod
+        Port: 9051
+
+Capabilities:
+  Channel: &ChannelCapabilities
+    V2_0: true
+  Orderer: &OrdererCapabilities
+    V2_0: true
+  Application: &ApplicationCapabilities
+    V2_5: true
+
+Application: &ApplicationDefaults
+  Organizations:
+  Policies:
+    Readers:
+      Type: ImplicitMeta
+      Rule: "ANY Readers"
+    Writers:
+      Type: ImplicitMeta
+      Rule: "ANY Writers"
+    Admins:
+      Type: ImplicitMeta
+      Rule: "MAJORITY Admins"
+    # OutOf(2,5): A+Admin basta para lifecycle (approve/commit) con el perfil diario.
+    LifecycleEndorsement:
+      Type: Signature
+      Rule: "OutOf(2, 'EmpresaAMSP.peer', 'EmpresaBMSP.peer', 'EmpresaCMSP.peer', 'EmpresaDMSP.peer', 'AdministracionMSP.peer')"
+    Endorsement:
+      Type: ImplicitMeta
+      Rule: "ANY Endorsement"
+  Capabilities:
+    <<: *ApplicationCapabilities
+
+Orderer: &OrdererDefaults
+  OrdererType: etcdraft
+  EtcdRaft:
+    Options:
+      TickInterval: 500ms
+      ElectionTick: 10
+      HeartbeatTick: 1
+      MaxInflightBlocks: 5
+      SnapshotIntervalSize: 16 MB
+  Addresses:
+    - orderer1.ute.prod:7050
+    - orderer2.ute.prod:8050
+    - orderer3.ute.prod:9050
+  BatchTimeout: 2s
+  BatchSize:
+    MaxMessageCount: 10
+    AbsoluteMaxBytes: 99 MB
+    PreferredMaxBytes: 512 KB
+  Organizations:
+  Policies:
+    Readers:
+      Type: ImplicitMeta
+      Rule: "ANY Readers"
+    Writers:
+      Type: ImplicitMeta
+      Rule: "ANY Writers"
+    Admins:
+      Type: ImplicitMeta
+      Rule: "MAJORITY Admins"
+    BlockValidation:
+      Type: ImplicitMeta
+      Rule: "ANY Writers"
+  Capabilities:
+    <<: *OrdererCapabilities
+
+Channel: &ChannelDefaults
+  Policies:
+    Readers:
+      Type: ImplicitMeta
+      Rule: "ANY Readers"
+    Writers:
+      Type: ImplicitMeta
+      Rule: "ANY Writers"
+    Admins:
+      Type: ImplicitMeta
+      Rule: "MAJORITY Admins"
+  Capabilities:
+    <<: *ChannelCapabilities
+
+Profiles:
+  UteFull:
+    <<: *ChannelDefaults
+    Orderer:
+      <<: *OrdererDefaults
+      OrdererType: etcdraft
+      EtcdRaft:
+        Consenters:
+          - Host: orderer1.ute.prod
+            Port: 7050
+            ClientTLSCert: organizations-prod/ordererOrganizations/ute.prod/orderers/orderer1.ute.prod/tls/server.crt
+            ServerTLSCert: organizations-prod/ordererOrganizations/ute.prod/orderers/orderer1.ute.prod/tls/server.crt
+          - Host: orderer2.ute.prod
+            Port: 8050
+            ClientTLSCert: organizations-prod/ordererOrganizations/ute.prod/orderers/orderer2.ute.prod/tls/server.crt
+            ServerTLSCert: organizations-prod/ordererOrganizations/ute.prod/orderers/orderer2.ute.prod/tls/server.crt
+          - Host: orderer3.ute.prod
+            Port: 9050
+            ClientTLSCert: organizations-prod/ordererOrganizations/ute.prod/orderers/orderer3.ute.prod/tls/server.crt
+            ServerTLSCert: organizations-prod/ordererOrganizations/ute.prod/orderers/orderer3.ute.prod/tls/server.crt
+      Addresses:
+        - orderer1.ute.prod:7050
+        - orderer2.ute.prod:8050
+        - orderer3.ute.prod:9050
+      Organizations:
+        - *OrdererOrg
+      Capabilities:
+        <<: *OrdererCapabilities
+    Application:
+      <<: *ApplicationDefaults
+      Organizations:
+        - *EmpresaA
+        - *EmpresaB
+        - *EmpresaC
+        - *EmpresaD
+        - *Administracion
+      Capabilities:
+        <<: *ApplicationCapabilities

@@ -18,9 +18,9 @@ import {
 import { endosantesDeHito, endosantesDeLote, endosantesDePago, esLote, perfilDe, PerfilOrg, sociosDe } from './orgs';
 import {
   guardarEvidencia,
+  leerEvidencia,
   listarEvidencias,
   listarIndiceEvidencias,
-  rutaEvidencia,
   saveLocal,
   type EvidenciaPublica,
 } from './storage';
@@ -377,7 +377,7 @@ router.get(
   '/hitos/:id/evidencias/:eid',
   auth,
   asyncH(async (req, res) => {
-    const found = await rutaEvidencia(pid(req), peid(req));
+    const found = await leerEvidencia(pid(req), peid(req));
     if (!found) {
       res.status(404).json({
         error: 'No hay ninguna evidencia con ese identificador en este hito.',
@@ -388,7 +388,7 @@ router.get(
     }
     res.setHeader('Content-Type', found.meta.mime);
     res.setHeader('Content-Disposition', `inline; filename="${found.meta.nombre}"`);
-    res.sendFile(found.abs);
+    res.send(found.body);
   }),
 );
 
@@ -723,7 +723,7 @@ router.get(
   auth,
   asyncH(async (req, res) => {
     if (!(await requireSocioEvidencia(req, res))) return;
-    const found = await rutaEvidencia(pid(req), peid(req));
+    const found = await leerEvidencia(pid(req), peid(req));
     if (!found) {
       res.status(404).json({
         error: 'No hay ninguna evidencia con ese identificador en esta incidencia.',
@@ -734,7 +734,7 @@ router.get(
     }
     res.setHeader('Content-Type', found.meta.mime);
     res.setHeader('Content-Disposition', `inline; filename="${found.meta.nombre}"`);
-    res.sendFile(found.abs);
+    res.send(found.body);
   }),
 );
 

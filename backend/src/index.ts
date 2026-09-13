@@ -6,8 +6,14 @@ import { startBlockListener } from './explorer';
 import { closeAll, peersLevantados } from './fabric';
 
 async function main() {
-  if (config.storageDriver !== 'local') {
-    throw new Error('STORAGE_DRIVER=local obligatorio en diario');
+  if (config.storageDriver !== 'local' && config.storageDriver !== 'gcs') {
+    throw new Error(`STORAGE_DRIVER no soportado: ${config.storageDriver}`);
+  }
+  if (config.storageDriver === 'gcs' && !config.gcsBucket) {
+    throw new Error('GCS_BUCKET obligatorio con STORAGE_DRIVER=gcs');
+  }
+  if (process.env.NODE_ENV === 'production' && config.jwtSecret === 'dev-secret-change-me') {
+    throw new Error('JWT_SECRET fuerte obligatorio en producción');
   }
   const app = createApp();
   const server = app.listen(config.port, '0.0.0.0', () => {

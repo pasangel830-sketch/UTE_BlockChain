@@ -3,18 +3,10 @@
 set -euo pipefail
 
 CHANNEL="${CHANNEL:-channel-obra}"
-CLI=""
-if docker ps --format '{{.Names}}' | grep -qx 'ute-cli-dev'; then
-  CLI=ute-cli-dev
-elif docker ps --format '{{.Names}}' | grep -qx 'ute-cli-full'; then
-  CLI=ute-cli-full
-else
-  echo "no hay CLI Fabric"
-  exit 1
-fi
-
-ORDERER_CA="/organizations/ordererOrganizations/ute.local/orderers/orderer1.ute.local/tls/ca.crt"
-ORDERER="orderer1.ute.local:7050"
+ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
+# shellcheck disable=SC1091
+source "${ROOT}/network/scripts/fabric-env.sh"
+fabric_env
 
 peer_exec() {
   local msp="$1" addr="$2" domain="$3"
@@ -30,15 +22,15 @@ peer_exec() {
 
 invoke_both() {
   local args="$1"
-  peer_exec EmpresaAMSP peer0.empresaa.ute.local:7051 empresaa.ute.local \
+  peer_exec EmpresaAMSP "${PEER_A}" "${DOM_A}" \
     peer chaincode invoke \
-      -o "${ORDERER}" --ordererTLSHostnameOverride orderer1.ute.local \
+      -o "${ORDERER}" --ordererTLSHostnameOverride "${ORDERER_OVERRIDE}" \
       -C "${CHANNEL}" -n pago \
       --tls --cafile "${ORDERER_CA}" \
-      --peerAddresses peer0.empresaa.ute.local:7051 \
-      --tlsRootCertFiles /organizations/peerOrganizations/empresaa.ute.local/peers/peer0.empresaa.ute.local/tls/ca.crt \
-      --peerAddresses peer0.administracion.ute.local:9051 \
-      --tlsRootCertFiles /organizations/peerOrganizations/administracion.ute.local/peers/peer0.administracion.ute.local/tls/ca.crt \
+      --peerAddresses "${PEER_A}" \
+      --tlsRootCertFiles "/organizations/peerOrganizations/${DOM_A}/peers/peer0.${DOM_A}/tls/ca.crt" \
+      --peerAddresses "${PEER_ADMIN}" \
+      --tlsRootCertFiles "/organizations/peerOrganizations/${DOM_ADMIN}/peers/peer0.${DOM_ADMIN}/tls/ca.crt" \
       -c "${args}" \
       --waitForEvent
 }
@@ -58,7 +50,7 @@ if [[ "${ok}" -ne 1 ]]; then
   exit 1
 fi
 
-peer_exec EmpresaAMSP peer0.empresaa.ute.local:7051 empresaa.ute.local \
+peer_exec EmpresaAMSP "${PEER_A}" "${DOM_A}" \
   peer chaincode query -C "${CHANNEL}" -n pago -c '{"function":"getParticipaciones","Args":[]}'
 
 echo "OK InitLedger pago"

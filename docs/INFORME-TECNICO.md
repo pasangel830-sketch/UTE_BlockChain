@@ -312,4 +312,113 @@ Commit `4781f87` (`la penultima`). Código; sin captura de `docker stats` ni de 
 - `recordarBloqueTx` + `submitCommit`: al completar, la API asigna el número de bloque al hito en la respuesta (el world state no lo guarda).
 - `GET /hitos` rellena `bloque` desde el índice si falta.
 
+## 13 sep 2026 — Día 10 SAN (prueba corta)
+
+GCP `ute-tfm` / `europe-west1-b`. IP reservada `fabric-ute-ip` = `34.34.181.140`. DuckDNS `ute-tfm.duckdns.org` → esa IP. VM `fabric-ute` e2-standard-4, VPC `ute-vpc` / `10.8.0.0/24` (privada `10.8.0.2`). 7051 no abierto a Internet.
+
+cryptogen: SAN con IPv4 pelada (no prefijo `IP:`; eso acaba como DNS). `FORCE=1` `generate-crypto-prod.sh` `STATIC_IP=34.34.181.140` `API_FQDN=ute-tfm.duckdns.org`.
+
+```
+openssl x509 -in network/organizations-prod/peerOrganizations/empresaa.ute.prod/peers/peer0.empresaa.ute.prod/tls/server.crt -noout -text | grep -A2 'Subject Alternative Name'
+            X509v3 Subject Alternative Name:
+                DNS:peer0.empresaa.ute.prod, DNS:peer0, DNS:peer0.empresaa.ute.prod, DNS:ute-tfm.duckdns.org, IP Address:34.34.181.140
+```
+
+Mínimo en `ute-prod`: 3 orderers + peer A + peer Admin + API. `curl -sf http://127.0.0.1:4000/health` → `{"ok":true}`. Gateway usó `PEER_HOST_ALIAS=peer0.empresaa.ute.prod` (nombre Docker). Sin canal: listeners 404/`channel-obra` (esperado). VM apagada; IP y disco se conservan.
+
+## 13 sep 2026 — Día 11 freeze + RAM
+
+`docker stats --no-stream` en WSL. Sin Grafana local. `fabric-ute` TERMINATED. No hay `monitoring-ute`.
+
+Anti-patrón (install en 5 peers, 20 `fabric-nodeenv` + Grafana/Prometheus):
+
+| Caja | n | Mem (aprox.) |
+| --- | --- | --- |
+| fabric-nodeenv 4 CC × 5 peers | 20 | ~51–54 MiB c/u ≈ **1,04 GiB** |
+| 5 peers | 5 | ~80–87 MiB (límite 512) |
+| 3 orderers | 3 | ~17–19 MiB (límite 256) |
+| API + Grafana + Prometheus + CLI | 4 | ~194 MiB |
+| **Suma** | **32** | **~1,7 GiB** |
+
+Cabe en WSL 11 GB. No es el objetivo.
+
+Tras `make up-full` + CC vivos solo en endosantes (A+Admin; +B incidencia/estado por MANUAL §6 paso 6). `make monitoring-down`. `deploy-chaincode.sh` ya no instala B/C/D salvo `INSTALL_PDC_PEERS=1`.
+
+```
+NAME                               MEM USAGE / LIMIT
+peer0.empresaa                     74.29MiB / 512MiB
+peer0.administracion               77.97MiB / 512MiB
+peer0.empresab                     65.49MiB / 512MiB
+peer0.empresac                     70.68MiB / 512MiB
+peer0.empresad                     84.80MiB / 512MiB
+orderer1                           16.22MiB / 256MiB
+orderer2                           14.73MiB / 256MiB
+orderer3                           15.50MiB / 256MiB
+ute-api                            61.43MiB / 384MiB
+ute-cli-full                       32.96MiB / 256MiB
+8 nodeenv A+Admin (hito/pago/incidencia/estado)  ~51 MiB c/u
+2 nodeenv B (incidencia + estado, paso 6)        ~50 MiB c/u
+```
+
+10 `fabric-nodeenv` (no 20). Suma contenedores **~1024 MiB**. Objetivo diario < 6 GB: cumple.
+
+Demo MANUAL §6 (`next start`, no `dev`): `H-d11` COMPLETADO `hashEvidencia` + bloque 38; `pago-H-d11` AUTORIZADO; webhook `GET /mock/banco/pagos`; Explorer altura 43; `I-d11-A` + `I-demo-B`. UI `:3000` 200 en 7 rutas. TypeScript: `next build` exigía tipar el `.catch` de `/evidencias` en hitos/incidencias.
+
+Freeze: no más pantallas, políticas ni chaincode salvo bugs de prod.
+
+## 13 sep 2026 — Día 12 producción app (sin Grafana)
+
+GCP `ute-tfm` / `europe-west1-b`. `fabric-ute` RUNNING → ensayo → TERMINATED. IP `34.34.181.140` sin cambio (no se regeneró SAN por IP). `FORCE=1` crypto + `down -v`. Canal `UteFull`: 5 peers + 3 orderers (`ute.prod`).
+
+osnadmin en prod usa `ordererN.ute.prod:7053` (SAN no incluye `localhost`; `/etc/hosts` → `127.0.0.1`). `crypto-config.production.yaml.example` añade `localhost`/`127.0.0.1` en SANS de orderers para el próximo FORCE.
+
+```
+make deploy-cc-prod
+  hito_1.0:7dcab9e181fea607e5a0624aff9bf9ec1efcfd5303e9e9ff4dbf09464c57b214
+  pago_1.0:0145678959005e92216352db7a5085b6cd855790dd1d4e484496d06a3eafc673
+  incidencia_1.0:e1c5e4d8946e63615ae020472b50be9aa8bd10660c752f7394b8c3a9ab9ff63b
+  estado-obra_1.0:a89c7505727cfc084e621acb7ff8ed10776e7b886de8826862a85dd645ef8ff5
+  Approvals 5/5. InitLedger pago: {"EmpresaA":35,"EmpresaB":25,"EmpresaC":20,"EmpresaD":20}
+  InitLedger estado-obra: hitosTotal 0
+```
+
+GCS `gs://ute-tfm-evidencias-ute-tfm` EUROPE-WEST1 UBLA. SA `384692693750-compute@developer.gserviceaccount.com` `roles/storage.objectAdmin`. API `STORAGE_DRIVER=gcs`. ADC metadata desde el contenedor.
+
+```
+POST /evidencias (empresaA)
+  {"driver":"gcs","path":"gs://ute-tfm-evidencias-ute-tfm/1789302261640-ute-dia12-probe.txt"}
+gcloud storage ls gs://ute-tfm-evidencias-ute-tfm/
+  gs://ute-tfm-evidencias-ute-tfm/1789302261640-ute-dia12-probe.txt
+```
+
+API `:4000` bind `127.0.0.1`. `MOCK_BANCO_URL=http://ute-api:4000/mock/banco/pagos`. Cadvisor/node-exporter con profile `exporters` (no arrancan). Sin Grafana.
+
+Caddy `caddy:2.11.4`. `{ email off }` lo rechaza Let's Encrypt; Caddyfile sin bloque email.
+
+```
+curl -I https://ute-tfm.duckdns.org/health
+  HTTP/2 200
+  via: 1.1 Caddy
+issuer=C = US, O = Let's Encrypt, CN = YE2
+subject=CN = ute-tfm.duckdns.org
+notBefore=Sep 13 11:13:41 2026 GMT
+curl http://34.34.181.140:4000/health → timeout (no publicado a Internet)
+```
+
+`SEED_EMPTY=1`: hitos=0 pagos=0 incidencias=0. Smoke 3.7 (no el guion MANUAL §6): `H-d12` COMPLETADO `hashEvidencia ae8f0dd60a17e30f` + `pago-H-d12` CUSTODIA. Explorer `height: 31` `completarHito` bloque 30.
+
+Vercel Hobby (13 sep, tarde): proyecto `ute-block-chain`, GitHub `pasangel830-sketch/UTE_BlockChain` rama `main`.
+
+```
+curl -I https://ute-tfm.duckdns.org/health → HTTP/2 200 (VM RUNNING)
+OPTIONS /auth/login Origin: https://ute-block-chain.vercel.app → 204
+  access-control-allow-origin: https://ute-block-chain.vercel.app
+GET /hitos (empresaA) → H-d12 COMPLETADO. Explorer height 32.
+CORS_ORIGIN en VM: https://ute-block-chain.vercel.app
+curl https://ute-block-chain.vercel.app/ → 404 x-vercel-error: NOT_FOUND
+```
+
+El proyecto Hobby existe; el Production Domain aún no tiene un deploy Next Ready (típico si Root Directory quedó `./`). Hace falta Settings → Root Directory `frontend`, Framework Next.js, env `NEXT_PUBLIC_API_URL=https://ute-tfm.duckdns.org`, Redeploy.
+
+Sin `monitoring-ute`. Sin Render. `fabric-ute` RUNNING para el ensayo Vercel.
 

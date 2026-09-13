@@ -23,8 +23,8 @@ Fuente de tareas: [CHECKLIST.md](CHECKLIST.md).
 | README detallado con diagramas | `README.md` | HECHO (días 7 y 9) | Fase 2 |
 | Monitorización: peer caído, bloque > 5 s, endorsement > 5 % | `monitoring/alerts.yml` + Grafana | PARCIAL (definido; demo día 13) | **1** |
 | Prometheus alcanza peers/orderers | red `ute-net`, puertos 9444–9448 / 8443–8445 | HECHO compose | |
-| Despliegue API (PDF: Railway/Render) | VM `fabric-ute`; [MEMORIA-NOTAS.md](MEMORIA-NOTAS.md) | PENDIENTE deploy; desviación anotada | |
-| Frontend Vercel | Vercel Hobby | PENDIENTE | |
-| Seed demo | `network/scripts/seed-data.sh` | PARCIAL (stub día 12: `exit 0`; el echo dice que no hay chaincode/API, pero sí existen) | |
+| Despliegue API (PDF: Railway/Render) | VM `fabric-ute`; [MEMORIA-NOTAS.md](MEMORIA-NOTAS.md) | HECHO día 12 (Caddy HTTPS + GCS) | |
+| Frontend Vercel | Vercel Hobby `https://ute-block-chain.vercel.app` | PARCIAL (proyecto Hobby; falta Deploy Ready con Root `frontend`) | |
+| Seed demo | `network/scripts/seed-data.sh` | HECHO (`SEED_EMPTY=1` en prod; guion §6 en local) | |
 
 Actualizar la columna Estado al cerrar cada día, no al empezar.

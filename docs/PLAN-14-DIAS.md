@@ -37,7 +37,7 @@ PC: Windows 11, 16 GB. Docker Engine en WSL2 (Ubuntu 22.04, ext4 `~/ute/app`). S
 
 5 sesiones, Explorer con txs, errores en castellano, guardas de rol en API (31 ago – 6 sep). Políticas de commit y gateway al peer que endosa (9 sep). Evidencias de hito e incidencia + `completarHito` → pago en el mismo tx (11 sep, en `develop`). Explorer vacía snapshot si cambia el génesis (13 sep, `4781f87`). Detalle UI: [MEJORAS-UI.md](MEJORAS-UI.md). Desviación invoke Hito→Pago: [MEMORIA-NOTAS.md](MEMORIA-NOTAS.md).
 
-Estado a 13 sep: días 1–9 y huecos locales **cerrados**. Siguiente fila del calendario: día 10 (VM + SAN).
+Estado a 13 sep: días 1–12 cerrados. VM `fabric-ute` **STOP** (ledger + Let's Encrypt en disco). Freeze de features. Siguiente fila: día 13 (Grafana + 3 alertas).
 
 ## Calendario
 
@@ -53,7 +53,7 @@ Estado a 13 sep: días 1–9 y huecos locales **cerrados**. Siguiente fila del c
 | 9 | Resto UI + EstadoObra (backend escribe) | 7 pantallas |
 | 10 | VM + SAN | IP en el certificado |
 | 11 | Freeze + medir RAM CC | `docker stats` |
-| 12 | Prod app | seed real, Vercel, GCS |
+| 12 | Prod app | GCS, Caddy HTTPS, Vercel, seed vacío + smoke |
 | 13 | Monitor GCP + 3 alertas | iframe defensa |
 | 14 | Defensa | 3 ensayos, sin deploys |
 

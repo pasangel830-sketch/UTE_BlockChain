@@ -11,15 +11,21 @@ OrdererOrgs:
       - Hostname: orderer1
         SANS:
           - "orderer1.ute.prod"
-          - "IP:REPLACE_STATIC_IP"
+          - "localhost"
+          - "127.0.0.1"
+          - "REPLACE_STATIC_IP"
       - Hostname: orderer2
         SANS:
           - "orderer2.ute.prod"
-          - "IP:REPLACE_STATIC_IP"
+          - "localhost"
+          - "127.0.0.1"
+          - "REPLACE_STATIC_IP"
       - Hostname: orderer3
         SANS:
           - "orderer3.ute.prod"
-          - "IP:REPLACE_STATIC_IP"
+          - "localhost"
+          - "127.0.0.1"
+          - "REPLACE_STATIC_IP"
 
 PeerOrgs:
   - Name: EmpresaA
@@ -29,7 +35,7 @@ PeerOrgs:
       Count: 1
       SANS:
         - "peer0.empresaa.ute.prod"
-        - "IP:REPLACE_STATIC_IP"
+        - "REPLACE_STATIC_IP"
     Users:
       Count: 1
   - Name: EmpresaB
@@ -39,7 +45,7 @@ PeerOrgs:
       Count: 1
       SANS:
         - "peer0.empresab.ute.prod"
-        - "IP:REPLACE_STATIC_IP"
+        - "REPLACE_STATIC_IP"
     Users:
       Count: 1
   - Name: EmpresaC
@@ -49,7 +55,7 @@ PeerOrgs:
       Count: 1
       SANS:
         - "peer0.empresac.ute.prod"
-        - "IP:REPLACE_STATIC_IP"
+        - "REPLACE_STATIC_IP"
     Users:
       Count: 1
   - Name: EmpresaD
@@ -59,7 +65,7 @@ PeerOrgs:
       Count: 1
       SANS:
         - "peer0.empresad.ute.prod"
-        - "IP:REPLACE_STATIC_IP"
+        - "REPLACE_STATIC_IP"
     Users:
       Count: 1
   - Name: Administracion
@@ -69,6 +75,6 @@ PeerOrgs:
       Count: 1
       SANS:
         - "peer0.administracion.ute.prod"
-        - "IP:REPLACE_STATIC_IP"
+        - "REPLACE_STATIC_IP"
     Users:
       Count: 1

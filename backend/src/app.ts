@@ -3,10 +3,37 @@ import helmet from 'helmet';
 import cors from 'cors';
 import rateLimit from 'express-rate-limit';
 import client from 'prom-client';
+import { config } from './config';
 import { swaggerMiddleware, swaggerSetup } from './swagger';
 import { router } from './routes';
 import { traducirError } from './errors';
 import { peersLevantados } from './fabric';
+
+function corsOrigins(): string[] {
+  const base = ['http://localhost:3000', 'http://127.0.0.1:3000'];
+  for (const o of config.corsOrigin.split(',')) {
+    const t = o.trim();
+    if (t && !base.includes(t)) {
+      base.push(t);
+    }
+  }
+  return base;
+}
+
+function originPermitido(origin: string | undefined): boolean {
+  if (!origin) {
+    return true;
+  }
+  if (corsOrigins().includes(origin)) {
+    return true;
+  }
+  try {
+    const u = new URL(origin);
+    return u.protocol === 'https:' && u.hostname.endsWith('.vercel.app');
+  } catch {
+    return false;
+  }
+}
 
 const register = new client.Registry();
 client.collectDefaultMetrics({ register });
@@ -14,7 +41,17 @@ client.collectDefaultMetrics({ register });
 export function createApp() {
   const app = express();
   app.use(helmet({ contentSecurityPolicy: false }));
-  app.use(cors({ origin: ['http://localhost:3000', 'http://127.0.0.1:3000'] }));
+  app.use(
+    cors({
+      origin: (origin, cb) => {
+        if (originPermitido(origin)) {
+          cb(null, true);
+          return;
+        }
+        cb(new Error('Origen CORS no permitido'));
+      },
+    }),
+  );
   app.use(express.json({ limit: '1mb' }));
   app.use(
     rateLimit({
