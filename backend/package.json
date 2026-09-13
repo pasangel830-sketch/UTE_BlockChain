@@ -13,6 +13,7 @@
     "dev": "tsx watch src/index.ts"
   },
   "dependencies": {
+    "@google-cloud/storage": "^7.22.0",
     "@grpc/grpc-js": "^1.12.6",
     "@hyperledger/fabric-gateway": "1.12.0",
     "cors": "^2.8.5",

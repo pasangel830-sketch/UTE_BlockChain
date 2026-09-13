@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
-# Empaqueta, instala (A + Admin; B/C/D si están arriba), aprueba y hace commit.
+# Empaqueta, instala (A + Admin; B/C/D solo con INSTALL_PDC_PEERS=1), aprueba y hace commit.
 # Uso: deploy-chaincode.sh hito|pago|incidencia|estado-obra [signature-policy]
+# Hosts: ute.local o ute.prod según CLI (fabric-env.sh). Override: FABRIC_MODE, ORDERER, MSP.
 set -euo pipefail
 
 CC_NAME="${1:?uso: $0 hito|pago|incidencia|estado-obra [policy]}"
@@ -10,6 +11,10 @@ CHANNEL="${CHANNEL:-channel-obra}"
 POLICY="${2:-}"
 
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
+# shellcheck disable=SC1091
+source "${ROOT}/network/scripts/fabric-env.sh"
+fabric_env
+
 CC_SRC="${ROOT}/chaincode/${CC_NAME}"
 export PATH="${HOME}/bin:${HOME}/hyperledger/fabric-2.5.16/bin:${PATH}"
 
@@ -37,29 +42,24 @@ if [[ "${CC_NAME}" == "incidencia" ]]; then
   COLLECTIONS_ARGS=(--collections-config /workspace/collections-config.json)
 fi
 
-CLI=""
-if docker ps --format '{{.Names}}' | grep -qx 'ute-cli-dev'; then
-  CLI=ute-cli-dev
-elif docker ps --format '{{.Names}}' | grep -qx 'ute-cli-full'; then
-  CLI=ute-cli-full
-else
-  echo "no hay CLI Fabric (make up-dev)"
-  exit 1
-fi
-
 echo "compilando ${CC_NAME} (Node 18)"
-# shellcheck disable=SC1090
-source "${HOME}/.nvm/nvm.sh"
-nvm use 18 >/dev/null
-(
-  cd "${CC_SRC}"
-  if [[ -f package-lock.json ]]; then
-    npm ci
-  else
-    npm install
-  fi
-  npm run build
-)
+if [[ -s "${HOME}/.nvm/nvm.sh" ]]; then
+  # shellcheck disable=SC1090
+  source "${HOME}/.nvm/nvm.sh"
+  nvm use 18 >/dev/null
+  (
+    cd "${CC_SRC}"
+    if [[ -f package-lock.json ]]; then
+      npm ci
+    else
+      npm install
+    fi
+    npm run build
+  )
+else
+  docker run --rm -v "${CC_SRC}:/cc" -w /cc node:18.20.8-bookworm bash -c \
+    'if [ -f package-lock.json ]; then npm ci; else npm install; fi && npm run build'
+fi
 
 STAGE="${CC_SRC}/.package"
 rm -rf "${STAGE}"
@@ -67,8 +67,6 @@ mkdir -p "${STAGE}"
 cp "${CC_SRC}/package.json" "${STAGE}/"
 cp -r "${CC_SRC}/dist" "${STAGE}/"
 
-ORDERER_CA="/organizations/ordererOrganizations/ute.local/orderers/orderer1.ute.local/tls/ca.crt"
-ORDERER="orderer1.ute.local:7050"
 PKG="/tmp/${CC_NAME}.tar.gz"
 
 echo "empaquetando ${CC_NAME} → ${PKG}"
@@ -94,20 +92,22 @@ install_cc() {
 }
 
 query_pkg() {
-  peer_exec EmpresaAMSP peer0.empresaa.ute.local:7051 empresaa.ute.local \
+  peer_exec EmpresaAMSP "${PEER_A}" "${DOM_A}" \
     peer lifecycle chaincode queryinstalled
 }
 
-install_cc EmpresaAMSP peer0.empresaa.ute.local:7051 empresaa.ute.local
-install_cc AdministracionMSP peer0.administracion.ute.local:9051 administracion.ute.local
-if docker ps --format '{{.Names}}' | grep -qx 'peer0.empresab.ute.local'; then
-  install_cc EmpresaBMSP peer0.empresab.ute.local:8051 empresab.ute.local
-fi
-if docker ps --format '{{.Names}}' | grep -qx 'peer0.empresac.ute.local'; then
-  install_cc EmpresaCMSP peer0.empresac.ute.local:11051 empresac.ute.local
-fi
-if docker ps --format '{{.Names}}' | grep -qx 'peer0.empresad.ute.local'; then
-  install_cc EmpresaDMSP peer0.empresad.ute.local:12051 empresad.ute.local
+install_cc EmpresaAMSP "${PEER_A}" "${DOM_A}"
+install_cc AdministracionMSP "${PEER_ADMIN}" "${DOM_ADMIN}"
+if [[ "${INSTALL_PDC_PEERS:-0}" == "1" ]]; then
+  if fabric_peer_up "peer0.empresab.${DOMAIN}"; then
+    install_cc EmpresaBMSP "${PEER_B}" "${DOM_B}"
+  fi
+  if fabric_peer_up "peer0.empresac.${DOMAIN}"; then
+    install_cc EmpresaCMSP "${PEER_C}" "${DOM_C}"
+  fi
+  if fabric_peer_up "peer0.empresad.${DOMAIN}"; then
+    install_cc EmpresaDMSP "${PEER_D}" "${DOM_D}"
+  fi
 fi
 
 INSTALLED="$(query_pkg)"
@@ -124,7 +124,7 @@ approve() {
   echo "approve ${msp}"
   peer_exec "${msp}" "${addr}" "${domain}" \
     peer lifecycle chaincode approveformyorg \
-      -o "${ORDERER}" --ordererTLSHostnameOverride orderer1.ute.local \
+      -o "${ORDERER}" --ordererTLSHostnameOverride "${ORDERER_OVERRIDE}" \
       --channelID "${CHANNEL}" --name "${CC_NAME}" --version "${CC_VERSION}" \
       --package-id "${PACKAGE_ID}" --sequence "${CC_SEQUENCE}" \
       --signature-policy "${POLICY}" \
@@ -132,34 +132,40 @@ approve() {
       --tls --cafile "${ORDERER_CA}" --waitForEvent
 }
 
-approve EmpresaAMSP peer0.empresaa.ute.local:7051 empresaa.ute.local
-approve AdministracionMSP peer0.administracion.ute.local:9051 administracion.ute.local
-if docker ps --format '{{.Names}}' | grep -qx 'peer0.empresab.ute.local'; then
-  approve EmpresaBMSP peer0.empresab.ute.local:8051 empresab.ute.local
-fi
-if docker ps --format '{{.Names}}' | grep -qx 'peer0.empresac.ute.local'; then
-  approve EmpresaCMSP peer0.empresac.ute.local:11051 empresac.ute.local
-fi
-if docker ps --format '{{.Names}}' | grep -qx 'peer0.empresad.ute.local'; then
-  approve EmpresaDMSP peer0.empresad.ute.local:12051 empresad.ute.local
+approve EmpresaAMSP "${PEER_A}" "${DOM_A}"
+approve AdministracionMSP "${PEER_ADMIN}" "${DOM_ADMIN}"
+if [[ "${INSTALL_PDC_PEERS:-0}" == "1" ]]; then
+  if fabric_peer_up "peer0.empresab.${DOMAIN}"; then
+    approve EmpresaBMSP "${PEER_B}" "${DOM_B}"
+  fi
+  if fabric_peer_up "peer0.empresac.${DOMAIN}"; then
+    approve EmpresaCMSP "${PEER_C}" "${DOM_C}"
+  fi
+  if fabric_peer_up "peer0.empresad.${DOMAIN}"; then
+    approve EmpresaDMSP "${PEER_D}" "${DOM_D}"
+  fi
 fi
 
 echo "commit ${CC_NAME} policy=${POLICY}"
-peer_exec EmpresaAMSP peer0.empresaa.ute.local:7051 empresaa.ute.local \
+peer_exec EmpresaAMSP "${PEER_A}" "${DOM_A}" \
   peer lifecycle chaincode commit \
-    -o "${ORDERER}" --ordererTLSHostnameOverride orderer1.ute.local \
+    -o "${ORDERER}" --ordererTLSHostnameOverride "${ORDERER_OVERRIDE}" \
     --channelID "${CHANNEL}" --name "${CC_NAME}" --version "${CC_VERSION}" \
     --sequence "${CC_SEQUENCE}" \
     --signature-policy "${POLICY}" \
     ${COLLECTIONS_ARGS[@]+"${COLLECTIONS_ARGS[@]}"} \
     --tls --cafile "${ORDERER_CA}" \
-    --peerAddresses peer0.empresaa.ute.local:7051 \
-    --tlsRootCertFiles /organizations/peerOrganizations/empresaa.ute.local/peers/peer0.empresaa.ute.local/tls/ca.crt \
-    --peerAddresses peer0.administracion.ute.local:9051 \
-    --tlsRootCertFiles /organizations/peerOrganizations/administracion.ute.local/peers/peer0.administracion.ute.local/tls/ca.crt \
+    --peerAddresses "${PEER_A}" \
+    --tlsRootCertFiles "/organizations/peerOrganizations/${DOM_A}/peers/peer0.${DOM_A}/tls/ca.crt" \
+    --peerAddresses "${PEER_ADMIN}" \
+    --tlsRootCertFiles "/organizations/peerOrganizations/${DOM_ADMIN}/peers/peer0.${DOM_ADMIN}/tls/ca.crt" \
     --waitForEvent
 
-peer_exec EmpresaAMSP peer0.empresaa.ute.local:7051 empresaa.ute.local \
+peer_exec EmpresaAMSP "${PEER_A}" "${DOM_A}" \
   peer lifecycle chaincode querycommitted -C "${CHANNEL}" --name "${CC_NAME}"
 
-echo "OK ${CC_NAME} committed (instalado A+Admin, sequence ${CC_SEQUENCE})"
+if [[ "${INSTALL_PDC_PEERS:-0}" == "1" ]]; then
+  echo "OK ${CC_NAME} committed (instalado A+Admin+B/C/D vivos, sequence ${CC_SEQUENCE}, ${DOMAIN})"
+else
+  echo "OK ${CC_NAME} committed (instalado A+Admin; B/C/D: INSTALL_PDC_PEERS=1, sequence ${CC_SEQUENCE}, ${DOMAIN})"
+fi

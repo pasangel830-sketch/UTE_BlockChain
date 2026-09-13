@@ -46,7 +46,9 @@ export default function HitosPage() {
     const [h, p, ev] = await Promise.all([
       api<{ items: Hito[] }>('/hitos'),
       api<{ items: Pago[] }>('/pagos'),
-      api<{ porPadre: Record<string, Ev[]> }>('/evidencias').catch(() => ({ porPadre: {} })),
+      api<{ porPadre: Record<string, Ev[]> }>('/evidencias').catch(
+        (): { porPadre: Record<string, Ev[]> } => ({ porPadre: {} }),
+      ),
     ]);
     setHitos(porFechaDesc(h.items || []));
     setPagos(porFechaDesc(p.items || []));

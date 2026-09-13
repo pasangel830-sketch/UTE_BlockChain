@@ -3,6 +3,8 @@
 .env.*
 !.env.example
 !.env.local.example
+!.env.production.example
+!network/.env.production.example
 
 # Secretos Fabric y cloud
 **/*.key
@@ -10,6 +12,8 @@
 **/*.pem
 network/organizations/
 network/organizations-prod/
+network/crypto-config.production.yaml
+network/.prod-cfg/
 network/crypto-config/
 *.block
 *.tx
@@ -74,3 +78,4 @@ desktop.ini
 # Local overrides
 docker-compose.override.yaml
 *.vhdx
+.vercel

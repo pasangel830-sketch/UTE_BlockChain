@@ -3,7 +3,7 @@
 Informe para no técnicos. Proyecto **UTE / obras**.  
 Fuente de tareas: [CHECKLIST.md](CHECKLIST.md) · hechos y comandos: [INFORME-TECNICO.md](INFORME-TECNICO.md) · 13 de septiembre de 2026.
 
-> El taller del portátil está montado, las oficinas de la UTE existen (modo diario), hay pliego de hitos/pagos, secretaría en el puerto 4000, tablón de 7 pantallas, incidencias con cajones con llave y estado de obra. Las cinco cuentas entran; cada una solo hace lo suyo. Las fotos del parte y el acta al completar un hito se guardan en la caseta; el sello (hash) va al sobre o al hito. Al marcar un hito acabado, el dinero entra en custodia en el mismo acto. Eso ya está en el archivador de versiones. Faltan el local en internet y los cuadros de mando. Las cuentas de internet las tiene que abrir el usuario.
+> El taller del portátil está montado, las oficinas de la UTE existen (modo diario), hay pliego de hitos/pagos, secretaría en el puerto 4000, tablón de 7 pantallas, incidencias con cajones con llave y estado de obra. Las cinco cuentas entran; cada una solo hace lo suyo. Las fotos del parte y el acta al completar un hito se guardan en la caseta (en producción, en el almacén de Google); el sello (hash) va al sobre o al hito. Al marcar un hito acabado, el dinero entra en custodia en el mismo acto. El local en internet ya se ensayó (mostrador con candado HTTPS y tablón en Vercel). Faltan los cuadros de mando.
 
 Vista visual en Cursor (al lado del chat): canvas `informe-progreso-plan-14-dias`. El canvas de planificación no se ha modificado.
 
@@ -40,14 +40,14 @@ Hoy hay **caseta, llaves, pliego, secretaría, tablón, papeles de quién firma 
 
 | | |
 | --- | --- |
-| Días de calendario cerrados | **9 de 14** (días 1 a 9; huecos de UI del día 10 ya hechos en local) |
-| Puntos marcados hecho | **52** (huecos locales 11–13 sep incluidos) |
-| Días por delante | **5** (cloud; la mañana de huecos UI está cerrada) |
-| Máquina ahora | **Modo diario + API :4000 + Next :3000** (5 sesiones; evidencias locales; B/C/D escritura PDC con `pdc-up`) |
+| Días de calendario cerrados | **12 de 14** (días 1 a 12) |
+| Puntos marcados hecho | **58** (prod app 13 sep incluida) |
+| Días por delante | **2** (Grafana + defensa) |
+| Máquina ahora | **fabric-ute apagada**; ledger y certificado HTTPS en disco. Portátil: modo diario local. |
 
-El día 1 está cerrado en el ordenador; faltan solo las cuentas de internet (GitHub colaborador, Google Cloud, Vercel). Esas cuentas **no bloquean** seguir trabajando en casa; sí bloquean publicar más adelante.
+El día 12 cerró el local en internet (mostrador HTTPS + proyecto Vercel Hobby). Falta que el deploy de Next quede Ready (Root `frontend`) e invitar a `DomingoMr`.
 
-**Siguiente paso del plan:** VM de prueba con SAN de la IP (día 10).
+**Siguiente paso del plan:** día 13, VM `monitoring-ute` y las 3 alertas.
 
 ---
 
@@ -77,17 +77,19 @@ Las cinco cuentas entran. El ayuntamiento autoriza o rechaza pagos y no avanza o
 
 La secretaría pregunta a la oficina que tiene que firmar. El tablón mira qué casetas tienen luz. La foto del parte y el acta del hito se guardan en la caseta; el sello (hash) va al sobre o al hito. Completar un hito y meter el dinero en custodia es el mismo acto notarial. Si se abre una cadena nueva, el tablón de bloques se vacía solo.
 
-### 7. Lo que aún no existe — pendiente
+### 7. El local en internet — hecho (día 12)
 
-El local en internet y los cuadros de mando. Días 10 (VM) a 14.
+Oficinas y mostrador en la máquina de Google. Candado HTTPS en `ute-tfm.duckdns.org`. Fotos en el almacén GCS. Tablón publicado (hay que reclamar el enlace de Vercel a la cuenta Hobby). El local se apaga al terminar el ensayo; el libro y el candado siguen en el disco.
+
+### 8. Lo que aún no existe — pendiente
+
+Los cuadros de mando (día 13) y el ensayo de defensa (día 14).
 
 ---
 
 ## Estado de la máquina
 
-Está encendido el **modo diario**: notario 1, oficina de Empresa A, oficina de Administración y una consola. Es exactamente lo que el plan deja para el día a día.
-
-El ensayo grande (5 empresas + 3 notarios) se apagó después de comprobarlo. Al consultar, las cajas podían llevar pocos segundos arriba: típico de la habitación Linux al despertar y reabrir lo que ya estaba configurado como diario.
+El **local en internet está apagado** (`fabric-ute` TERMINATED). En el portátil puede seguir el modo diario. El libro de la obra y el candado HTTPS quedan en el disco de la VM.
 
 ---
 
@@ -441,7 +443,7 @@ Huecos locales después del día 9. El alquiler del local (día 10 tarde) sigue 
 
 ## Qué no está hecho todavía
 
-No hay local alquilado en internet. No hay cuadros de mando demostrados con tráfico.
+No hay cuadros de mando demostrados con tráfico. El local en internet está ensayado y apagado.
 
 ### Lo que tienes que hacer tú
 
@@ -449,14 +451,14 @@ Estas cuentas no bloquean el trabajo en casa; sí bloquean publicar más adelant
 
 - Entrar en GitHub e invitar a `DomingoMr`.
 - Cuenta Google Cloud, crédito 300 USD y alertas de gasto.
-- Cuenta Vercel Hobby (pantallas en internet). Sin publicar aún.
+- Cuenta Vercel Hobby: proyecto `ute-block-chain`. En Settings, Root Directory = `frontend` y Redeploy (la URL ahora da 404).
 
 ### Lo que falta del plan
 
-- **Día 10** — alquiler de prueba del local en internet (los huecos de UI de esa mañana ya están en local).
-- **Día 11** — congelar cambios y dejar el local creado (apagado).
-- **Día 12** — oficinas + mostrador en el local; pantallas publicadas.
+- **Día 10** — hecho (SAN + VM apagada).
+- **Día 11** — hecho (freeze + RAM).
+- **Día 12** — hecho (oficinas + mostrador HTTPS + GCS; tablón Vercel a reclamar).
 - **Día 13** — termómetros (cuadros de mando) y ensayo de calidad.
 - **Día 14** — defensa (encender, sembrar datos, tres pases, vídeo).
 
-Siguiente paso: VM e2-standard-4 con SAN de la IP pública.
+Siguiente paso: VM `monitoring-ute` y las 3 alertas.

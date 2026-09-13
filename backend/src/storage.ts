@@ -1,6 +1,7 @@
 import { createHash } from 'crypto';
 import { promises as fs } from 'fs';
 import path from 'path';
+import { Storage } from '@google-cloud/storage';
 import { config } from './config';
 
 export type EvidenciaMeta = {
@@ -24,18 +25,74 @@ function indexPath(): string {
   return path.join(config.uploadDir, 'index.json');
 }
 
-function assertLocal(): void {
-  if (config.storageDriver !== 'local') {
+function assertDriver(): void {
+  if (config.storageDriver !== 'local' && config.storageDriver !== 'gcs') {
     throw new Error(`STORAGE_DRIVER no soportado: ${config.storageDriver}`);
+  }
+  if (config.storageDriver === 'gcs' && !config.gcsBucket) {
+    throw new Error('GCS_BUCKET obligatorio con STORAGE_DRIVER=gcs');
+  }
+}
+
+let gcsStorage: Storage | undefined;
+
+function gcsBucket() {
+  if (!gcsStorage) {
+    gcsStorage = new Storage();
+  }
+  return gcsStorage.bucket(config.gcsBucket);
+}
+
+async function putBlob(storedAs: string, buf: Buffer, mime: string): Promise<void> {
+  if (config.storageDriver === 'gcs') {
+    await gcsBucket().file(storedAs).save(buf, {
+      resumable: false,
+      contentType: mime || 'application/octet-stream',
+    });
+    return;
+  }
+  const dest = path.join(config.uploadDir, storedAs);
+  await fs.mkdir(path.dirname(dest), { recursive: true });
+  await fs.writeFile(dest, buf);
+}
+
+async function getBlob(storedAs: string): Promise<Buffer | null> {
+  if (config.storageDriver === 'gcs') {
+    try {
+      const [buf] = await gcsBucket().file(storedAs).download();
+      return buf;
+    } catch (err) {
+      const code = (err as { code?: number }).code;
+      if (code === 404) {
+        return null;
+      }
+      throw err;
+    }
+  }
+  const root = path.resolve(config.uploadDir);
+  const abs = path.resolve(root, storedAs);
+  if (!abs.startsWith(root + path.sep) && abs !== root) {
+    return null;
+  }
+  try {
+    return await fs.readFile(abs);
+  } catch (err) {
+    const code = (err as { code?: string }).code;
+    if (code === 'ENOENT') {
+      return null;
+    }
+    throw err;
   }
 }
 
 export async function saveLocal(filename: string, buf: Buffer): Promise<string> {
-  assertLocal();
-  await fs.mkdir(config.uploadDir, { recursive: true });
-  const dest = path.join(config.uploadDir, filename);
-  await fs.writeFile(dest, buf);
-  return dest;
+  assertDriver();
+  const storedAs = filename.replace(/^\/+/, '');
+  await putBlob(storedAs, buf, 'application/octet-stream');
+  if (config.storageDriver === 'gcs') {
+    return `gs://${config.gcsBucket}/${storedAs}`;
+  }
+  return path.join(config.uploadDir, storedAs);
 }
 
 export function sha256Hex(buf: Buffer): string {
@@ -90,17 +147,15 @@ export async function guardarEvidencia(
   mime: string,
   org: string,
 ): Promise<EvidenciaPublica> {
-  assertLocal();
+  assertDriver();
   const iid = idIncidenciaSeguro(parentId);
   if (!iid) {
     throw new Error('incidenciaId inválido');
   }
   const nombre = nombreSeguro(originalname);
   const id = `E-${Date.now()}`;
-  const storedAs = path.join(iid, `${id}-${nombre}`);
-  const dir = path.join(config.uploadDir, iid);
-  await fs.mkdir(dir, { recursive: true });
-  await fs.writeFile(path.join(config.uploadDir, storedAs), buf);
+  const storedAs = path.posix.join(iid, `${id}-${nombre}`);
+  await putBlob(storedAs, buf, mime || 'application/octet-stream');
   const meta: EvidenciaMeta = {
     id,
     parentId: iid,
@@ -141,10 +196,10 @@ export async function listarIndiceEvidencias(): Promise<Record<string, Evidencia
   return out;
 }
 
-export async function rutaEvidencia(
+export async function leerEvidencia(
   parentId: string,
   evidenciaId: string,
-): Promise<{ meta: EvidenciaPublica; abs: string } | null> {
+): Promise<{ meta: EvidenciaPublica; body: Buffer } | null> {
   const iid = idIncidenciaSeguro(parentId);
   const eid = idIncidenciaSeguro(evidenciaId);
   if (!iid || !eid) {
@@ -155,15 +210,9 @@ export async function rutaEvidencia(
   if (!meta) {
     return null;
   }
-  const root = path.resolve(config.uploadDir);
-  const abs = path.resolve(root, meta.storedAs);
-  if (!abs.startsWith(root + path.sep) && abs !== root) {
+  const body = await getBlob(meta.storedAs);
+  if (!body) {
     return null;
   }
-  try {
-    await fs.access(abs);
-  } catch {
-    return null;
-  }
-  return { meta: publica(meta), abs };
+  return { meta: publica(meta), body };
 }

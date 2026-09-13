@@ -36,8 +36,12 @@ La separación constructora / Administración (avanzar obra, autorizar o rechaza
 
 ## 8. Evidencias fuera de cadena; hash en ledger o PDC
 
-El multer del día 6 subía un archivo suelto. El 11 sep hay dos anclajes: (1) acta al **completar hito** — disco + SHA-256 en `hashEvidencia` del hito (`POST /hitos/:id/completar` o adjunto previo en VALIDACION); (2) parte de **incidencia** — disco + SHA-256 en `notasTecnicas` del PDC. El binario no entra en Fabric. Incidencias: mismas reglas de socio de lote que el PDC. Hitos: solo la empresa del hito adjunta en VALIDACION. GCS queda para el día 12.
+El multer del día 6 subía un archivo suelto. El 11 sep hay dos anclajes: (1) acta al **completar hito** — disco + SHA-256 en `hashEvidencia` del hito (`POST /hitos/:id/completar` o adjunto previo en VALIDACION); (2) parte de **incidencia** — disco + SHA-256 en `notasTecnicas` del PDC. El binario no entra en Fabric. Incidencias: mismas reglas de socio de lote que el PDC. Hitos: solo la empresa del hito adjunta en VALIDACION. Día 12: `STORAGE_DRIVER=gcs` en `fabric-ute` (bucket `ute-tfm-evidencias-$PROJECT_ID`, SA por defecto de la VM, sin JSON de clave en el repo).
 
 ## 9. Seed demo (día 12)
 
-`network/scripts/seed-data.sh` sigue siendo stub (`exit 0`). El mensaje del script dice que aún no hay chaincode ni API: eso es falso; solo falta el juego de datos de defensa.
+`network/scripts/seed-data.sh` reproduce el guion de [MANUAL.md](MANUAL.md) §6 vía `POST /auth/login`. En producción del día 12: `SEED_EMPTY=1` — ledger de hitos/pagos/incidencias a cero; el tribunal lo crea a mano. `make seed` local sigue el guion completo.
+
+## 10. Caddy el día 12 (desviación del checklist «sin Caddy»)
+
+Sin TLS de Let's Encrypt en un FQDN, Vercel Hobby no puede llamar a la API en el navegador (mixed content o certificado no confiable). Caddy 2.11.4 en `fabric-ute` solo hace reverse_proxy de `ute-tfm.duckdns.org` → API. Grafana/Caddy de monitorización queda para el día 13.

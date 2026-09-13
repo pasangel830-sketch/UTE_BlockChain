@@ -1,0 +1,14 @@
+# Día 12: FQDN público → API en la red Docker ute-prod.
+# Día 13: descomentar el segundo sitio (Grafana).
+# Imagen: caddy:2.11.4. Firewall: 80/443 a Internet; no abrir 7051 ni métricas.
+# Sin email ACME: "off" lo rechaza Let's Encrypt.
+
+{$API_FQDN:localhost} {
+	encode gzip
+	reverse_proxy ute-api:4000
+}
+
+# Día 13 — segundo host Grafana (VM monitoring-ute):
+# {$GRAFANA_FQDN} {
+# 	reverse_proxy {$GRAFANA_UPSTREAM:grafana:3000}
+# }

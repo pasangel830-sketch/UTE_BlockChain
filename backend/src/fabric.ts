@@ -6,13 +6,17 @@ import net from 'net';
 import path from 'path';
 import { config, OrgMsp } from './config';
 
-const ORG_DOMAIN: Record<OrgMsp, string> = {
-  EmpresaAMSP: 'empresaa.ute.local',
-  EmpresaBMSP: 'empresab.ute.local',
-  EmpresaCMSP: 'empresac.ute.local',
-  EmpresaDMSP: 'empresad.ute.local',
-  AdministracionMSP: 'administracion.ute.local',
+const ORG_SLUG: Record<OrgMsp, string> = {
+  EmpresaAMSP: 'empresaa',
+  EmpresaBMSP: 'empresab',
+  EmpresaCMSP: 'empresac',
+  EmpresaDMSP: 'empresad',
+  AdministracionMSP: 'administracion',
 };
+
+function orgDomain(msp: OrgMsp): string {
+  return `${ORG_SLUG[msp]}.${config.fabricDomain}`;
+}
 
 const ORG_PEER_PORT: Record<OrgMsp, string> = {
   EmpresaAMSP: '7051',
@@ -35,7 +39,7 @@ async function firstFile(dir: string): Promise<string> {
 }
 
 function esOrgMsp(m: string): m is OrgMsp {
-  return m in ORG_DOMAIN;
+  return m in ORG_SLUG;
 }
 
 /** Evaluate diario entra por peer A. Submit de hito/pago/estado B/C/D/Admin usa el peer de quien endosa. */
@@ -50,7 +54,7 @@ function endpointOf(peerOrg: OrgMsp): { endpoint: string; hostAlias: string } {
   }
   const host = config.peerEndpoint.split(':')[0];
   const local = host === 'localhost' || host === '127.0.0.1';
-  const alias = `peer0.${ORG_DOMAIN[peerOrg]}`;
+  const alias = `peer0.${orgDomain(peerOrg)}`;
   return {
     endpoint: `${local ? host : alias}:${ORG_PEER_PORT[peerOrg]}`,
     hostAlias: alias,
@@ -58,8 +62,8 @@ function endpointOf(peerOrg: OrgMsp): { endpoint: string; hostAlias: string } {
 }
 
 async function connectOrg(org: OrgMsp, peerOrg: OrgMsp = 'EmpresaAMSP'): Promise<Handle> {
-  const domain = ORG_DOMAIN[org];
-  const peerDomain = ORG_DOMAIN[peerOrg];
+  const domain = orgDomain(org);
+  const peerDomain = orgDomain(peerOrg);
   const { endpoint, hostAlias } = endpointOf(peerOrg);
   const msp = path.join(
     config.cryptoPath,

@@ -53,7 +53,9 @@ export default function IncidenciasPage() {
     const [r, ev] = await Promise.all([
       api<{ items: Inc[] }>('/incidencias'),
       lote
-        ? api<{ porPadre: Record<string, Ev[]> }>('/evidencias').catch(() => ({ porPadre: {} }))
+        ? api<{ porPadre: Record<string, Ev[]> }>('/evidencias').catch(
+            (): { porPadre: Record<string, Ev[]> } => ({ porPadre: {} }),
+          )
         : Promise.resolve({ porPadre: {} as Record<string, Ev[]> }),
     ]);
     const list = porFechaDesc(r.items || []);
