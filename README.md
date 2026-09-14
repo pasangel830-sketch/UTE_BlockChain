@@ -78,7 +78,8 @@ make verify-full
 make reset-dev       # down -v, borra *.block, crypto si hace falta, up
 make reset-demo-dev  # api/pdc/mon down, uploads, reset-dev, deploy-cc, api-up
 make reset-demo-full # igual con 5 peers (tribunal)
-make monitoring-up   # requiere ute-net (Fabric ya arriba)
+make monitoring-up-prod  # VM monitoring-ute: Prometheus 3d + Grafana + Caddy + alert-demo
+make monitoring-down-prod
 make seed            # guion MANUAL §6 (API :4000). Prod vacío: SEED_EMPTY=1
 make up-prod         # VM fabric-ute: crypto SAN + 5 peers + API + Caddy (STATIC_IP, JWT_SECRET, FORCE=1 borra volúmenes)
 make deploy-cc-prod  # INSTALL_PDC_PEERS=1 en *.ute.prod
@@ -98,7 +99,7 @@ make verify-pdc
 ```
 
 Certificados: `network/organizations/` (no se suben). Regenerar: `FORCE=1 ./network/scripts/generate-crypto.sh`.
-Producción: `network/.env` desde `network/.env.production.example`; `FORCE=1 make up-prod`, `make deploy-cc-prod`, `SEED_EMPTY=1 make seed`. Frontend Vercel: root `frontend`, `NEXT_PUBLIC_API_URL=https://ute-tfm.duckdns.org`. Prometheus scrape: `monitoring/prometheus.prod.yml` (IP privada de fabric-ute). Day 13: `COMPOSE_PROFILES=exporters`.
+Producción: `network/.env` desde `network/.env.production.example`; `FORCE=1 make up-prod`, `make deploy-cc-prod`, `SEED_EMPTY=1 make seed`. Frontend Vercel: root `frontend`, `NEXT_PUBLIC_API_URL=https://ute-tfm.duckdns.org`, `NEXT_PUBLIC_GRAFANA_URL` al kiosco Grafana. Prometheus scrape: `monitoring/prometheus.prod.yml` (IP privada de fabric-ute). Exporters: `COMPOSE_PROFILES=exporters`. Iframe: `/monitor` o `https://ute-tfm.duckdns.org/grafana/d/ute-fabric/ute-fabric?orgId=1&kiosk`.
 
 ## Rebanada vertical (días 4–7)
 
@@ -151,7 +152,7 @@ EstadoObraContract guarda un JSON agregado. El backend lo calcula (hitos, pagos,
 
 ## Monitorización
 
-Tres alertas (PDF): peer caído, latencia de bloque > 5 s, error de endorsement > 5 %. Definidas en `monitoring/alerts.yml`. Grafana provisionado en `monitoring/grafana/`.
+Tres alertas (PDF): peer caído, latencia de bloque > 5 s, error de endorsement > 5 %. Definidas en `monitoring/alerts.yml`. Grafana provisionado en `monitoring/grafana/`. Prod: VM `monitoring-ute`, iframe en `/monitor`.
 
 ## Licencia / visibilidad
 

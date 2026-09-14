@@ -5,6 +5,7 @@
 !.env.local.example
 !.env.production.example
 !network/.env.production.example
+!monitoring/.env.production.example
 
 # Secretos Fabric y cloud
 **/*.key

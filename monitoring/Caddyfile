@@ -1,0 +1,7 @@
+# Caddy en monitoring-ute. Grafana público va por fabric-ute /grafana (mismo cert).
+# Segundo host DuckDNS (opcional): GRAFANA_FQDN=ute-grafana.duckdns.org → esta VM.
+
+{$GRAFANA_FQDN:localhost} {
+	encode gzip
+	reverse_proxy grafana:3000
+}

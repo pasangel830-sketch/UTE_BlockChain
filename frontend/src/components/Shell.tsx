@@ -15,6 +15,7 @@ const LINKS = [
   ['/incidencias', 'Incidencias'],
   ['/estado', 'Estado obra'],
   ['/explorer', 'Explorer'],
+  ['/monitor', 'Monitor'],
 ];
 
 let brandIntroPlayed = false;

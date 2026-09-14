@@ -379,7 +379,7 @@ services:
     extra_hosts:
       - "metadata.google.internal:169.254.169.254"
     ports:
-      - "127.0.0.1:4000:4000"
+      - "${API_BIND:-0.0.0.0}:4000:4000"
     networks: [ute]
     depends_on:
       - peer0.empresaa.ute.prod
@@ -393,7 +393,7 @@ services:
     environment:
       API_FQDN: ${API_FQDN:-localhost}
       GRAFANA_FQDN: ${GRAFANA_FQDN:-}
-      GRAFANA_UPSTREAM: ${GRAFANA_UPSTREAM:-grafana:3000}
+      GRAFANA_UPSTREAM: ${GRAFANA_UPSTREAM:-10.8.0.3:3000}
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
       - caddy-data:/data
@@ -410,7 +410,7 @@ services:
   cadvisor:
     <<: *exporter-resources
     profiles: ["exporters"]
-    image: gcr.io/cadvisor/cadvisor:v0.56.1
+    image: gcr.io/cadvisor/cadvisor:v0.47.2
     container_name: cadvisor
     restart: unless-stopped
     privileged: true
@@ -422,7 +422,8 @@ services:
       - /sys:/sys:ro
       - /var/lib/docker:/var/lib/docker:ro
     networks: [ute]
-    ports: []
+    ports:
+      - "${OPS_BIND:-0.0.0.0}:8080:8080"
 
   node-exporter:
     <<: *exporter-resources
@@ -440,4 +441,5 @@ services:
       - /sys:/host/sys:ro
       - /:/rootfs:ro
     networks: [ute]
-    ports: []
+    ports:
+      - "${OPS_BIND:-0.0.0.0}:9100:9100"

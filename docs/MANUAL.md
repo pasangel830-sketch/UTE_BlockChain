@@ -22,7 +22,7 @@ si la red ya estaba desplegada con la versión anterior.
 | --- | --- | --- |
 | Aplicación | http://localhost:3000 | ver tabla de usuarios |
 | API + Swagger | http://localhost:4000/api-docs | JWT del login |
-| Grafana | http://localhost:3001 | `admin` / `changeme` |
+| Grafana | http://localhost:3001 (prod: `https://ute-tfm.duckdns.org/grafana`) | `admin` / `changeme`; kiosco anónimo |
 | Prometheus | http://localhost:9090 | — |
 
 ## 2. Usuarios
@@ -56,7 +56,7 @@ consultan igual** (sus consultas salen por el nodo de A firmadas con su propio c
 escribir en la colección privada `quirofanos-tech` exige un nodo de B o de D: hace falta
 `make pdc-up`. La aplicación lo avisa antes de que ocurra y, si ocurre, lo explica en pantalla.
 
-## 3. Las siete pantallas
+## 3. Las ocho pantallas
 
 | # | Ruta | Qué hace |
 | --- | --- | --- |
@@ -67,6 +67,7 @@ escribir en la colección privada `quirofanos-tech` exige un nodo de B o de D: h
 | 5 | `/incidencias` | Incidencias públicas del canal, empresa y lote, y botón **Ver PDC** para el detalle privado. |
 | 6 | `/estado` | Estado de obra agregado y botón **Recalcular**. |
 | 7 | `/explorer` | Bloques del canal: altura, hashes, transacciones, función invocada y MSP endosantes. |
+| 8 | `/monitor` | iframe Grafana (peers, latencia de bloque, endorsement, tabla ALERTS). |
 
 ### Hitos
 
@@ -185,3 +186,5 @@ Para empezar de cero solo hay dos caminos honestos:
 6. (Con `make pdc-up`) Entrar como `empresaB` y crear una incidencia de `quirofanos-tech`; leer su PDC y evidencias.
    Como `empresaA` esa incidencia no muestra Tratar/Cerrar ni las fotos. Sin `pdc-up`, la misma acción muestra el
    aviso rojo con `make pdc-up`, que es el punto a explicar.
+7. Abrir `/monitor` o `https://ute-tfm.duckdns.org/grafana/d/ute-fabric/ute-fabric?orgId=1&kiosk`. Las 3 alertas
+   (`PeerCaido`, `LatenciaBloqueAlta`, `ErrorEndorsementAlto`) salen en el panel inferior.

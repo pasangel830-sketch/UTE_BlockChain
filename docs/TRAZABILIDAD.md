@@ -21,7 +21,7 @@ Fuente de tareas: [CHECKLIST.md](CHECKLIST.md).
 | Separación de funciones (API) | `backend/src/routes.ts` guardas de rol | HECHO (31 ago autorizar; 6 sep avance hito, rechazar pago, creadora incidencia; 9 sep empresa del hito; 11 sep adjunto/socio evidencia) | funcional |
 | Repo GitHub compartido con DomingoMr | `pasangel830-sketch/UTE_BlockChain` (`main`) | PARCIAL (remoto HECHO; falta invitar `DomingoMr`) | Fase 2 |
 | README detallado con diagramas | `README.md` | HECHO (días 7 y 9) | Fase 2 |
-| Monitorización: peer caído, bloque > 5 s, endorsement > 5 % | `monitoring/alerts.yml` + Grafana | PARCIAL (definido; demo día 13) | **1** |
+| Monitorización: peer caído, bloque > 5 s, endorsement > 5 % | `monitoring/alerts.yml` + Grafana + VM `monitoring-ute` | HECHO día 13 (runtime + ALERTS firing) | **1** |
 | Prometheus alcanza peers/orderers | red `ute-net`, puertos 9444–9448 / 8443–8445 | HECHO compose | |
 | Despliegue API (PDF: Railway/Render) | VM `fabric-ute`; [MEMORIA-NOTAS.md](MEMORIA-NOTAS.md) | HECHO día 12 (Caddy HTTPS + GCS) | |
 | Frontend Vercel | Vercel Hobby `https://ute-block-chain.vercel.app` | PARCIAL (proyecto Hobby; falta Deploy Ready con Root `frontend`) | |

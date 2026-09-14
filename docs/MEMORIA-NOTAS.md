@@ -44,4 +44,4 @@ El multer del día 6 subía un archivo suelto. El 11 sep hay dos anclajes: (1) a
 
 ## 10. Caddy el día 12 (desviación del checklist «sin Caddy»)
 
-Sin TLS de Let's Encrypt en un FQDN, Vercel Hobby no puede llamar a la API en el navegador (mixed content o certificado no confiable). Caddy 2.11.4 en `fabric-ute` solo hace reverse_proxy de `ute-tfm.duckdns.org` → API. Grafana/Caddy de monitorización queda para el día 13.
+Sin TLS de Let's Encrypt en un FQDN, Vercel Hobby no puede llamar a la API en el navegador (mixed content o certificado no confiable). Caddy 2.11.4 en `fabric-ute` hace reverse_proxy de `ute-tfm.duckdns.org` → API y de `/grafana` → Grafana en `monitoring-ute` (`10.8.0.3:3000`). Let's Encrypt del FQDN de la API vale también para el iframe.
