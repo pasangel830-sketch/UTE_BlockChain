@@ -1,9 +1,9 @@
 # Informe de progreso — plan de 14 días
 
 Informe para no técnicos. Proyecto **UTE / obras**.  
-Fuente de tareas: [CHECKLIST.md](CHECKLIST.md) · hechos y comandos: [INFORME-TECNICO.md](INFORME-TECNICO.md) · 13 de septiembre de 2026.
+Fuente de tareas: [CHECKLIST.md](CHECKLIST.md) · hechos y comandos: [INFORME-TECNICO.md](INFORME-TECNICO.md) · 14 de septiembre de 2026.
 
-> El taller del portátil está montado, las oficinas de la UTE existen (modo diario), hay pliego de hitos/pagos, secretaría en el puerto 4000, tablón de 7 pantallas, incidencias con cajones con llave y estado de obra. Las cinco cuentas entran; cada una solo hace lo suyo. Las fotos del parte y el acta al completar un hito se guardan en la caseta (en producción, en el almacén de Google); el sello (hash) va al sobre o al hito. Al marcar un hito acabado, el dinero entra en custodia en el mismo acto. El local en internet ya se ensayó (mostrador con candado HTTPS y tablón en Vercel). Faltan los cuadros de mando.
+> El taller del portátil está montado, las oficinas de la UTE existen (modo diario), hay pliego de hitos/pagos, secretaría en el puerto 4000, tablón de 8 pantallas, incidencias con cajones con llave y estado de obra. Las cinco cuentas entran; cada una solo hace lo suyo. Las fotos del parte y el acta al completar un hito se guardan en la caseta (en producción, en el almacén de Google); el sello (hash) va al sobre o al hito. Al marcar un hito acabado, el dinero entra en custodia en el mismo acto. El local en internet ya se ensayó (mostrador con candado HTTPS y tablón en Vercel). Los cuadros de mando están en la segunda caseta de Google.
 
 Vista visual en Cursor (al lado del chat): canvas `informe-progreso-plan-14-dias`. El canvas de planificación no se ha modificado.
 
@@ -40,14 +40,14 @@ Hoy hay **caseta, llaves, pliego, secretaría, tablón, papeles de quién firma 
 
 | | |
 | --- | --- |
-| Días de calendario cerrados | **12 de 14** (días 1 a 12) |
-| Puntos marcados hecho | **58** (prod app 13 sep incluida) |
-| Días por delante | **2** (Grafana + defensa) |
-| Máquina ahora | **fabric-ute apagada**; ledger y certificado HTTPS en disco. Portátil: modo diario local. |
+| Días de calendario cerrados | **13 de 14** (días 1 a 13) |
+| Puntos marcados hecho | **62** (monitorización 14 sep incluida) |
+| Días por delante | **1** (defensa) |
+| Máquina ahora | **fabric-ute y monitoring-ute apagadas**; ledger, Caddy y Grafana en disco. |
 
-El día 12 cerró el local en internet (mostrador HTTPS + proyecto Vercel Hobby). Falta que el deploy de Next quede Ready (Root `frontend`) e invitar a `DomingoMr`.
+El día 13 cerró los termómetros (Prometheus 3 d + Grafana + 3 alertas) y volvió a recorrer el guion con el candado HTTPS. Falta el ensayo de defensa y redeploy Vercel de `/monitor`.
 
-**Siguiente paso del plan:** día 13, VM `monitoring-ute` y las 3 alertas.
+**Siguiente paso del plan:** día 14, encender las dos VMs 30–60 min antes, tres ensayos, sin deploys.
 
 ---
 
@@ -81,15 +81,19 @@ La secretaría pregunta a la oficina que tiene que firmar. El tablón mira qué 
 
 Oficinas y mostrador en la máquina de Google. Candado HTTPS en `ute-tfm.duckdns.org`. Fotos en el almacén GCS. Tablón publicado (hay que reclamar el enlace de Vercel a la cuenta Hobby). El local se apaga al terminar el ensayo; el libro y el candado siguen en el disco.
 
-### 8. Lo que aún no existe — pendiente
+### 8. Los cuadros de mando — hecho (día 13)
 
-Los cuadros de mando (día 13) y el ensayo de defensa (día 14).
+Una segunda caseta en Google mira si las oficinas contestan, si el libro tarda más de cinco segundos en sellar un folio y si más de un 5 % de las firmas fallan. El tablón puede enseñar esos termómetros dentro de un marco.
+
+### 9. Lo que aún no existe — pendiente
+
+El ensayo de defensa (día 14).
 
 ---
 
 ## Estado de la máquina
 
-El **local en internet está apagado** (`fabric-ute` TERMINATED). En el portátil puede seguir el modo diario. El libro de la obra y el candado HTTPS quedan en el disco de la VM.
+El **local y los termómetros están apagados** (`fabric-ute` y `monitoring-ute` TERMINATED). En el portátil puede seguir el modo diario. El libro, el candado HTTPS y Grafana quedan en disco.
 
 ---
 
@@ -443,7 +447,7 @@ Huecos locales después del día 9. El alquiler del local (día 10 tarde) sigue 
 
 ## Qué no está hecho todavía
 
-No hay cuadros de mando demostrados con tráfico. El local en internet está ensayado y apagado.
+No hay ensayo de defensa grabado. El local y los termómetros están ensayados y apagados.
 
 ### Lo que tienes que hacer tú
 
@@ -451,14 +455,14 @@ Estas cuentas no bloquean el trabajo en casa; sí bloquean publicar más adelant
 
 - Entrar en GitHub e invitar a `DomingoMr`.
 - Cuenta Google Cloud, crédito 300 USD y alertas de gasto.
-- Cuenta Vercel Hobby: proyecto `ute-block-chain`. En Settings, Root Directory = `frontend` y Redeploy (la URL ahora da 404).
+- Cuenta Vercel Hobby: proyecto `ute-block-chain`. Redeploy Next (Root `frontend`) para la ruta `/monitor`. El kiosco Grafana ya responde en `https://ute-tfm.duckdns.org/grafana/...`.
 
 ### Lo que falta del plan
 
 - **Día 10** — hecho (SAN + VM apagada).
 - **Día 11** — hecho (freeze + RAM).
 - **Día 12** — hecho (oficinas + mostrador HTTPS + GCS; tablón Vercel a reclamar).
-- **Día 13** — termómetros (cuadros de mando) y ensayo de calidad.
+- **Día 13** — hecho (termómetros + 3 alertas + colchón TLS).
 - **Día 14** — defensa (encender, sembrar datos, tres pases, vídeo).
 
-Siguiente paso: VM `monitoring-ute` y las 3 alertas.
+Siguiente paso: día 14, sin deploys.

@@ -1,10 +1,11 @@
 COMPOSE_DEV := docker compose -f network/docker-compose.dev.yaml
 COMPOSE_FULL := docker compose -f network/docker-compose.full.yaml
 COMPOSE_MON := docker compose -f monitoring/docker-compose.yaml
+COMPOSE_MON_PROD := docker compose -f monitoring/docker-compose.prod.yaml
 COMPOSE_PROD := docker compose -f network/docker-compose.production.yaml
 ART_BLOCKS := network/channel-artifacts/*.block network/channel-artifacts/*.tx channel-obra.block
 
-.PHONY: crypto crypto-prod channel-dev channel-full channel-prod up-dev down-dev logs-dev up-full down-full logs-full up-prod down-prod logs-prod verify-full reset-dev reset-full reset-demo-dev reset-demo-full clean-offchain seed monitoring-up monitoring-down ps clean-artifacts test-cc deploy-hito deploy-pago deploy-incidencia deploy-estado deploy-cc deploy-cc-prod init-pago init-estado verify-cc verify-api verify-pdc verify-ui api-up api-down ui-up pdc-up pdc-down
+.PHONY: crypto crypto-prod channel-dev channel-full channel-prod up-dev down-dev logs-dev up-full down-full logs-full up-prod down-prod logs-prod verify-full reset-dev reset-full reset-demo-dev reset-demo-full clean-offchain seed monitoring-up monitoring-down monitoring-up-prod monitoring-down-prod ps clean-artifacts test-cc deploy-hito deploy-pago deploy-incidencia deploy-estado deploy-cc deploy-cc-prod init-pago init-estado verify-cc verify-api verify-pdc verify-ui api-up api-down ui-up pdc-up pdc-down
 
 crypto:
 	./network/scripts/generate-crypto.sh
@@ -132,6 +133,14 @@ monitoring-up:
 
 monitoring-down:
 	$(COMPOSE_MON) down --remove-orphans
+
+monitoring-up-prod:
+	set -e; \
+	if [ -f monitoring/.env ]; then set -a && . ./monitoring/.env && set +a; fi; \
+	$(COMPOSE_MON_PROD) --profile alert-demo up -d
+
+monitoring-down-prod:
+	$(COMPOSE_MON_PROD) --profile alert-demo down --remove-orphans
 
 ps:
 	docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"

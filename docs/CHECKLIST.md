@@ -2,7 +2,7 @@
 
 **Fuente de verdad.** El resto de `docs/` apunta aquí.
 Leyenda: **HECHO** · **EN CURSO** · **PENDIENTE**
-Actualizado: 13 sep 2026.
+Actualizado: 14 sep 2026.
 
 | | |
 | --- | --- |
@@ -233,16 +233,16 @@ Caddy **sí** este día (solo API; Let's Encrypt). Grafana y `monitoring-ute` no
 
 ---
 
-## Día 13 — Monitorización + QA · PENDIENTE
+## Día 13 — Monitorización + QA · HECHO (14 sep 2026)
 
-Compose local ya tiene: red `ute-net`, puertos operations, `alerts.yml` (3 alertas del PDF), provisioning Grafana.
+Compose local ya tenía: red `ute-net`, puertos operations, `alerts.yml` (3 alertas del PDF), provisioning Grafana. Runtime GCP + capturas: [INFORME-TECNICO.md](INFORME-TECNICO.md).
 
 | Estado | Tarea | Hecho si |
 | --- | --- | --- |
-| PENDIENTE | VM `monitoring-ute` (e2-small si e2-micro OOM) | |
-| PENDIENTE | Prometheus 3 d, Grafana, Caddy 2.11.4 | iframe defensa |
-| PENDIENTE | Demostrar las 3 alertas: peer caído, bloque > 5 s, endorsement > 5 % | captura Grafana/Prometheus |
-| PENDIENTE | Flujo demo + colchón TLS | |
+| HECHO | VM `monitoring-ute` (e2-small; e2-micro OOM) | `e2-small` `10.8.0.3` / `34.38.37.200`; RAM ~505 MiB / 1,9 GiB |
+| HECHO | Prometheus 3 d, Grafana 12.4.1, Caddy 2.11.4 | scrape VPC UP; iframe `https://ute-tfm.duckdns.org/grafana/d/ute-fabric/...&kiosk`; `/monitor` |
+| HECHO | Demostrar las 3 alertas: peer caído, bloque > 5 s, endorsement > 5 % | `ALERTS` firing: PeerCaido (stop peer A), LatenciaBloqueAlta + ErrorEndorsementAlto (`alert-demo`) |
+| HECHO | Flujo demo + colchón TLS | seed `H-d13` COMPLETADO bloque 83 + `pago-H-d13` AUTORIZADO + webhook; LE `notAfter=Dec 12 2026` |
 
 ---
 

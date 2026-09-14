@@ -422,3 +422,70 @@ El proyecto Hobby existe; el Production Domain aún no tiene un deploy Next Read
 
 Sin `monitoring-ute`. Sin Render. `fabric-ute` RUNNING para el ensayo Vercel.
 
+## 14 sep 2026 — Día 13 monitorización + QA
+
+GCP `ute-tfm` / `europe-west1-b`. `fabric-ute` ya RUNNING (ledger día 12). Nueva VM `monitoring-ute` **e2-small** (2 GB; e2-micro 1 GB no cabe Grafana+Prometheus). Privada `10.8.0.3`, IP `monitoring-ute-ip` = `34.38.37.200`. Firewall `ute-allow-ops-vpc`: 8443–8445, 9444–9448, 4000, 3000, 8080, 9100, 9090 solo `10.8.0.0/24`. 7051 y `/metrics` de peers no a Internet.
+
+API prod bind `0.0.0.0:4000` (VPC). Caddy `ute-tfm.duckdns.org/grafana*` → `10.8.0.3:3000`. Grafana 12.4.1 `GF_SECURITY_ALLOW_EMBEDDING=true`, `SERVE_FROM_SUB_PATH`, ROOT_URL `https://ute-tfm.duckdns.org/grafana`. Prometheus v3.14.0 `--storage.tsdb.retention.time=3d`. Caddy 2.11.4 en monitoring-ute (localhost). Cadvisor/node-exporter: imagen cadvisor pin falló (`gcr.io` v0.56.1 / `ghcr.io` v0.49.1 not found); scrape `fabric-exporters` DOWN. Las 3 alertas del PDF no lo necesitan.
+
+```
+docker stats --no-stream  (monitoring-ute e2-small)
+NAME             MEM USAGE / LIMIT
+prometheus       106.5MiB / 512MiB
+grafana          264.4MiB / 512MiB
+ute-caddy-mon    55.63MiB / 128MiB
+ute-alert-demo   22.66MiB / 1.919GiB
+Mem: 1.9Gi total, ~505Mi used, 1.3Gi available
+```
+
+Targets Prometheus (VPC):
+
+```
+up      fabric-peers     peer0.empresaa.ute.prod:9444
+up      fabric-peers     peer0.administracion.ute.prod:9445
+up      fabric-peers     peer0.empresab.ute.prod:9446
+up      fabric-peers     peer0.empresac.ute.prod:9447
+up      fabric-peers     peer0.empresad.ute.prod:9448
+up      fabric-orderers  orderer1/2/3.ute.prod:8443-8445
+up      backend          fabric-ute:4000
+up      alert-demo       alert-demo:9105
+down    fabric-exporters fabric-ute:8080 / :9100
+retention 3d
+```
+
+Alertas firing (`GET /api/v1/query?query=ALERTS`, 14 sep 18:42Z):
+
+```
+PeerCaido            firing  peer0.empresaa.ute.prod:9444  critical   docker stop 75s+
+LatenciaBloqueAlta   firing  alert-demo:9105               warning    exporter ensayo (p99>5s)
+ErrorEndorsementAlto firing                                warning    exporter ensayo (>5 %)
+```
+
+`alerts.yml` del PDF no se cambió. Latencia/endorsement reales en e2-standard-4 no llegan a 5 s / 5 %; `monitoring/alert-demo-exporter.py` (profile `alert-demo`) incrementa histogram/counters para que `rate()` no sea 0. PeerCaido es stop real del peer A (`up==0`).
+
+Iframe: `https://ute-tfm.duckdns.org/grafana/d/ute-fabric/ute-fabric?orgId=1&refresh=10s&kiosk&theme=light` → HTTP/2 200, sin `X-Frame-Options`. UI `/monitor`. Vercel `/monitor` sigue 404 hasta redeploy Next (Root `frontend`).
+
+Flujo demo (seed, no SEED_EMPTY):
+
+```
+SEED_HITO_ID=H-d13 SEED_INC_A=I-d13-A SEED_INC_B=I-d13-B ./network/scripts/seed-data.sh
+H-d13 COMPLETADO hash ae8f0dd60a17e30f bloque 83
+pago-H-d13 AUTORIZADO
+GET /mock/banco/pagos  evento pago-H-d13 2026-09-14T18:43:17.122Z  35/25/20/20
+I-d13-A + I-d13-B creadas
+Explorer height 87
+GET /red  5 peers true
+```
+
+Colchón TLS (mismo volumen Caddy día 12):
+
+```
+curl -I https://ute-tfm.duckdns.org/health → HTTP/2 200 via Caddy
+issuer=C = US, O = Let's Encrypt, CN = YE2
+subject=CN = ute-tfm.duckdns.org
+notBefore=Sep 13 11:13:41 2026 GMT
+notAfter=Dec 12 11:13:40 2026 GMT
+```
+
+VMs apagadas al terminar (`fabric-ute`, `monitoring-ute`). IP y discos se conservan. Día 14: encender 30–60 min antes.
+

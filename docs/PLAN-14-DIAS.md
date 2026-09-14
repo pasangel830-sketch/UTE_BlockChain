@@ -37,7 +37,7 @@ PC: Windows 11, 16 GB. Docker Engine en WSL2 (Ubuntu 22.04, ext4 `~/ute/app`). S
 
 5 sesiones, Explorer con txs, errores en castellano, guardas de rol en API (31 ago – 6 sep). Políticas de commit y gateway al peer que endosa (9 sep). Evidencias de hito e incidencia + `completarHito` → pago en el mismo tx (11 sep, en `develop`). Explorer vacía snapshot si cambia el génesis (13 sep, `4781f87`). Detalle UI: [MEJORAS-UI.md](MEJORAS-UI.md). Desviación invoke Hito→Pago: [MEMORIA-NOTAS.md](MEMORIA-NOTAS.md).
 
-Estado a 13 sep: días 1–12 cerrados. VM `fabric-ute` **STOP** (ledger + Let's Encrypt en disco). Freeze de features. Siguiente fila: día 13 (Grafana + 3 alertas).
+Estado a 14 sep: días 1–13 cerrados. VMs `fabric-ute` y `monitoring-ute` se apagan al acabar el ensayo. Siguiente fila: día 14 (defensa, sin deploys).
 
 ## Calendario
 
